@@ -1,0 +1,14 @@
+# Ignorar directorios de compilacion
+build/
+build-*/
+*/build/*
+# Ignorar archivos temporales de CMake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+*.cmake
+cmake_install.cmake
+# Ignorar configuraciones locales de Qt Creator
+*.user
+*.user.*
+.qtcreator/

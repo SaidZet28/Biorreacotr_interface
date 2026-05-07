@@ -35,8 +35,8 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: modelData === "DEL" ? qsTr("DEL")
-                        : modelData === "OK"  ? qsTr("OK")
+                    text: modelData === "DEL" ? qsTranslate("Main", "DEL")
+                        : modelData === "OK"  ? qsTranslate("Main", "OK")
                         : modelData
                     font.pixelSize: parent.height * 0.40
                     color: (modelData === "OK" || modelData === "DEL") ? "#F5F5F5" : "#4A4A4A"

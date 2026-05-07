@@ -53,7 +53,7 @@ Item {
             onClicked: appWindow.estadoActual = "pantalla_configuracion_graficas"
         }
         Text {
-            text: qsTr("Gráfica de :")
+            text: qsTranslate("Main", "Gráfica de :")
             font.pixelSize: parent.height * 0.08
             font.bold: true
             color: "black"
@@ -97,43 +97,43 @@ Item {
             height: appWindow.height * 0.08
             color: "#8DBB5A"
             radius: height / 2
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.var_sensor_Tem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.var_sensor_Tem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.var_deseada_Tem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.var_deseada_Tem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
             color: "#8DBB5A"
             radius: height / 2
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTr("N. pH: %1").arg(appWindow.var_sensor_pH.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(appWindow.var_sensor_pH.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTr("N. pH: %1").arg(appWindow.var_deseada_pH.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(appWindow.var_deseada_pH.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
             color: "#8DBB5A"
             radius: height / 2
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTr("N. Agua: %1%").arg(appWindow.var_sensor_Agua.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Agua: %1%").arg(appWindow.var_sensor_Agua.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTr("N. Agua: %1%").arg(appWindow.var_deseada_Agua.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Agua: %1%").arg(appWindow.var_deseada_Agua.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
             color: "#8DBB5A"
             radius: height / 2
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTr("N. Luz: %1%").arg(appWindow.var_sensor_Luz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Luz: %1%").arg(appWindow.var_sensor_Luz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTr("N. Luz: %1%").arg(appWindow.var_deseada_Luz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Luz: %1%").arg(appWindow.var_deseada_Luz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
             color: "#8DBB5A"
             radius: height / 2
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTr("N. CO2: %1 ppm").arg(appWindow.var_sensor_CO2.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. CO2: %1 ppm").arg(appWindow.var_sensor_CO2.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
     }
 
@@ -201,7 +201,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     property int t_h: Math.floor(appWindow.var_deseada_tiempo_total_horas)
                     property int t_m: Math.round((appWindow.var_deseada_tiempo_total_horas - t_h) * 60)
-                    text: qsTr("Tiempo total: %1 h %2 min").arg(t_h).arg(t_m)
+                    text: qsTranslate("Main", "Tiempo total: %1 h %2 min").arg(t_h).arg(t_m)
                     font.pixelSize: parent.height * 0.55
                     font.bold: true
                     color: "black"
@@ -219,7 +219,7 @@ Item {
                     property real e_total: root.progresoSimulado * appWindow.var_deseada_tiempo_total_horas
                     property int e_h: Math.floor(e_total)
                     property int e_m: Math.round((e_total - e_h) * 60)
-                    text: qsTr("Tiempo transcurrido: %1 h %2 min").arg(e_h).arg(e_m)
+                    text: qsTranslate("Main", "Tiempo transcurrido: %1 h %2 min").arg(e_h).arg(e_m)
                     font.pixelSize: parent.height * 0.55
                     font.bold: true
                     color: "black"
@@ -278,7 +278,7 @@ Item {
                 radius: 20
                 Text {
                     anchors.centerIn: parent
-                    text: qsTr("Detener\nproceso")
+                    text: qsTranslate("Main", "Detener\nproceso")
                     font.pixelSize: parent.height * 0.20
                     font.bold: true
                     color: "black"
@@ -339,7 +339,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("¿Seguro que deseas detener el proceso?")
+                text: qsTranslate("Main", "¿Seguro que deseas detener el proceso?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -357,7 +357,7 @@ Item {
                 radius: height / 2
                 Text {
                     anchors.centerIn: parent
-                    text: qsTr("Okay")
+                    text: qsTranslate("Main", "Okay")
                     font.pixelSize: parent.height * 0.40
                     font.bold: true
                     color: "black"
@@ -424,7 +424,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: -parent.height * 0.10
-                text: qsTr("Proceso\nfinalizado")
+                text: qsTranslate("Main", "Proceso\nfinalizado")
                 font.pixelSize: parent.height * 0.20
                 font.bold: true
                 color: "black"
@@ -441,7 +441,7 @@ Item {
                 radius: height / 2
                 Text {
                     anchors.centerIn: parent
-                    text: qsTr("Okay")
+                    text: qsTranslate("Main", "Okay")
                     font.pixelSize: parent.height * 0.40
                     font.bold: true
                     color: "black"

@@ -19,7 +19,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
         }
         Text {
-            text: qsTr("Se detectó un error :(")
+            text: qsTranslate("Main", "Se detectó un error :(")
             font.pixelSize: appWindow.height * 0.08
             font.bold: true
             color: "black"
@@ -29,7 +29,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 15
             Text {
-                text: qsTr("Error:")
+                text: qsTranslate("Main", "Error:")
                 font.pixelSize: appWindow.height * 0.06
                 font.bold: true
                 color: "black"
@@ -54,7 +54,7 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            text: qsTr("Okay")
+            text: qsTranslate("Main", "Okay")
             color: "black"
             font.pixelSize: parent.height * 0.40
             font.bold: true

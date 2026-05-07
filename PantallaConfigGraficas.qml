@@ -8,7 +8,7 @@ Item {
     visible: appWindow.estadoActual === "pantalla_configuracion_graficas"
 
     Text {
-        text: qsTr("Selecciona la gráfica deseada")
+        text: qsTranslate("Main", "Selecciona la gráfica deseada")
         font.pixelSize: appWindow.height * 0.08
         font.bold: true
         color: "black"
@@ -31,7 +31,7 @@ Item {
             color: appWindow.var_seleccion_grafica === 1 ? "#7da84c" : "#8DBB5A"
             border.width: appWindow.var_seleccion_grafica === 1 ? 4 : 0
             border.color: "#4a6b4a"
-            Text { anchors.centerIn: parent; text: qsTr("Temperatura °%1").arg(appWindow.unidadTemperatura); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: qsTranslate("Main", "Temperatura °%1").arg(appWindow.unidadTemperatura); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             MouseArea { anchors.fill: parent; onClicked: appWindow.var_seleccion_grafica = 1 }
         }
         Rectangle {
@@ -41,7 +41,7 @@ Item {
             color: appWindow.var_seleccion_grafica === 2 ? "#7da84c" : "#8DBB5A"
             border.width: appWindow.var_seleccion_grafica === 2 ? 4 : 0
             border.color: "#4a6b4a"
-            Text { anchors.centerIn: parent; text: qsTr("Nivel Agua"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: qsTranslate("Main", "Nivel Agua"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             MouseArea { anchors.fill: parent; onClicked: appWindow.var_seleccion_grafica = 2 }
         }
         Rectangle {
@@ -51,7 +51,7 @@ Item {
             color: appWindow.var_seleccion_grafica === 3 ? "#7da84c" : "#8DBB5A"
             border.width: appWindow.var_seleccion_grafica === 3 ? 4 : 0
             border.color: "#4a6b4a"
-            Text { anchors.centerIn: parent; text: qsTr("Nivel de pH"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: qsTranslate("Main", "Nivel de pH"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             MouseArea { anchors.fill: parent; onClicked: appWindow.var_seleccion_grafica = 3 }
         }
         Rectangle {
@@ -61,7 +61,7 @@ Item {
             color: appWindow.var_seleccion_grafica === 4 ? "#7da84c" : "#8DBB5A"
             border.width: appWindow.var_seleccion_grafica === 4 ? 4 : 0
             border.color: "#4a6b4a"
-            Text { anchors.centerIn: parent; text: qsTr("Nivel de Luz"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: qsTranslate("Main", "Nivel de Luz"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             MouseArea { anchors.fill: parent; onClicked: appWindow.var_seleccion_grafica = 4 }
         }
     }

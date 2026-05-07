@@ -19,7 +19,7 @@ Item {
             color: areaNuevaConfig.pressed ? "#7da84c" : "#8DBB5A"
             Text {
                 anchors.centerIn: parent
-                text: qsTr("Nueva\nconfiguración")
+                text: qsTranslate("Main", "Nueva\nconfiguración")
                 font.pixelSize: parent.height * 0.15
                 font.bold: true
                 color: "black"
@@ -44,7 +44,7 @@ Item {
             color: areaComenzarExtraccion.pressed ? "#5a8282" : "#6E9C9C"
             Text {
                 anchors.centerIn: parent
-                text: qsTr("Comenzar\nextracción")
+                text: qsTranslate("Main", "Comenzar\nextracción")
                 font.pixelSize: parent.height * 0.15
                 font.bold: true
                 color: "black"

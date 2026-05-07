@@ -19,7 +19,7 @@ Item {
             radius: 20
             Text {
                 anchors.centerIn: parent
-                text: qsTr("Proyectos\nguardados")
+                text: qsTranslate("Main", "Proyectos\nguardados")
                 horizontalAlignment: Text.AlignHCenter
                 color: "black"
                 font.pixelSize: parent.height * 0.15
@@ -38,7 +38,7 @@ Item {
             radius: 20
             Text {
                 anchors.centerIn: parent
-                text: qsTr("Nuevo\nproyecto")
+                text: qsTranslate("Main", "Nuevo\nproyecto")
                 horizontalAlignment: Text.AlignHCenter
                 color: "black"
                 font.pixelSize: parent.height * 0.15

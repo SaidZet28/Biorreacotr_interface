@@ -30,23 +30,23 @@ Item {
             Item { width: parent.width * 0.04; height: parent.height }
             Item {
                 width: parent.width * 0.18; height: parent.height
-                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTr("Proyecto"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
+                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTranslate("Main", "Proyecto"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
             }
             Item {
                 width: parent.width * 0.18; height: parent.height
-                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTr("Experimento"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
+                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTranslate("Main", "Experimento"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
             }
             Item {
                 width: parent.width * 0.14; height: parent.height
-                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTr("Fecha"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
+                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTranslate("Main", "Fecha"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
             }
             Item {
                 width: parent.width * 0.18; height: parent.height
-                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTr("Tiempo"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
+                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTranslate("Main", "Tiempo"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
             }
             Item {
                 width: parent.width * 0.12; height: parent.height
-                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTr("Tamaño"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
+                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTranslate("Main", "Tamaño"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
             }
             Item { width: parent.width * 0.10; height: parent.height }
         }
@@ -135,7 +135,7 @@ Item {
                         height: parent.height * 0.6
                         radius: height / 2
                         color: areaBotonExportar.pressed ? "#b5b5b5" : "#E0E0E0"
-                        Text { anchors.centerIn: parent; text: qsTr("Exportar"); font.pixelSize: parent.height * 0.35; font.bold: true; color: "black" }
+                        Text { anchors.centerIn: parent; text: qsTranslate("Main", "Exportar"); font.pixelSize: parent.height * 0.35; font.bold: true; color: "black" }
                         MouseArea {
                             id: areaBotonExportar
                             anchors.fill: parent
@@ -189,7 +189,7 @@ Item {
             radius: height / 2
             color: areaMouseEliminar.pressed ? "#a02020" : "#FF2D2D"
             visible: root.modoBorrar && root.itemsSeleccionados > 0
-            Text { anchors.centerIn: parent; text: qsTr("Borrar"); color: "white"; font.pixelSize: parent.height * 0.40; font.bold: true }
+            Text { anchors.centerIn: parent; text: qsTranslate("Main", "Borrar"); color: "white"; font.pixelSize: parent.height * 0.40; font.bold: true }
             MouseArea {
                 id: areaMouseEliminar
                 anchors.fill: parent
@@ -232,7 +232,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("¿Seguro que deseas borrar los documentos seleccionados?")
+                text: qsTranslate("Main", "¿Seguro que deseas borrar los documentos seleccionados?")
                 font.pixelSize: parent.height * 0.08
                 font.bold: true
                 color: "black"
@@ -250,7 +250,7 @@ Item {
                 anchors.leftMargin: parent.width * 0.10
                 color: areaOkConfirmarBorrado.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkConfirmarBorrado
                     anchors.fill: parent

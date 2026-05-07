@@ -72,28 +72,28 @@ Item {
         BarraInputConfig {
             idCampo: "Tem"
             campoActivo: root.campoActivo
-            textoEtiqueta: qsTr("Temperatura:")
+            textoEtiqueta: qsTranslate("Main", "Temperatura:")
             valorMostrado: (root.campoActivo === "Tem" ? root.entradaTemporal + "|" : appWindow.var_deseada_Tem) + " °" + appWindow.unidadTemperatura
             onBarraClicada: { root.campoActivo = "Tem"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
             idCampo: "pH"
             campoActivo: root.campoActivo
-            textoEtiqueta: qsTr("Nivel de pH:")
+            textoEtiqueta: qsTranslate("Main", "Nivel de pH:")
             valorMostrado: (root.campoActivo === "pH" ? root.entradaTemporal + "|" : appWindow.var_deseada_pH)
             onBarraClicada: { root.campoActivo = "pH"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
             idCampo: "Agua"
             campoActivo: root.campoActivo
-            textoEtiqueta: qsTr("Nivel de agua:")
+            textoEtiqueta: qsTranslate("Main", "Nivel de agua:")
             valorMostrado: (root.campoActivo === "Agua" ? root.entradaTemporal + "|" : appWindow.var_deseada_Agua) + " %"
             onBarraClicada: { root.campoActivo = "Agua"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
             idCampo: "Luz"
             campoActivo: root.campoActivo
-            textoEtiqueta: qsTr("Nivel de luz:")
+            textoEtiqueta: qsTranslate("Main", "Nivel de luz:")
             valorMostrado: (root.campoActivo === "Luz" ? root.entradaTemporal + "|" : appWindow.var_deseada_Luz) + " %"
             onBarraClicada: { root.campoActivo = "Luz"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
@@ -118,7 +118,7 @@ Item {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: qsTr("Semanas: ") + (root.campoActivo === "Semanas" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_semanas)
+                        text: qsTranslate("Main", "Semanas: ") + (root.campoActivo === "Semanas" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_semanas)
                         font.pixelSize: parent.height * 0.35
                         font.bold: true
                     }
@@ -139,7 +139,7 @@ Item {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: qsTr("Días: ") + (root.campoActivo === "Dias" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_dias)
+                        text: qsTranslate("Main", "Días: ") + (root.campoActivo === "Dias" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_dias)
                         font.pixelSize: parent.height * 0.35
                         font.bold: true
                     }
@@ -171,7 +171,7 @@ Item {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: qsTr("Horas: ") + (root.campoActivo === "Horas" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_horas)
+                        text: qsTranslate("Main", "Horas: ") + (root.campoActivo === "Horas" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_horas)
                         font.pixelSize: parent.height * 0.35
                         font.bold: true
                     }
@@ -192,7 +192,7 @@ Item {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: qsTr("Minutos: ") + (root.campoActivo === "Minutos" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_minutos)
+                        text: qsTranslate("Main", "Minutos: ") + (root.campoActivo === "Minutos" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_minutos)
                         font.pixelSize: parent.height * 0.35
                         font.bold: true
                     }
@@ -263,7 +263,7 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            text: qsTr("Okay")
+            text: qsTranslate("Main", "Okay")
             color: "black"
             font.pixelSize: parent.height * 0.40
             font.bold: true
@@ -341,7 +341,7 @@ Item {
     PopupIngresoNombre {
         id: popupGuardado6
         visible: root.mostrarPopupGuardar
-        tituloPopup: qsTr("Ingrese nombre del experimento")
+        tituloPopup: qsTranslate("Main", "Ingrese nombre del experimento")
         nombrePorDefecto: ""
         onAceptado: function(name) {
             var nombreFinal = name.trim();
@@ -350,7 +350,7 @@ Item {
                 nombreFinal = ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + d.getFullYear() + "_" + ("0" + d.getHours()).slice(-2) + "_" + ("0" + d.getMinutes()).slice(-2);
             }
             appWindow.var_nombre_experimento = nombreFinal;
-            appWindow.var_nombre_proyecto = qsTr("Experimento Nuevo");
+            appWindow.var_nombre_proyecto = qsTranslate("Main", "Experimento Nuevo");
             root.mostrarPopupGuardar = false;
             root.mostrarPopupConfirmacion = true;
         }
@@ -415,7 +415,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Por favor, ingrese todos los parámetros")
+                text: qsTranslate("Main", "Por favor, ingrese todos los parámetros")
                 font.pixelSize: parent.height * 0.08
                 font.bold: true
                 color: "black"
@@ -438,7 +438,7 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: qsTr("Okay")
+                    text: qsTranslate("Main", "Okay")
                     color: "black"
                     font.pixelSize: parent.height * 0.40
                     font.bold: true

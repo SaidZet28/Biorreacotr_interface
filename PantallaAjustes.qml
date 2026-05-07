@@ -16,7 +16,7 @@ Item {
     property bool mostrarPopupCreditos: false
 
     Text {
-        text: qsTr("Configuraciones")
+        text: qsTranslate("Main", "Configuraciones")
         font.pixelSize: appWindow.height * 0.08
         font.bold: true
         color: "black"
@@ -31,21 +31,21 @@ Item {
         spacing: appWindow.height * 0.05
 
         BotonAccionVerde {
-            textoBoton: qsTr("Idioma: %1").arg(qsTr(appWindow.idiomaActual))
+            textoBoton: qsTranslate("Main", "Idioma: %1").arg(qsTranslate("Main", appWindow.idiomaActual))
             onClicado: {
                 root.tempIdioma = appWindow.idiomaActual;
                 root.mostrarPopupIdioma = true;
             }
         }
         BotonAccionVerde {
-            textoBoton: qsTr("Unidades: °%1").arg(appWindow.unidadTemperatura)
+            textoBoton: qsTranslate("Main", "Unidades: °%1").arg(appWindow.unidadTemperatura)
             onClicado: {
                 root.tempUnidades = appWindow.unidadTemperatura;
                 root.mostrarPopupUnidades = true;
             }
         }
         BotonAccionVerde {
-            textoBoton: qsTr("Créditos")
+            textoBoton: qsTranslate("Main", "Créditos")
             onClicado: root.mostrarPopupCreditos = true
         }
     }
@@ -91,7 +91,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.08
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Seleccione el Idioma")
+                text: qsTranslate("Main", "Seleccione el Idioma")
                 font.pixelSize: parent.height * 0.08
                 font.bold: true
                 color: "black"
@@ -105,12 +105,12 @@ Item {
 
                 Repeater {
                     model: [
-                        { original: "Español", traducido: qsTr("Español") },
-                        { original: "Inglés", traducido: qsTr("Inglés") },
-                        { original: "Alemán", traducido: qsTr("Alemán") },
-                        { original: "Francés", traducido: qsTr("Francés") },
-                        { original: "Chino", traducido: qsTr("Chino") },
-                        { original: "Japonés", traducido: qsTr("Japonés") }
+                        { original: "Español", traducido: qsTranslate("Main", "Español") },
+                        { original: "Inglés", traducido: qsTranslate("Main", "Inglés") },
+                        { original: "Alemán", traducido: qsTranslate("Main", "Alemán") },
+                        { original: "Francés", traducido: qsTranslate("Main", "Francés") },
+                        { original: "Chino", traducido: qsTranslate("Main", "Chino") },
+                        { original: "Japonés", traducido: qsTranslate("Main", "Japonés") }
                     ]
                     Rectangle {
                         width: appWindow.width * 0.22
@@ -143,7 +143,7 @@ Item {
                 anchors.leftMargin: parent.width * 0.15
                 color: areaOkIdioma.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkIdioma
                     anchors.fill: parent
@@ -202,7 +202,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Unidades de Temperatura")
+                text: qsTranslate("Main", "Unidades de Temperatura")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -223,7 +223,7 @@ Item {
                         border.width: root.tempUnidades === modelData ? 3 : 1
                         Text {
                             anchors.centerIn: parent
-                            text: qsTr("Grados °%1").arg(modelData)
+                            text: qsTranslate("Main", "Grados °%1").arg(modelData)
                             font.pixelSize: parent.height * 0.40
                             font.bold: true
                             color: "black"
@@ -245,7 +245,7 @@ Item {
                 anchors.leftMargin: parent.width * 0.15
                 color: areaOkUnidades.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkUnidades
                     anchors.fill: parent
@@ -299,7 +299,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.08
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Créditos del Proyecto")
+                text: qsTranslate("Main", "Créditos del Proyecto")
                 font.pixelSize: parent.height * 0.08
                 font.bold: true
                 color: "black"
@@ -311,11 +311,11 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 textFormat: Text.RichText
                 horizontalAlignment: Text.AlignHCenter
-                text: "<div align='center'><b>" + qsTr("Hecho por:") + "</b><br>" +
+                text: "<div align='center'><b>" + qsTranslate("Main", "Hecho por:") + "</b><br>" +
                       "Huang Sánchez Jet Ming Adrián<br>" +
                       "Júnez Huerta María Jimena<br>" +
                       "Zesati Márquez Jesús Said<br><br>" +
-                      "<b>" + qsTr("Asesores:") + "</b><br>" +
+                      "<b>" + qsTranslate("Main", "Asesores:") + "</b><br>" +
                       "M. en I. Hernández González Umanel Azazael<br>" +
                       "M. en C. Mirelez Delgado Flabio Dario<br>" +
                       "M. en P. y M. Talavera Otero Jorge</div>"
@@ -331,7 +331,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: areaOkCreditos.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Cerrar"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Cerrar"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkCreditos
                     anchors.fill: parent

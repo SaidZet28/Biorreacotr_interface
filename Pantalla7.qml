@@ -13,14 +13,14 @@ Item {
         spacing: appWindow.height * 0.05
 
         Text {
-            text: qsTr("Calibración rápida")
+            text: qsTranslate("Main", "Calibración rápida")
             font.pixelSize: appWindow.height * 0.10
             font.bold: true
             color: "black"
             anchors.horizontalCenter: parent.horizontalCenter
         }
         Text {
-            text: qsTr("Espere un momento por favor")
+            text: qsTranslate("Main", "Espere un momento por favor")
             font.pixelSize: appWindow.height * 0.05
             font.bold: true
             color: "black"
@@ -56,7 +56,7 @@ Item {
                 appWindow.estadoActual = "pantalla_procesos"
             } else {
                 appWindow.estado_sensor_retorno_error = "pantalla_7"
-                appWindow.textoMensajeError = qsTr("Error en calibración rápida")
+                appWindow.textoMensajeError = qsTranslate("Main", "Error en calibración rápida")
                 appWindow.estadoActual = "pantalla_de_error"
             }
         }

@@ -26,7 +26,7 @@ Item {
         spacing: appWindow.height * 0.10
 
         Text {
-            text: qsTr("¿Desea guardar la\nconfiguración?")
+            text: qsTranslate("Main", "¿Desea guardar la\nconfiguración?")
             font.pixelSize: appWindow.height * 0.12
             font.bold: true
             color: "black"
@@ -43,7 +43,7 @@ Item {
                 height: appWindow.height * 0.15
                 radius: 30
                 color: areaBtnSi.pressed ? "#6b42b5" : "#8b5cf6"
-                Text { anchors.centerIn: parent; text: qsTr("Si"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Si"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaBtnSi
                     anchors.fill: parent
@@ -56,7 +56,7 @@ Item {
                 height: appWindow.height * 0.15
                 radius: 30
                 color: areaBtnNo.pressed ? "#cc1e1e" : "#FF2D2D"
-                Text { anchors.centerIn: parent; text: qsTr("No"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "No"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaBtnNo
                     anchors.fill: parent
@@ -81,7 +81,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("¿Seguro que no deseas guardar la configuración?")
+                text: qsTranslate("Main", "¿Seguro que no deseas guardar la configuración?")
                 font.pixelSize: parent.height * 0.08
                 font.bold: true
                 color: "black"
@@ -98,7 +98,7 @@ Item {
                 anchors.leftMargin: parent.width * 0.10
                 color: areaOkNoConfirmado.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkNoConfirmado
                     anchors.fill: parent
@@ -123,7 +123,7 @@ Item {
     PopupIngresoNombre {
         id: popupGuardadoProyecto13
         visible: root.mostrarPopupIngresoNombre
-        tituloPopup: qsTr("Ingrese el nombre del proyecto")
+        tituloPopup: qsTranslate("Main", "Ingrese el nombre del proyecto")
         nombrePorDefecto: ""
         onAceptado: function(name) {
             var nombreFinal = name.trim();
@@ -158,7 +158,7 @@ Item {
                 anchors.topMargin: cajaPopupGuardar13.height * 0.05
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width * 0.9
-                text: qsTr("El proyecto se guardará como:")
+                text: qsTranslate("Main", "El proyecto se guardará como:")
                 font.pixelSize: cajaPopupGuardar13.height * 0.06
                 font.bold: false
                 color: "#cc0000"
@@ -174,7 +174,7 @@ Item {
 
                 Text {
                     textFormat: Text.RichText
-                    text: qsTr("Proyecto: <b>%1</b>").arg(appWindow.var_nombre_proyecto)
+                    text: qsTranslate("Main", "Proyecto: <b>%1</b>").arg(appWindow.var_nombre_proyecto)
                     font.pixelSize: cajaPopupGuardar13.height * 0.055
                     color: "black"
                     width: parent.width
@@ -186,7 +186,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTr("Temperatura: <b>%1 °%2</b>").arg(appWindow.var_deseada_Tem).arg(appWindow.unidadTemperatura)
+                        text: qsTranslate("Main", "Temperatura: <b>%1 °%2</b>").arg(appWindow.var_deseada_Tem).arg(appWindow.unidadTemperatura)
                         font.pixelSize: cajaPopupGuardar13.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -194,7 +194,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTr("Nivel de pH: <b>%1</b>").arg(appWindow.var_deseada_pH)
+                        text: qsTranslate("Main", "Nivel de pH: <b>%1</b>").arg(appWindow.var_deseada_pH)
                         font.pixelSize: cajaPopupGuardar13.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -206,7 +206,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTr("Nivel de agua: <b>%1 %</b>").arg(appWindow.var_deseada_Agua)
+                        text: qsTranslate("Main", "Nivel de agua: <b>%1 %</b>").arg(appWindow.var_deseada_Agua)
                         font.pixelSize: cajaPopupGuardar13.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -214,7 +214,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTr("Nivel de luz: <b>%1 %</b>").arg(appWindow.var_deseada_Luz)
+                        text: qsTranslate("Main", "Nivel de luz: <b>%1 %</b>").arg(appWindow.var_deseada_Luz)
                         font.pixelSize: cajaPopupGuardar13.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -222,7 +222,7 @@ Item {
                 }
                 Text {
                     textFormat: Text.RichText
-                    text: qsTr("Tiempo: Semanas <b>%1</b>, Días <b>%2</b>, Horas <b>%3</b>, Minutos <b>%4</b> (Total: <b>%5 Hrs</b>)").arg(appWindow.var_deseada_tiempo_semanas).arg(appWindow.var_deseada_tiempo_dias).arg(appWindow.var_deseada_tiempo_horas).arg(appWindow.var_deseada_tiempo_minutos).arg(appWindow.var_deseada_tiempo_total_horas.toFixed(1))
+                    text: qsTranslate("Main", "Tiempo: Semanas <b>%1</b>, Días <b>%2</b>, Horas <b>%3</b>, Minutos <b>%4</b> (Total: <b>%5 Hrs</b>)").arg(appWindow.var_deseada_tiempo_semanas).arg(appWindow.var_deseada_tiempo_dias).arg(appWindow.var_deseada_tiempo_horas).arg(appWindow.var_deseada_tiempo_minutos).arg(appWindow.var_deseada_tiempo_total_horas.toFixed(1))
                     font.pixelSize: cajaPopupGuardar13.height * 0.055
                     color: "black"
                     width: parent.width
@@ -239,7 +239,7 @@ Item {
                 height: appWindow.height * 0.10
                 color: areaOkGuardarFinal.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); color: "black"; font.pixelSize: parent.height * 0.40; font.bold: true }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); color: "black"; font.pixelSize: parent.height * 0.40; font.bold: true }
                 MouseArea {
                     id: areaOkGuardarFinal
                     anchors.fill: parent
@@ -295,7 +295,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: -parent.height * 0.10
-                text: qsTr("Guardado :D")
+                text: qsTranslate("Main", "Guardado :D")
                 font.pixelSize: parent.height * 0.25
                 font.bold: true
                 color: "black"
@@ -309,7 +309,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: areaOkPopGuardado.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkPopGuardado
                     anchors.fill: parent

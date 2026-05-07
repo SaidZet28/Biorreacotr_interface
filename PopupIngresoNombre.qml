@@ -7,7 +7,7 @@ Item {
     z: 100
     visible: false
 
-    property string tituloPopup: qsTr("Ingrese nombre")
+    property string tituloPopup: qsTranslate("Main", "Ingrese nombre")
     property string nombrePorDefecto: ""
     property bool tecladoVisible: false
 
@@ -98,7 +98,7 @@ Item {
 
             Text {
                 anchors.centerIn: parent
-                text: qsTr("Okay")
+                text: qsTranslate("Main", "Okay")
                 color: "black"
                 font.pixelSize: parent.height * 0.40
                 font.bold: true

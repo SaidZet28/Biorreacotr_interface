@@ -37,7 +37,7 @@ Item {
         spacing: appWindow.height * 0.01
 
         Text {
-            text: qsTr("Proyectos Guardados")
+            text: qsTranslate("Main", "Proyectos Guardados")
             font.pixelSize: appWindow.height * 0.06
             font.bold: true
             color: "black"
@@ -120,17 +120,17 @@ Item {
                     anchors.fill: parent
                     anchors.margins: parent.width * 0.08
                     spacing: parent.height * 0.015
-                    Text { text: qsTr("Proyecto %1:").arg(index + 1); font.pixelSize: parent.height * 0.08; font.bold: true; color: "black" }
+                    Text { text: qsTranslate("Main", "Proyecto %1:").arg(index + 1); font.pixelSize: parent.height * 0.08; font.bold: true; color: "black" }
                     Text { text: model.nombre; font.pixelSize: parent.height * 0.07; font.bold: true; color: "black"; width: parent.width; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
                     Item { height: parent.height * 0.01; width: 1 }
                     Text {
-                        text: qsTr("Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.unidadTemperatura === "C" ? model.temp : (model.temp * 9/5 + 32).toFixed(1))
+                        text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.unidadTemperatura === "C" ? model.temp : (model.temp * 9/5 + 32).toFixed(1))
                         font.pixelSize: parent.height * 0.06; font.bold: true; color: "black"
                     }
-                    Text { text: qsTr("Nivel pH: %1").arg(model.ph); font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }
-                    Text { text: qsTr("Nivel agua: %1 %").arg(model.agua); font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }
-                    Text { text: qsTr("Nivel luz: %1 %").arg(model.luz); font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }
-                    Text { text: qsTr("Tiempo: %1 hrs").arg(model.tiempo); font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }
+                    Text { text: qsTranslate("Main", "Nivel pH: %1").arg(model.ph); font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }
+                    Text { text: qsTranslate("Main", "Nivel agua: %1 %").arg(model.agua); font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }
+                    Text { text: qsTranslate("Main", "Nivel luz: %1 %").arg(model.luz); font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }
+                    Text { text: qsTranslate("Main", "Tiempo: %1 hrs").arg(model.tiempo); font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }
                 }
 
                 MouseArea {
@@ -198,7 +198,7 @@ Item {
     PopupIngresoNombre {
         id: popupGuardar9
         visible: root.mostrarPopupGuardar
-        tituloPopup: qsTr("Ingrese nombre del experimento")
+        tituloPopup: qsTranslate("Main", "Ingrese nombre del experimento")
         onAceptado: function(name) {
             var nombreFinal = name.trim();
             if (nombreFinal === "") {
@@ -263,7 +263,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Opciones del proyecto")
+                text: qsTranslate("Main", "Opciones del proyecto")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -346,7 +346,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("¿Desea borrar este proyecto guardado?")
+                text: qsTranslate("Main", "¿Desea borrar este proyecto guardado?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -364,7 +364,7 @@ Item {
                 anchors.leftMargin: parent.width * 0.10
                 color: areaOkBorrar.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkBorrar
                     anchors.fill: parent
@@ -467,7 +467,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: 20
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Editar Proyecto")
+                text: qsTranslate("Main", "Editar Proyecto")
                 font.pixelSize: parent.height * 0.06
                 font.bold: true
                 color: "black"
@@ -488,37 +488,37 @@ Item {
 
                     Rectangle {
                         width: parent.width; height: parent.height * 0.13; radius: height/2; color: root.campoEditActivo === "Nombre" ? "#A5D6A7" : "#8DBB5A"
-                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Nombre:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Nombre:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.35; anchors.right: parent.right; anchors.rightMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: root.campoEditActivo === "Nombre" ? datosEdicion.nombre + "|" : datosEdicion.nombre; font.pixelSize: parent.height * 0.40; font.bold: true; color: "black"; elide: Text.ElideRight }
                         MouseArea { anchors.fill: parent; onClicked: { root.campoEditActivo = "Nombre"; popupEdicionDatosRoot.forceActiveFocus(); } }
                     }
                     Rectangle {
                         width: parent.width; height: parent.height * 0.13; radius: height/2; color: root.campoEditActivo === "Tem" ? "#A5D6A7" : "#8DBB5A"
-                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Temp °%1:").arg(appWindow.unidadTemperatura); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1:").arg(appWindow.unidadTemperatura); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (root.campoEditActivo === "Tem" ? root.entradaEditTemporal + "|" : datosEdicion.temp); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         MouseArea { anchors.fill: parent; onClicked: { root.campoEditActivo = "Tem"; root.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                     }
                     Rectangle {
                         width: parent.width; height: parent.height * 0.13; radius: height/2; color: root.campoEditActivo === "pH" ? "#A5D6A7" : "#8DBB5A"
-                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Nivel de pH:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Nivel de pH:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (root.campoEditActivo === "pH" ? root.entradaEditTemporal + "|" : datosEdicion.ph); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         MouseArea { anchors.fill: parent; onClicked: { root.campoEditActivo = "pH"; root.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                     }
                     Rectangle {
                         width: parent.width; height: parent.height * 0.13; radius: height/2; color: root.campoEditActivo === "Agua" ? "#A5D6A7" : "#8DBB5A"
-                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Nivel agua %:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Nivel agua %:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (root.campoEditActivo === "Agua" ? root.entradaEditTemporal + "|" : datosEdicion.agua); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         MouseArea { anchors.fill: parent; onClicked: { root.campoEditActivo = "Agua"; root.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                     }
                     Rectangle {
                         width: parent.width; height: parent.height * 0.13; radius: height/2; color: root.campoEditActivo === "Luz" ? "#A5D6A7" : "#8DBB5A"
-                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Nivel luz %:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Nivel luz %:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (root.campoEditActivo === "Luz" ? root.entradaEditTemporal + "|" : datosEdicion.luz); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         MouseArea { anchors.fill: parent; onClicked: { root.campoEditActivo = "Luz"; root.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                     }
                     Rectangle {
                         width: parent.width; height: parent.height * 0.13; radius: height/2; color: root.campoEditActivo === "Tiempo" ? "#A5D6A7" : "#8DBB5A"
-                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Duración (h):"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                        Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Duración (h):"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (root.campoEditActivo === "Tiempo" ? root.entradaEditTemporal + "|" : datosEdicion.tiempo); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         MouseArea { anchors.fill: parent; onClicked: { root.campoEditActivo = "Tiempo"; root.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                     }
@@ -560,7 +560,7 @@ Item {
                 anchors.leftMargin: parent.width * 0.15
                 color: areaOkEdit.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkEdit
                     anchors.fill: parent
@@ -627,7 +627,7 @@ Item {
                 anchors.topMargin: cajaConfirmarEdicion.height * 0.05
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width * 0.9
-                text: qsTr("¿Estás seguro que quieres guardar los cambios hechos al proyecto?")
+                text: qsTranslate("Main", "¿Estás seguro que quieres guardar los cambios hechos al proyecto?")
                 font.pixelSize: cajaConfirmarEdicion.height * 0.06
                 font.bold: false
                 color: "#cc0000"
@@ -643,7 +643,7 @@ Item {
 
                 Text {
                     textFormat: Text.RichText
-                    text: qsTr("Proyecto: <b>%1</b>").arg(datosEdicion.nombre)
+                    text: qsTranslate("Main", "Proyecto: <b>%1</b>").arg(datosEdicion.nombre)
                     font.pixelSize: cajaConfirmarEdicion.height * 0.055
                     color: "black"
                     width: parent.width
@@ -656,7 +656,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTr("Temperatura: <b>%1 °%2</b>").arg(datosEdicion.temp.toFixed(1)).arg(appWindow.unidadTemperatura)
+                        text: qsTranslate("Main", "Temperatura: <b>%1 °%2</b>").arg(datosEdicion.temp.toFixed(1)).arg(appWindow.unidadTemperatura)
                         font.pixelSize: cajaConfirmarEdicion.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -664,7 +664,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTr("Nivel de pH: <b>%1</b>").arg(datosEdicion.ph.toFixed(1))
+                        text: qsTranslate("Main", "Nivel de pH: <b>%1</b>").arg(datosEdicion.ph.toFixed(1))
                         font.pixelSize: cajaConfirmarEdicion.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -677,7 +677,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTr("Nivel de agua: <b>%1 %</b>").arg(datosEdicion.agua.toFixed(1))
+                        text: qsTranslate("Main", "Nivel de agua: <b>%1 %</b>").arg(datosEdicion.agua.toFixed(1))
                         font.pixelSize: cajaConfirmarEdicion.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -685,7 +685,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTr("Nivel de luz: <b>%1 %</b>").arg(datosEdicion.luz.toFixed(1))
+                        text: qsTranslate("Main", "Nivel de luz: <b>%1 %</b>").arg(datosEdicion.luz.toFixed(1))
                         font.pixelSize: cajaConfirmarEdicion.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -699,7 +699,7 @@ Item {
                     property int t_dias: Math.floor((t_total % 168) / 24)
                     property int t_horas: Math.floor(t_total % 24)
                     property int t_minutos: Math.round((t_total - Math.floor(t_total)) * 60)
-                    text: qsTr("Tiempo: Semanas <b>%1</b>, Días <b>%2</b>, Horas <b>%3</b>, Minutos <b>%4</b> (Total: <b>%5 Hrs</b>)").arg(t_semanas).arg(t_dias).arg(t_horas).arg(t_minutos).arg(t_total.toFixed(1))
+                    text: qsTranslate("Main", "Tiempo: Semanas <b>%1</b>, Días <b>%2</b>, Horas <b>%3</b>, Minutos <b>%4</b> (Total: <b>%5 Hrs</b>)").arg(t_semanas).arg(t_dias).arg(t_horas).arg(t_minutos).arg(t_total.toFixed(1))
                     font.pixelSize: cajaConfirmarEdicion.height * 0.055
                     color: "black"
                     width: parent.width
@@ -716,7 +716,7 @@ Item {
                 height: appWindow.height * 0.10
                 color: areaOkConfirmEdit.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkConfirmEdit
                     anchors.fill: parent

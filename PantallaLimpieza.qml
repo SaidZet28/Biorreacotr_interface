@@ -8,7 +8,7 @@ Item {
     visible: appWindow.estadoActual === "pantalla_14"
 
     Text {
-        text: qsTr("Recuerda limpiar el\nbiorreactor ;)")
+        text: qsTranslate("Main", "Recuerda limpiar el\nbiorreactor ;)")
         font.pixelSize: appWindow.height * 0.12
         font.bold: true
         color: "black"
@@ -48,7 +48,7 @@ Item {
         radius: height / 2
         Text {
             anchors.centerIn: parent
-            text: qsTr("Okay")
+            text: qsTranslate("Main", "Okay")
             font.pixelSize: parent.height * 0.40
             font.bold: true
             color: "black"

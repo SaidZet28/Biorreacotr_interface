@@ -41,7 +41,7 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: 40
                 anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Vaciado de nivel 1")
+                text: qsTranslate("Main", "Vaciado de nivel 1")
                 font.pixelSize: parent.height * 0.45
                 font.bold: true
                 color: root.nivel1Completado ? "#707070" : "black"
@@ -63,7 +63,7 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: 40
                 anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Vaciado de nivel 2")
+                text: qsTranslate("Main", "Vaciado de nivel 2")
                 font.pixelSize: parent.height * 0.45
                 font.bold: true
                 color: !root.nivel1Completado ? "#707070" : "black"
@@ -102,7 +102,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("¿Iniciar vaciado de nivel 1?")
+                text: qsTranslate("Main", "¿Iniciar vaciado de nivel 1?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -117,7 +117,7 @@ Item {
                 anchors.leftMargin: parent.width * 0.10
                 color: areaOkConfirmar1.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkConfirmar1
                     anchors.fill: parent
@@ -152,7 +152,7 @@ Item {
             radius: 20
             Text {
                 anchors.centerIn: parent
-                text: qsTr("Vaciado de nivel 1 en proceso,\nespere un momento por favor :)")
+                text: qsTranslate("Main", "Vaciado de nivel 1 en proceso,\nespere un momento por favor :)")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -183,7 +183,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("¿Iniciar vaciado de nivel 2?")
+                text: qsTranslate("Main", "¿Iniciar vaciado de nivel 2?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -198,7 +198,7 @@ Item {
                 anchors.leftMargin: parent.width * 0.10
                 color: areaOkConfirmar2.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkConfirmar2
                     anchors.fill: parent
@@ -233,7 +233,7 @@ Item {
             radius: 20
             Text {
                 anchors.centerIn: parent
-                text: qsTr("Vaciado de nivel 2 en proceso,\nespere un momento por favor :)")
+                text: qsTranslate("Main", "Vaciado de nivel 2 en proceso,\nespere un momento por favor :)")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -263,7 +263,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: -parent.height * 0.10
-                text: qsTr("Proceso de cultivo\nfinalizado")
+                text: qsTranslate("Main", "Proceso de cultivo\nfinalizado")
                 font.pixelSize: parent.height * 0.18
                 font.bold: true
                 color: "black"
@@ -277,7 +277,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: areaOkFinalCosecha.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTr("Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkFinalCosecha
                     anchors.fill: parent

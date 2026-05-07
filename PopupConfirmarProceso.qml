@@ -39,7 +39,7 @@ Item {
             anchors.topMargin: cajaConfirmacion.height * 0.05
             anchors.horizontalCenter: parent.horizontalCenter
             width: parent.width * 0.9
-            text: qsTr("¿Estás seguro de que quieres iniciar el proceso de cultivo?")
+            text: qsTranslate("Main", "¿Estás seguro de que quieres iniciar el proceso de cultivo?")
             font.pixelSize: cajaConfirmacion.height * 0.06
             font.bold: false
             color: "#cc0000"
@@ -55,8 +55,8 @@ Item {
 
             Text {
                 textFormat: Text.RichText
-                text: qsTr("Proyecto: <b>%1</b>").arg(raizConfirmacion.nombreProyecto) +
-                      (raizConfirmacion.nombreExperimento !== "" ? qsTr(" | Experimento: <b>%1</b>").arg(raizConfirmacion.nombreExperimento) : "")
+                text: qsTranslate("Main", "Proyecto: <b>%1</b>").arg(raizConfirmacion.nombreProyecto) +
+                      (raizConfirmacion.nombreExperimento !== "" ? qsTranslate("Main", " | Experimento: <b>%1</b>").arg(raizConfirmacion.nombreExperimento) : "")
                 font.pixelSize: cajaConfirmacion.height * 0.055
                 color: "black"
                 width: parent.width
@@ -69,7 +69,7 @@ Item {
                 Text {
                     width: (parent.width / 2) - (parent.width * 0.01)
                     textFormat: Text.RichText
-                    text: qsTr("Temperatura: <b>%1 °%2</b>").arg(raizConfirmacion.temp).arg(raizConfirmacion.unidadTemperatura)
+                    text: qsTranslate("Main", "Temperatura: <b>%1 °%2</b>").arg(raizConfirmacion.temp).arg(raizConfirmacion.unidadTemperatura)
                     font.pixelSize: cajaConfirmacion.height * 0.055
                     color: "black"
                     wrapMode: Text.WordWrap
@@ -77,7 +77,7 @@ Item {
                 Text {
                     width: (parent.width / 2) - (parent.width * 0.01)
                     textFormat: Text.RichText
-                    text: qsTr("Nivel de pH: <b>%1</b>").arg(raizConfirmacion.ph)
+                    text: qsTranslate("Main", "Nivel de pH: <b>%1</b>").arg(raizConfirmacion.ph)
                     font.pixelSize: cajaConfirmacion.height * 0.055
                     color: "black"
                     wrapMode: Text.WordWrap
@@ -90,7 +90,7 @@ Item {
                 Text {
                     width: (parent.width / 2) - (parent.width * 0.01)
                     textFormat: Text.RichText
-                    text: qsTr("Nivel de agua: <b>%1 %</b>").arg(raizConfirmacion.agua)
+                    text: qsTranslate("Main", "Nivel de agua: <b>%1 %</b>").arg(raizConfirmacion.agua)
                     font.pixelSize: cajaConfirmacion.height * 0.055
                     color: "black"
                     wrapMode: Text.WordWrap
@@ -98,7 +98,7 @@ Item {
                 Text {
                     width: (parent.width / 2) - (parent.width * 0.01)
                     textFormat: Text.RichText
-                    text: qsTr("Nivel de luz: <b>%1 %</b>").arg(raizConfirmacion.luz)
+                    text: qsTranslate("Main", "Nivel de luz: <b>%1 %</b>").arg(raizConfirmacion.luz)
                     font.pixelSize: cajaConfirmacion.height * 0.055
                     color: "black"
                     wrapMode: Text.WordWrap
@@ -107,7 +107,7 @@ Item {
 
             Text {
                 textFormat: Text.RichText
-                text: qsTr("Tiempo: Semanas <b>%1</b>, Días <b>%2</b>, Horas <b>%3</b>, Minutos <b>%4</b> (Total: <b>%5 Hrs</b>)")
+                text: qsTranslate("Main", "Tiempo: Semanas <b>%1</b>, Días <b>%2</b>, Horas <b>%3</b>, Minutos <b>%4</b> (Total: <b>%5 Hrs</b>)")
                       .arg(raizConfirmacion.tiempoSemanas)
                       .arg(raizConfirmacion.tiempoDias)
                       .arg(raizConfirmacion.tiempoHoras)
@@ -129,7 +129,7 @@ Item {
             height: Window.window ? Window.window.height * 0.10 : 80
             color: areaOkConfirmar.pressed ? "#6b42b5" : "#8b5cf6"
             radius: height / 2
-            Text { anchors.centerIn: parent; text: qsTr("Okay"); color: "black"; font.pixelSize: parent.height * 0.40; font.bold: true }
+            Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); color: "black"; font.pixelSize: parent.height * 0.40; font.bold: true }
             MouseArea {
                 id: areaOkConfirmar
                 anchors.fill: parent

@@ -114,7 +114,7 @@ Rectangle {
             }
             Rectangle {
                 width: teclado.anchoTecla; height: parent.height; color: "#8b5cf6"; radius: 5
-                Text { anchors.centerIn: parent; font.pixelSize: parent.height * 0.40; color: "white"; font.bold: true; text: qsTr("Intro") }
+                Text { anchors.centerIn: parent; font.pixelSize: parent.height * 0.40; color: "white"; font.bold: true; text: qsTranslate("Main", "Intro") }
                 MouseArea { anchors.fill: parent; onClicked: teclado.introPresionado() }
             }
         }
@@ -188,12 +188,12 @@ Rectangle {
             }
             Rectangle {
                 width: teclado.anchoTecla * 7 + (8 * 6); height: parent.height; color: "white"; radius: 5
-                Text { anchors.centerIn: parent; text: qsTr("Espacio"); font.pixelSize: parent.height * 0.40; color: "gray" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Espacio"); font.pixelSize: parent.height * 0.40; color: "gray" }
                 MouseArea { anchors.fill: parent; onClicked: teclado.teclaPresionada(" ") }
             }
             Rectangle {
                 width: teclado.anchoTecla * 2 + 8; height: parent.height; color: "#A0A0A0"; radius: 5
-                Text { anchors.centerIn: parent; text: qsTr("Cerrar"); font.pixelSize: parent.height * 0.40; color: "black" }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Cerrar"); font.pixelSize: parent.height * 0.40; color: "black" }
                 MouseArea { anchors.fill: parent; onClicked: teclado.cerrarPresionado() }
             }
         }

@@ -11,7 +11,7 @@ Item {
         anchors.centerIn: parent
         spacing: 20
         Text {
-            text: qsTr("Cargando")
+            text: qsTranslate("Main", "Cargando")
             font.pixelSize: 64
             font.bold: true
         }
@@ -29,7 +29,7 @@ Item {
                 appWindow.estadoActual = "pantalla_principal"
             } else {
                 appWindow.estado_sensor_retorno_error = "pantalla_de_carga"
-                appWindow.textoMensajeError = qsTr("Falla en sensor")
+                appWindow.textoMensajeError = qsTranslate("Main", "Falla en sensor")
                 appWindow.estadoActual = "pantalla_de_error"
             }
         }

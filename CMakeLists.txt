@@ -31,6 +31,21 @@ qt_add_qml_module(appPrototipo
         PopupConfirmarProceso.qml
         TecladoQwerty.qml
         TecladoNumerico.qml
+        PantallaCarga.qml
+        PantallaError.qml
+        PantallaPrincipal.qml
+        PantallaAjustes.qml
+        PantallaNuevoProyecto.qml
+        Pantalla6.qml
+        Pantalla7.qml
+        PantallaProcesos.qml
+        PantallaProyectosGuardados.qml
+        PantallaConfigGraficas.qml
+        PantallaPostProceso.qml
+        PantallaExtraccion.qml
+        PantallaGuardarConfig.qml
+        PantallaLimpieza.qml
+        PantallaRegistro.qml
     RESOURCES
         Logo_IPN.png
         Logo_UPIIZ.png

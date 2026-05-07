@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout *)",
+      "Bash(python -c ' *)",
+      "Bash(python3 _patch_main.py)",
+      "Bash(del *)"
+    ]
+  }
+}

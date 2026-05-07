@@ -23,6 +23,14 @@ qt_add_qml_module(appPrototipo
     URI Prototipo
     QML_FILES
         Main.qml
+        BotonAccionVerde.qml
+        BarraDisplaySensor.qml
+        BarraInputConfig.qml
+        CabeceraPersistente.qml
+        PopupIngresoNombre.qml
+        PopupConfirmarProceso.qml
+        TecladoQwerty.qml
+        TecladoNumerico.qml
     RESOURCES
         Logo_IPN.png
         Logo_UPIIZ.png

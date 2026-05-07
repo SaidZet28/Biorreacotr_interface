@@ -109,738 +109,11 @@ ApplicationWindow {
     }
 
     // ==========================================
-    // 4. COMPONENTES REUTILIZABLES
+    // ==========================================
+    // 4. COMPONENTES REUTILIZABLES (archivos externos)
     // ==========================================
 
-    // A. HEADER PERSISTENTE
-    Item {
-        id: cabeceraPersistente
-        width: parent.width
-        height: mainWindow.height * 0.15
-        anchors.top: parent.top
-        z: 100
-        property real logoH: mainWindow.height * 0.15
-
-        Row {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.margins: parent.width * 0.02
-            spacing: parent.width * 0.02
-            Image { source: "Logo_UPIIZ.png"; height: cabeceraPersistente.logoH; fillMode: Image.PreserveAspectFit }
-            Image { source: "Logo_ENCB.png"; height: cabeceraPersistente.logoH; fillMode: Image.PreserveAspectFit }
-        }
-        Image {
-            source: "Logo_IPN.png"
-            height: cabeceraPersistente.logoH
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: parent.width * 0.02
-            fillMode: Image.PreserveAspectFit
-        }
-    }
-
-    // B. BOTÓN VERDE ESTÁNDAR
-    component BotonAccionVerde : Rectangle {
-        id: raizBoton
-        property string textoBoton: ""
-        signal clicado()
-
-        width: mainWindow.width * 0.45
-        height: mainWindow.height * 0.12
-        color: areaMouseBoton.pressed ? "#5a8282" : "#6E9C9C"
-        radius: height / 2
-
-        Text {
-            anchors.centerIn: parent
-            text: raizBoton.textoBoton
-            color: "black"
-            font.pixelSize: parent.height * 0.40
-            font.bold: true
-        }
-        MouseArea {
-            id: areaMouseBoton
-            anchors.fill: parent
-            onClicked: raizBoton.clicado()
-        }
-    }
-
-    // C. BARRA DE VISUALIZACIÓN DE SENSORES
-    component BarraDisplaySensor : Rectangle {
-        property string textoEtiqueta: ""
-        property string textoValor: ""
-
-        width: mainWindow.width * 0.35
-        height: mainWindow.height * 0.08
-        color: "#8DBB5A"
-        radius: height / 2
-
-        Text {
-            anchors.left: parent.left
-            anchors.leftMargin: parent.height * 0.40
-            anchors.verticalCenter: parent.verticalCenter
-            text: textoEtiqueta
-            font.pixelSize: parent.height * 0.40
-            font.bold: true
-        }
-        Text {
-            anchors.left: parent.left
-            anchors.leftMargin: parent.width * 0.55
-            anchors.verticalCenter: parent.verticalCenter
-            text: textoValor
-            font.pixelSize: parent.height * 0.40
-            font.bold: true
-        }
-    }
-
-    // D. BARRA DE INGRESO DE CONFIGURACIÓN
-    component BarraInputConfig : Rectangle {
-        property string idCampo: ""
-        property string textoEtiqueta: ""
-        property string valorMostrado: ""
-        signal barraClicada()
-
-        width: mainWindow.width * 0.45
-        height: mainWindow.height * 0.08
-        color: pantalla6.campoActivo === idCampo ? "#A5D6A7" : "#8DBB5A"
-        radius: height / 2
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: barraClicada()
-        }
-        Text {
-            anchors.left: parent.left
-            anchors.leftMargin: parent.height * 0.40
-            anchors.verticalCenter: parent.verticalCenter
-            text: textoEtiqueta
-            font.pixelSize: parent.height * 0.40
-            font.bold: true
-        }
-        Text {
-            anchors.left: parent.left
-            anchors.leftMargin: parent.width * 0.45
-            anchors.verticalCenter: parent.verticalCenter
-            text: valorMostrado
-            font.pixelSize: parent.height * 0.40
-            font.bold: true
-        }
-    }
-
-    // E. POPUP DE INGRESO DE NOMBRE CON TECLADO VIRTUAL
-    component PopupIngresoNombre : Item {
-        id: raizPopup
-        anchors.fill: parent
-        z: 100
-        visible: false
-
-        property string tituloPopup: qsTr("Ingrese nombre")
-        property string nombrePorDefecto: ""
-        property bool tecladoVisible: false
-
-        signal aceptado(string nombre)
-        signal cancelado()
-
-        onVisibleChanged: {
-            if (visible) {
-                entradaNombre.text = nombrePorDefecto;
-                tecladoVisible = false;
-                entradaNombre.focus = false;
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                if (raizPopup.tecladoVisible) {
-                    raizPopup.tecladoVisible = false;
-                    entradaNombre.focus = false;
-                }
-            }
-        }
-
-        Rectangle {
-            id: cajaPopup
-            width: parent.width * 0.75
-            height: parent.height * 0.55
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: raizPopup.tecladoVisible ? parent.height * 0.05 : parent.height * 0.225
-            Behavior on y { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }
-            color: Qt.rgba(0.7, 0.7, 0.7, 0.9)
-            radius: 20
-
-            Text {
-                anchors.top: parent.top
-                anchors.topMargin: parent.height * 0.15
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: raizPopup.tituloPopup
-                font.pixelSize: parent.height * 0.08
-                font.bold: true
-                color: "black"
-            }
-
-            Item {
-                anchors.centerIn: parent
-                anchors.verticalCenterOffset: parent.height * 0.05
-                width: parent.width * 0.85
-                height: parent.height * 0.15
-
-                TextInput {
-                    id: entradaNombre
-                    anchors.fill: parent
-                    font.pixelSize: parent.height * 0.50
-                    color: "black"
-                    horizontalAlignment: TextInput.AlignHCenter
-                    verticalAlignment: TextInput.AlignBottom
-                    bottomPadding: parent.height * 0.10
-                    maximumLength: 100
-                    activeFocusOnPress: true
-
-                    onActiveFocusChanged: {
-                        if (activeFocus) raizPopup.tecladoVisible = true;
-                    }
-                    onAccepted: {
-                        raizPopup.tecladoVisible = false;
-                        entradaNombre.focus = false;
-                    }
-                }
-
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    width: parent.width
-                    height: 3
-                    color: "black"
-                }
-            }
-
-            Rectangle {
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.margins: mainWindow.width * 0.05
-                anchors.bottomMargin: parent.height * 0.10
-                width: mainWindow.width * 0.20
-                height: mainWindow.height * 0.10
-                color: areaOkPopup.pressed ? "#6b42b5" : "#8b5cf6"
-                radius: height / 2
-
-                Text {
-                    anchors.centerIn: parent
-                    text: qsTr("Okay")
-                    color: "black"
-                    font.pixelSize: parent.height * 0.40
-                    font.bold: true
-                }
-                MouseArea {
-                    id: areaOkPopup
-                    anchors.fill: parent
-                    onClicked: raizPopup.aceptado(entradaNombre.text)
-                }
-            }
-
-            Rectangle {
-                anchors.bottom: parent.bottom
-                anchors.right: parent.right
-                anchors.margins: mainWindow.width * 0.05
-                anchors.bottomMargin: parent.height * 0.10
-                width: mainWindow.width * 0.12
-                height: mainWindow.height * 0.10
-                color: areaAtrasPopup.pressed ? "#cc1e1e" : "#FF2D2D"
-                radius: height / 2
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "↶"
-                    color: "black"
-                    font.pixelSize: parent.height * 0.70
-                    font.bold: true
-                }
-                MouseArea {
-                    id: areaAtrasPopup
-                    anchors.fill: parent
-                    onClicked: raizPopup.cancelado()
-                }
-            }
-        }
-
-        // TECLADO VIRTUAL QWERTY INCORPORADO
-        Rectangle {
-            id: tecladoVirtual
-            z: 105
-            width: parent.width * 0.95
-            height: parent.height * 0.45
-            anchors.horizontalCenter: parent.horizontalCenter
-            color: "#E0E0E0"
-            radius: 10
-
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: raizPopup.tecladoVisible ? 10 : parent.height * -0.50
-
-            Behavior on anchors.bottomMargin { NumberAnimation { duration: 250; easing.type: Easing.OutQuad } }
-
-            MouseArea {
-                anchors.fill: parent
-            }
-
-            property string modoActual: "lowercase"
-            property real anchoTecla: (width - (8 * 12)) / 11
-            property real altoTecla: (height - (8 * 6)) / 5
-
-            Column {
-                anchors.centerIn: parent
-                spacing: 8
-                width: parent.width * 0.98
-                height: parent.height * 0.95
-
-                // Fila 1
-                Row {
-                    spacing: 8
-                    height: tecladoVirtual.altoTecla
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    Repeater {
-                        model: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
-                        Rectangle {
-                            width: tecladoVirtual.anchoTecla
-                            height: parent.height
-                            color: "white"
-                            radius: 5
-                            Text {
-                                anchors.centerIn: parent
-                                font.pixelSize: parent.height * 0.60
-                                color: "black"
-                                text: tecladoVirtual.modoActual === "symbols" ? ["!", "\"", "#", "$", "%", "&", "/", "(", ")", "="][index] : modelData
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: entradaNombre.text += parent.children[0].text
-                            }
-                        }
-                    }
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla
-                        height: parent.height
-                        color: "#A0A0A0"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            font.pixelSize: parent.height * 0.50
-                            color: "black"
-                            text: "Del"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                if (entradaNombre.text.length > 0)
-                                    entradaNombre.text = entradaNombre.text.substring(0, entradaNombre.text.length - 1)
-                            }
-                        }
-                    }
-                }
-                // Fila 2
-                Row {
-                    spacing: 8
-                    height: tecladoVirtual.altoTecla
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    Repeater {
-                        model: ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"]
-                        Rectangle {
-                            width: tecladoVirtual.anchoTecla
-                            height: parent.height
-                            color: "white"
-                            radius: 5
-                            Text {
-                                anchors.centerIn: parent
-                                font.pixelSize: parent.height * 0.60
-                                color: "black"
-                                text: tecladoVirtual.modoActual === "symbols" ? ["+", "-", "*", ":", ";", "_", "¿", "?", "¡", "'"][index] : (tecladoVirtual.modoActual === "uppercase" ? modelData : modelData.toLowerCase())
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: entradaNombre.text += parent.children[0].text
-                            }
-                        }
-                    }
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla
-                        height: parent.height
-                        color: "#A0A0A0"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            font.pixelSize: parent.height * 0.50
-                            color: "black"
-                            text: "⌫"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                if (entradaNombre.text.length > 0)
-                                    entradaNombre.text = entradaNombre.text.substring(0, entradaNombre.text.length - 1)
-                            }
-                        }
-                    }
-                }
-                // Fila 3
-                Row {
-                    spacing: 8
-                    height: tecladoVirtual.altoTecla
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    Repeater {
-                        model: ["A", "S", "D", "F", "G", "H", "J", "K", "L", "Ñ"]
-                        Rectangle {
-                            width: tecladoVirtual.anchoTecla
-                            height: parent.height
-                            color: "white"
-                            radius: 5
-                            Text {
-                                anchors.centerIn: parent
-                                font.pixelSize: parent.height * 0.60
-                                color: "black"
-                                text: tecladoVirtual.modoActual === "symbols" ? ["<", ">", "{", "}", "[", "]", "@", "\\", "|", "~"][index] : (tecladoVirtual.modoActual === "uppercase" ? modelData : modelData.toLowerCase())
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: entradaNombre.text += parent.children[0].text
-                            }
-                        }
-                    }
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla
-                        height: parent.height
-                        color: "#8b5cf6"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            font.pixelSize: parent.height * 0.40
-                            color: "white"
-                            font.bold: true
-                            text: qsTr("Intro")
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                raizPopup.tecladoVisible = false;
-                                entradaNombre.focus = false;
-                            }
-                        }
-                    }
-                }
-                // Fila 4
-                Row {
-                    spacing: 8
-                    height: tecladoVirtual.altoTecla
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla
-                        height: parent.height
-                        color: tecladoVirtual.modoActual === "symbols" ? "#D0D0D0" : "#A0A0A0"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            text: "↑"
-                            font.pixelSize: parent.height * 0.60
-                            color: tecladoVirtual.modoActual === "symbols" ? "gray" : "black"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            enabled: tecladoVirtual.modoActual !== "symbols"
-                            onClicked: tecladoVirtual.modoActual = (tecladoVirtual.modoActual === "lowercase") ? "uppercase" : "lowercase"
-                        }
-                    }
-                    Repeater {
-                        model: ["Z", "X", "C", "V", "B", "N", "M"]
-                        Rectangle {
-                            width: tecladoVirtual.anchoTecla
-                            height: parent.height
-                            color: "white"
-                            radius: 5
-                            Text {
-                                anchors.centerIn: parent
-                                font.pixelSize: parent.height * 0.60
-                                color: "black"
-                                text: tecladoVirtual.modoActual === "symbols" ? ["^", "`", "€", "£", "¥", "©", "®"][index] : (tecladoVirtual.modoActual === "uppercase" ? modelData : modelData.toLowerCase())
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: entradaNombre.text += parent.children[0].text
-                            }
-                        }
-                    }
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla
-                        height: parent.height
-                        color: "white"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            text: ","
-                            font.pixelSize: parent.height * 0.60
-                            color: "black"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: entradaNombre.text += ","
-                        }
-                    }
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla
-                        height: parent.height
-                        color: "white"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            text: "."
-                            font.pixelSize: parent.height * 0.60
-                            color: "black"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: entradaNombre.text += "."
-                        }
-                    }
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla
-                        height: parent.height
-                        color: tecladoVirtual.modoActual === "symbols" ? "#D0D0D0" : "#A0A0A0"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            text: "↑"
-                            font.pixelSize: parent.height * 0.60
-                            color: tecladoVirtual.modoActual === "symbols" ? "gray" : "black"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            enabled: tecladoVirtual.modoActual !== "symbols"
-                            onClicked: tecladoVirtual.modoActual = (tecladoVirtual.modoActual === "lowercase") ? "uppercase" : "lowercase"
-                        }
-                    }
-                }
-                // Fila 5
-                Row {
-                    spacing: 8
-                    height: tecladoVirtual.altoTecla
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla * 2 + 8
-                        height: parent.height
-                        color: "#A0A0A0"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            text: tecladoVirtual.modoActual === "symbols" ? "ABC" : "?123"
-                            font.pixelSize: parent.height * 0.40
-                            color: "black"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: tecladoVirtual.modoActual = (tecladoVirtual.modoActual === "symbols") ? "lowercase" : "symbols"
-                        }
-                    }
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla * 7 + (8 * 6)
-                        height: parent.height
-                        color: "white"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            text: qsTr("Espacio")
-                            font.pixelSize: parent.height * 0.40
-                            color: "gray"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: entradaNombre.text += " "
-                        }
-                    }
-                    Rectangle {
-                        width: tecladoVirtual.anchoTecla * 2 + 8
-                        height: parent.height
-                        color: "#A0A0A0"
-                        radius: 5
-                        Text {
-                            anchors.centerIn: parent
-                            text: qsTr("Cerrar")
-                            font.pixelSize: parent.height * 0.40
-                            color: "black"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                raizPopup.tecladoVisible = false;
-                                entradaNombre.focus = false;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // F. POPUP DE CONFIRMACIÓN FINAL
-    component PopupConfirmarProceso : Item {
-        id: raizConfirmacion
-        anchors.fill: parent
-        z: 200
-        visible: false
-
-        property string nombreProyecto: ""
-        property string nombreExperimento: ""
-        property real temp: 0.0
-        property real ph: 0.0
-        property real agua: 0.0
-        property real luz: 0.0
-        property real tiempoSemanas: 0.0
-        property real tiempoDias: 0.0
-        property real tiempoHoras: 0.0
-        property real tiempoMinutos: 0.0
-        property real tiempoTotal: 0.0
-
-        signal confirmado()
-        signal cancelado()
-
-        MouseArea {
-            anchors.fill: parent
-        }
-
-        Rectangle {
-            id: cajaConfirmacion
-            width: parent.width * 0.85
-            height: parent.height * 0.65
-            anchors.centerIn: parent
-            color: Qt.rgba(0.7, 0.7, 0.7, 0.95)
-            radius: 20
-
-            Text {
-                id: tituloConfirmacion
-                anchors.top: parent.top
-                anchors.topMargin: cajaConfirmacion.height * 0.05
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width * 0.9
-                text: qsTr("¿Estás seguro de que quieres iniciar el proceso de cultivo?")
-                font.pixelSize: cajaConfirmacion.height * 0.06
-                font.bold: false
-                color: "#cc0000"
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-            }
-
-            Column {
-                anchors.centerIn: parent
-                anchors.verticalCenterOffset: cajaConfirmacion.height * 0.02
-                width: parent.width * 0.90
-                spacing: cajaConfirmacion.height * 0.03
-
-                Text {
-                    textFormat: Text.RichText
-                    text: qsTr("Proyecto: <b>%1</b>").arg(raizConfirmacion.nombreProyecto) +
-                          (raizConfirmacion.nombreExperimento !== "" ? qsTr(" | Experimento: <b>%1</b>").arg(raizConfirmacion.nombreExperimento) : "")
-                    font.pixelSize: cajaConfirmacion.height * 0.055
-                    color: "black"
-                    width: parent.width
-                    wrapMode: Text.WordWrap
-                }
-
-                Row {
-                    width: parent.width
-                    spacing: parent.width * 0.02
-                    Text {
-                        width: (parent.width/2)-(parent.width*0.01)
-                        textFormat: Text.RichText
-                        text: qsTr("Temperatura: <b>%1 °%2</b>").arg(raizConfirmacion.temp).arg(mainWindow.unidadTemperatura)
-                        font.pixelSize: cajaConfirmacion.height * 0.055
-                        color: "black"
-                        wrapMode: Text.WordWrap
-                    }
-                    Text {
-                        width: (parent.width/2)-(parent.width*0.01)
-                        textFormat: Text.RichText
-                        text: qsTr("Nivel de pH: <b>%1</b>").arg(raizConfirmacion.ph)
-                        font.pixelSize: cajaConfirmacion.height * 0.055
-                        color: "black"
-                        wrapMode: Text.WordWrap
-                    }
-                }
-
-                Row {
-                    width: parent.width
-                    spacing: parent.width * 0.02
-                    Text {
-                        width: (parent.width/2)-(parent.width*0.01)
-                        textFormat: Text.RichText
-                        text: qsTr("Nivel de agua: <b>%1 %</b>").arg(raizConfirmacion.agua)
-                        font.pixelSize: cajaConfirmacion.height * 0.055
-                        color: "black"
-                        wrapMode: Text.WordWrap
-                    }
-                    Text {
-                        width: (parent.width/2)-(parent.width*0.01)
-                        textFormat: Text.RichText
-                        text: qsTr("Nivel de luz: <b>%1 %</b>").arg(raizConfirmacion.luz)
-                        font.pixelSize: cajaConfirmacion.height * 0.055
-                        color: "black"
-                        wrapMode: Text.WordWrap
-                    }
-                }
-
-                Text {
-                    textFormat: Text.RichText
-                    text: qsTr("Tiempo: Semanas <b>%1</b>, Días <b>%2</b>, Horas <b>%3</b>, Minutos <b>%4</b> (Total: <b>%5 Hrs</b>)").arg(raizConfirmacion.tiempoSemanas).arg(raizConfirmacion.tiempoDias).arg(raizConfirmacion.tiempoHoras).arg(raizConfirmacion.tiempoMinutos).arg(raizConfirmacion.tiempoTotal.toFixed(1))
-                    font.pixelSize: cajaConfirmacion.height * 0.055
-                    color: "black"
-                    width: parent.width
-                    wrapMode: Text.WordWrap
-                }
-            }
-
-            Rectangle {
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.margins: mainWindow.width * 0.05
-                anchors.bottomMargin: cajaConfirmacion.height * 0.05
-                width: mainWindow.width * 0.20
-                height: mainWindow.height * 0.10
-                color: areaOkConfirmar.pressed ? "#6b42b5" : "#8b5cf6"
-                radius: height / 2
-
-                Text {
-                    anchors.centerIn: parent
-                    text: qsTr("Okay")
-                    color: "black"
-                    font.pixelSize: parent.height * 0.40
-                    font.bold: true
-                }
-                MouseArea {
-                    id: areaOkConfirmar
-                    anchors.fill: parent
-                    onClicked: raizConfirmacion.confirmado()
-                }
-            }
-
-            Rectangle {
-                anchors.bottom: parent.bottom
-                anchors.right: parent.right
-                anchors.margins: mainWindow.width * 0.05
-                anchors.bottomMargin: cajaConfirmacion.height * 0.05
-                width: mainWindow.width * 0.12
-                height: mainWindow.height * 0.10
-                color: areaAtrasConfirmar.pressed ? "#cc1e1e" : "#FF2D2D"
-                radius: height / 2
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "↶"
-                    color: "black"
-                    font.pixelSize: parent.height * 0.70
-                    font.bold: true
-                }
-                MouseArea {
-                    id: areaAtrasConfirmar
-                    anchors.fill: parent
-                    onClicked: raizConfirmacion.cancelado()
-                }
-            }
-        }
-    }
-
+    CabeceraPersistente {}
 
     // ==========================================
     // ESTADOS / PANTALLAS
@@ -1526,24 +799,28 @@ ApplicationWindow {
 
                 BarraInputConfig {
                     idCampo: "Tem"
+                    campoActivo: pantalla6.campoActivo
                     textoEtiqueta: qsTr("Temperatura:")
                     valorMostrado: (pantalla6.campoActivo === "Tem" ? pantalla6.entradaTemporal + "|" : var_deseada_Tem) + " °" + mainWindow.unidadTemperatura
                     onBarraClicada: { pantalla6.campoActivo = "Tem"; pantalla6.entradaTemporal = ""; pantalla6.forceActiveFocus() }
                 }
                 BarraInputConfig {
                     idCampo: "pH"
+                    campoActivo: pantalla6.campoActivo
                     textoEtiqueta: qsTr("Nivel de pH:")
                     valorMostrado: (pantalla6.campoActivo === "pH" ? pantalla6.entradaTemporal + "|" : var_deseada_pH)
                     onBarraClicada: { pantalla6.campoActivo = "pH"; pantalla6.entradaTemporal = ""; pantalla6.forceActiveFocus() }
                 }
                 BarraInputConfig {
                     idCampo: "Agua"
+                    campoActivo: pantalla6.campoActivo
                     textoEtiqueta: qsTr("Nivel de agua:")
                     valorMostrado: (pantalla6.campoActivo === "Agua" ? pantalla6.entradaTemporal + "|" : var_deseada_Agua) + " %"
                     onBarraClicada: { pantalla6.campoActivo = "Agua"; pantalla6.entradaTemporal = ""; pantalla6.forceActiveFocus() }
                 }
                 BarraInputConfig {
                     idCampo: "Luz"
+                    campoActivo: pantalla6.campoActivo
                     textoEtiqueta: qsTr("Nivel de luz:")
                     valorMostrado: (pantalla6.campoActivo === "Luz" ? pantalla6.entradaTemporal + "|" : var_deseada_Luz) + " %"
                     onBarraClicada: { pantalla6.campoActivo = "Luz"; pantalla6.entradaTemporal = ""; pantalla6.forceActiveFocus() }
@@ -1668,7 +945,7 @@ ApplicationWindow {
             }
 
             // --- TECLADO NUMÉRICO 4x4 ---
-            Item {
+            TecladoNumerico {
                 id: tecladoNumerico
                 z: 10
                 visible: pantalla6.campoActivo !== ""
@@ -1677,70 +954,29 @@ ApplicationWindow {
                 anchors.verticalCenter: columnaBarrasConfiguracion.verticalCenter
                 width: parent.width * 0.35
                 height: parent.height * 0.45
-
-                Grid {
-                    anchors.centerIn: parent
-                    columns: 4
-                    rows: 4
-                    spacing: 12
-                    Repeater {
-                        model: ["7", "8", "9", "DEL", "4", "5", "6", "OK", "1", "2", "3", "", "",  "0", ".", ""]
-                        Rectangle {
-                            opacity: modelData === "" ? 0 : 1
-                            width: (tecladoNumerico.width - 36) / 4
-                            height: (tecladoNumerico.height - 36) / 4
-                            radius: 12
-                            color: modelData === "" ? "transparent" : (areaTecla.pressed ? "#C4C0B7" : (modelData === "OK" ? "#7B8A80" : (modelData === "DEL" ? "#615E5E" : "#E4E0D7")))
-                            border.color: "#D1CDC4"
-                            border.width: (modelData !== "" && modelData !== "OK" && modelData !== "DEL") ? 1 : 0
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData
-                                font.pixelSize: parent.height * 0.40
-                                color: (modelData === "OK" || modelData === "DEL") ? "#F5F5F5" : "#4A4A4A"
-                            }
-                            MouseArea {
-                                id: areaTecla
-                                anchors.fill: parent
-                                enabled: modelData !== ""
-                                onClicked: {
-                                    if (pantalla6.campoActivo === "") return;
-
-                                    if (modelData === "DEL") {
-                                        if (pantalla6.entradaTemporal.length > 0)
-                                            pantalla6.entradaTemporal = pantalla6.entradaTemporal.substring(0, pantalla6.entradaTemporal.length - 1);
-                                    } else if (modelData === "OK") {
-                                        let val = parseFloat(pantalla6.entradaTemporal);
-                                        if (!isNaN(val)) {
-                                            if (pantalla6.campoActivo === "Tem") {
-                                                let minT = mainWindow.unidadTemperatura === "C" ? 20 : 68;
-                                                let maxT = mainWindow.unidadTemperatura === "C" ? 100 : 212;
-                                                var_deseada_Tem = Math.max(minT, Math.min(maxT, val));
-                                                pantalla6.tempConfigurada = true;
-                                            }
-                                            else if (pantalla6.campoActivo === "pH") { var_deseada_pH = Math.max(1, Math.min(14, val)); pantalla6.phConfigurado = true; }
-                                            else if (pantalla6.campoActivo === "Agua") { var_deseada_Agua = Math.max(30, Math.min(100, val)); pantalla6.aguaConfigurada = true; }
-                                            else if (pantalla6.campoActivo === "Luz") { var_deseada_Luz = Math.max(0, Math.min(100, val)); pantalla6.luzConfigurada = true; }
-                                            else if (pantalla6.campoActivo === "Semanas") { var_deseada_tiempo_semanas = Math.max(0, val); pantalla6.tiempoConfigurado = true; }
-                                            else if (pantalla6.campoActivo === "Dias") { var_deseada_tiempo_dias = Math.max(0, val); pantalla6.tiempoConfigurado = true; }
-                                            else if (pantalla6.campoActivo === "Horas") { var_deseada_tiempo_horas = Math.max(0, val); pantalla6.tiempoConfigurado = true; }
-                                            else if (pantalla6.campoActivo === "Minutos") { var_deseada_tiempo_minutos = Math.max(0, val); pantalla6.tiempoConfigurado = true; }
-
-                                            var_deseada_tiempo_total_horas = (var_deseada_tiempo_semanas * 168) + (var_deseada_tiempo_dias * 24) + var_deseada_tiempo_horas + (var_deseada_tiempo_minutos / 60);
-                                        }
-                                        pantalla6.campoActivo = "";
-                                        pantalla6.entradaTemporal = "";
-                                    } else if (modelData === ".") {
-                                        if (pantalla6.entradaTemporal.indexOf(".") === -1)
-                                            pantalla6.entradaTemporal += (pantalla6.entradaTemporal === "" ? "0." : ".");
-                                    } else {
-                                        pantalla6.entradaTemporal = (pantalla6.entradaTemporal === "0") ? modelData : pantalla6.entradaTemporal + modelData;
-                                    }
-                                }
-                            }
+                onDigitoPresionado: function(d) { pantalla6.entradaTemporal = pantalla6.entradaTemporal === "0" ? d : pantalla6.entradaTemporal + d }
+                onPuntoPresionado:  { if (pantalla6.entradaTemporal.indexOf(".") === -1) pantalla6.entradaTemporal += pantalla6.entradaTemporal === "" ? "0." : "." }
+                onBorrarPresionado: { if (pantalla6.entradaTemporal.length > 0) pantalla6.entradaTemporal = pantalla6.entradaTemporal.slice(0, -1) }
+                onOkPresionado: {
+                    let val = parseFloat(pantalla6.entradaTemporal);
+                    if (!isNaN(val)) {
+                        if (pantalla6.campoActivo === "Tem") {
+                            let minT = mainWindow.unidadTemperatura === "C" ? 20 : 68;
+                            let maxT = mainWindow.unidadTemperatura === "C" ? 100 : 212;
+                            var_deseada_Tem = Math.max(minT, Math.min(maxT, val));
+                            pantalla6.tempConfigurada = true;
                         }
+                        else if (pantalla6.campoActivo === "pH") { var_deseada_pH = Math.max(1, Math.min(14, val)); pantalla6.phConfigurado = true; }
+                        else if (pantalla6.campoActivo === "Agua") { var_deseada_Agua = Math.max(30, Math.min(100, val)); pantalla6.aguaConfigurada = true; }
+                        else if (pantalla6.campoActivo === "Luz") { var_deseada_Luz = Math.max(0, Math.min(100, val)); pantalla6.luzConfigurada = true; }
+                        else if (pantalla6.campoActivo === "Semanas") { var_deseada_tiempo_semanas = Math.max(0, val); pantalla6.tiempoConfigurado = true; }
+                        else if (pantalla6.campoActivo === "Dias") { var_deseada_tiempo_dias = Math.max(0, val); pantalla6.tiempoConfigurado = true; }
+                        else if (pantalla6.campoActivo === "Horas") { var_deseada_tiempo_horas = Math.max(0, val); pantalla6.tiempoConfigurado = true; }
+                        else if (pantalla6.campoActivo === "Minutos") { var_deseada_tiempo_minutos = Math.max(0, val); pantalla6.tiempoConfigurado = true; }
+                        var_deseada_tiempo_total_horas = (var_deseada_tiempo_semanas * 168) + (var_deseada_tiempo_dias * 24) + var_deseada_tiempo_horas + (var_deseada_tiempo_minutos / 60);
                     }
+                    pantalla6.campoActivo = "";
+                    pantalla6.entradaTemporal = "";
                 }
             }
 
@@ -1865,6 +1101,7 @@ ApplicationWindow {
                 tiempoHoras: var_deseada_tiempo_horas
                 tiempoMinutos: var_deseada_tiempo_minutos
                 tiempoTotal: var_deseada_tiempo_total_horas
+                unidadTemperatura: mainWindow.unidadTemperatura
 
                 onConfirmado: {
                     pantalla6.mostrarPopupConfirmacion = false;
@@ -2496,12 +1733,15 @@ ApplicationWindow {
                 property bool mostrarPopupConfirmarEdicion: false
 
                 property int indexEditando: -1
-                property string tempEditNombre: ""
-                property real tempEditTemp: 0.0
-                property real tempEditPh: 0.0
-                property real tempEditAgua: 0.0
-                property real tempEditLuz: 0.0
-                property string tempEditTiempo: ""
+                QtObject {
+                    id: datosEdicion
+                    property string nombre: ""
+                    property real temp: 0.0
+                    property real ph: 0.0
+                    property real agua: 0.0
+                    property real luz: 0.0
+                    property string tiempo: ""
+                }
 
                 // Variables para el teclado de edición
                 property string campoEditActivo: ""
@@ -2727,6 +1967,7 @@ ApplicationWindow {
                     tiempoHoras: var_deseada_tiempo_horas
                     tiempoMinutos: var_deseada_tiempo_minutos
                     tiempoTotal: var_deseada_tiempo_total_horas
+                unidadTemperatura: mainWindow.unidadTemperatura
 
                     onConfirmado: {
                         pantallaProyectosGuardados.mostrarPopupConfirmacion = false;
@@ -2788,12 +2029,12 @@ ApplicationWindow {
                                     anchors.fill: parent
                                     onClicked: {
                                         let item = datos_guardados.get(pantallaProyectosGuardados.indexEditando);
-                                        pantallaProyectosGuardados.tempEditNombre = item.nombre;
-                                        pantallaProyectosGuardados.tempEditTemp = item.temp;
-                                        pantallaProyectosGuardados.tempEditPh = item.ph;
-                                        pantallaProyectosGuardados.tempEditAgua = item.agua;
-                                        pantallaProyectosGuardados.tempEditLuz = item.luz;
-                                        pantallaProyectosGuardados.tempEditTiempo = item.tiempo;
+                                        datosEdicion.nombre = item.nombre;
+                                        datosEdicion.temp = item.temp;
+                                        datosEdicion.ph = item.ph;
+                                        datosEdicion.agua = item.agua;
+                                        datosEdicion.luz = item.luz;
+                                        datosEdicion.tiempo = item.tiempo;
                                         pantallaProyectosGuardados.mostrarPopupOpciones = false;
                                         pantallaProyectosGuardados.mostrarPopupEdicionProyecto = true;
                                     }
@@ -2916,12 +2157,12 @@ ApplicationWindow {
                     Keys.onPressed: (event) => {
                         if (pantallaProyectosGuardados.campoEditActivo === "Nombre") {
                             if (event.key === Qt.Key_Backspace) {
-                                if (pantallaProyectosGuardados.tempEditNombre.length > 0)
-                                    pantallaProyectosGuardados.tempEditNombre = pantallaProyectosGuardados.tempEditNombre.substring(0, pantallaProyectosGuardados.tempEditNombre.length - 1);
+                                if (datosEdicion.nombre.length > 0)
+                                    datosEdicion.nombre = datosEdicion.nombre.substring(0, datosEdicion.nombre.length - 1);
                             } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
                                 pantallaProyectosGuardados.campoEditActivo = "";
                             } else if (event.text.length > 0) {
-                                pantallaProyectosGuardados.tempEditNombre += event.text;
+                                datosEdicion.nombre += event.text;
                             }
                             event.accepted = true;
                         } else if (pantallaProyectosGuardados.campoEditActivo !== "") {
@@ -2945,12 +2186,12 @@ ApplicationWindow {
                                     if (pantallaProyectosGuardados.campoEditActivo === "Tem") {
                                         let minT = mainWindow.unidadTemperatura === "C" ? 20 : 68;
                                         let maxT = mainWindow.unidadTemperatura === "C" ? 100 : 212;
-                                                        pantallaProyectosGuardados.tempEditTemp = Math.max(minT, Math.min(maxT, val));
+                                                        datosEdicion.temp = Math.max(minT, Math.min(maxT, val));
                                     }
-                                    else if (pantallaProyectosGuardados.campoEditActivo === "pH") pantallaProyectosGuardados.tempEditPh = Math.max(1, Math.min(14, val));
-                                    else if (pantallaProyectosGuardados.campoEditActivo === "Agua") pantallaProyectosGuardados.tempEditAgua = Math.max(30, Math.min(100, val));
-                                    else if (pantallaProyectosGuardados.campoEditActivo === "Luz") pantallaProyectosGuardados.tempEditLuz = Math.max(0, Math.min(100, val));
-                                    else if (pantallaProyectosGuardados.campoEditActivo === "Tiempo") pantallaProyectosGuardados.tempEditTiempo = Math.max(6, val).toString();
+                                    else if (pantallaProyectosGuardados.campoEditActivo === "pH") datosEdicion.ph = Math.max(1, Math.min(14, val));
+                                    else if (pantallaProyectosGuardados.campoEditActivo === "Agua") datosEdicion.agua = Math.max(30, Math.min(100, val));
+                                    else if (pantallaProyectosGuardados.campoEditActivo === "Luz") datosEdicion.luz = Math.max(0, Math.min(100, val));
+                                    else if (pantallaProyectosGuardados.campoEditActivo === "Tiempo") datosEdicion.tiempo = Math.max(6, val).toString();
                                 }
                                 pantallaProyectosGuardados.campoEditActivo = "";
                                 pantallaProyectosGuardados.entradaEditTemporal = "";
@@ -3000,100 +2241,70 @@ ApplicationWindow {
                                 Rectangle {
                                     width: parent.width; height: parent.height * 0.13; radius: height/2; color: pantallaProyectosGuardados.campoEditActivo === "Nombre" ? "#A5D6A7" : "#8DBB5A"
                                     Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Nombre:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.35; anchors.right: parent.right; anchors.rightMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: pantallaProyectosGuardados.campoEditActivo === "Nombre" ? pantallaProyectosGuardados.tempEditNombre + "|" : pantallaProyectosGuardados.tempEditNombre; font.pixelSize: parent.height * 0.40; font.bold: true; color: "black"; elide: Text.ElideRight }
+                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.35; anchors.right: parent.right; anchors.rightMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: pantallaProyectosGuardados.campoEditActivo === "Nombre" ? datosEdicion.nombre + "|" : datosEdicion.nombre; font.pixelSize: parent.height * 0.40; font.bold: true; color: "black"; elide: Text.ElideRight }
                                     MouseArea { anchors.fill: parent; onClicked: { pantallaProyectosGuardados.campoEditActivo = "Nombre"; popupEdicionDatosRoot.forceActiveFocus(); } }
                                 }
                                 // 2. Temp
                                 Rectangle {
                                     width: parent.width; height: parent.height * 0.13; radius: height/2; color: pantallaProyectosGuardados.campoEditActivo === "Tem" ? "#A5D6A7" : "#8DBB5A"
                                     Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Temp °%1:").arg(mainWindow.unidadTemperatura); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "Tem" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : pantallaProyectosGuardados.tempEditTemp); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "Tem" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : datosEdicion.temp); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                                     MouseArea { anchors.fill: parent; onClicked: { pantallaProyectosGuardados.campoEditActivo = "Tem"; pantallaProyectosGuardados.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                                 }
                                 // 3. pH
                                 Rectangle {
                                     width: parent.width; height: parent.height * 0.13; radius: height/2; color: pantallaProyectosGuardados.campoEditActivo === "pH" ? "#A5D6A7" : "#8DBB5A"
                                     Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Nivel de pH:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "pH" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : pantallaProyectosGuardados.tempEditPh); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "pH" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : datosEdicion.ph); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                                     MouseArea { anchors.fill: parent; onClicked: { pantallaProyectosGuardados.campoEditActivo = "pH"; pantallaProyectosGuardados.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                                 }
                                 // 4. Agua
                                 Rectangle {
                                     width: parent.width; height: parent.height * 0.13; radius: height/2; color: pantallaProyectosGuardados.campoEditActivo === "Agua" ? "#A5D6A7" : "#8DBB5A"
                                     Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Nivel agua %:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "Agua" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : pantallaProyectosGuardados.tempEditAgua); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "Agua" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : datosEdicion.agua); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                                     MouseArea { anchors.fill: parent; onClicked: { pantallaProyectosGuardados.campoEditActivo = "Agua"; pantallaProyectosGuardados.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                                 }
                                 // 5. Luz
                                 Rectangle {
                                     width: parent.width; height: parent.height * 0.13; radius: height/2; color: pantallaProyectosGuardados.campoEditActivo === "Luz" ? "#A5D6A7" : "#8DBB5A"
                                     Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Nivel luz %:"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "Luz" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : pantallaProyectosGuardados.tempEditLuz); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "Luz" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : datosEdicion.luz); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                                     MouseArea { anchors.fill: parent; onClicked: { pantallaProyectosGuardados.campoEditActivo = "Luz"; pantallaProyectosGuardados.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                                 }
                                 // 6. Tiempo
                                 Rectangle {
                                     width: parent.width; height: parent.height * 0.13; radius: height/2; color: pantallaProyectosGuardados.campoEditActivo === "Tiempo" ? "#A5D6A7" : "#8DBB5A"
                                     Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Duración (h):"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "Tiempo" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : pantallaProyectosGuardados.tempEditTiempo); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                                    Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (pantallaProyectosGuardados.campoEditActivo === "Tiempo" ? pantallaProyectosGuardados.entradaEditTemporal + "|" : datosEdicion.tiempo); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                                     MouseArea { anchors.fill: parent; onClicked: { pantallaProyectosGuardados.campoEditActivo = "Tiempo"; pantallaProyectosGuardados.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                                 }
                             }
 
-                            // --- COLUMNA DERECHA: Teclado Numérico Visual ---
-                            Item {
+                            // --- COLUMNA DERECHA: Teclado Númerico Visual ---
+                            TecladoNumerico {
                                 width: parent.width * 0.45 - 15
                                 height: parent.height * 0.95
                                 anchors.verticalCenter: parent.verticalCenter
                                 visible: pantallaProyectosGuardados.campoEditActivo !== "" && pantallaProyectosGuardados.campoEditActivo !== "Nombre"
-
-                                Grid {
-                                    anchors.centerIn: parent
-                                    columns: 4
-                                    rows: 4
-                                    spacing: 8
-                                    Repeater {
-                                        model: ["7", "8", "9", "DEL", "4", "5", "6", "OK", "1", "2", "3", "", "",  "0", ".", ""]
-                                        Rectangle {
-                                            opacity: modelData === "" ? 0 : 1
-                                            width: (parent.parent.width - 24) / 4
-                                            height: (parent.parent.height - 24) / 4
-                                            radius: 10
-                                            color: modelData === "" ? "transparent" : (areaTeclaEditNum.pressed ? "#C4C0B7" : (modelData === "OK" ? "#7B8A80" : (modelData === "DEL" ? "#615E5E" : "#E4E0D7")))
-                                            border.color: "#D1CDC4"
-                                            border.width: (modelData !== "" && modelData !== "OK" && modelData !== "DEL") ? 1 : 0
-                                            Text { anchors.centerIn: parent; text: modelData === "DEL" ? qsTr("DEL") : (modelData === "OK" ? qsTr("OK") : modelData); font.pixelSize: parent.height * 0.40; color: (modelData === "OK" || modelData === "DEL") ? "#F5F5F5" : "#4A4A4A" }
-                                            MouseArea {
-                                                id: areaTeclaEditNum
-                                                anchors.fill: parent
-                                                enabled: modelData !== ""
-                                                onClicked: {
-                                                    if (modelData === "DEL") {
-                                                        if (pantallaProyectosGuardados.entradaEditTemporal.length > 0) pantallaProyectosGuardados.entradaEditTemporal = pantallaProyectosGuardados.entradaEditTemporal.substring(0, pantallaProyectosGuardados.entradaEditTemporal.length - 1);
-                                                    } else if (modelData === "OK") {
-                                                        let val = parseFloat(pantallaProyectosGuardados.entradaEditTemporal);
-                                                        if (!isNaN(val)) {
-                                                            if (pantallaProyectosGuardados.campoEditActivo === "Tem") {
-                                                                let minT = mainWindow.unidadTemperatura === "C" ? 20 : 68;
-                                                                let maxT = mainWindow.unidadTemperatura === "C" ? 100 : 212;
-                                                                pantallaProyectosGuardados.tempEditTemp = Math.max(minT, Math.min(maxT, val));
-                                                            }
-                                                            else if (pantallaProyectosGuardados.campoEditActivo === "pH") pantallaProyectosGuardados.tempEditPh = Math.max(1, Math.min(14, val));
-                                                            else if (pantallaProyectosGuardados.campoEditActivo === "Agua") pantallaProyectosGuardados.tempEditAgua = Math.max(30, Math.min(100, val));
-                                                            else if (pantallaProyectosGuardados.campoEditActivo === "Luz") pantallaProyectosGuardados.tempEditLuz = Math.max(0, Math.min(100, val));
-                                                            else if (pantallaProyectosGuardados.campoEditActivo === "Tiempo") pantallaProyectosGuardados.tempEditTiempo = Math.max(6, val).toString();
-                                                        }
-                                                        pantallaProyectosGuardados.campoEditActivo = "";
-                                                        pantallaProyectosGuardados.entradaEditTemporal = "";
-                                                    } else if (modelData === ".") {
-                                                        if (pantallaProyectosGuardados.entradaEditTemporal.indexOf(".") === -1) pantallaProyectosGuardados.entradaEditTemporal += (pantallaProyectosGuardados.entradaEditTemporal === "" ? "0." : ".");
-                                                    } else {
-                                                        pantallaProyectosGuardados.entradaEditTemporal = (pantallaProyectosGuardados.entradaEditTemporal === "0") ? modelData : pantallaProyectosGuardados.entradaEditTemporal + modelData;
-                                                    }
-                                                }
-                                            }
+                                onDigitoPresionado: function(d) { pantallaProyectosGuardados.entradaEditTemporal = pantallaProyectosGuardados.entradaEditTemporal === "0" ? d : pantallaProyectosGuardados.entradaEditTemporal + d }
+                                onPuntoPresionado:  { if (pantallaProyectosGuardados.entradaEditTemporal.indexOf(".") === -1) pantallaProyectosGuardados.entradaEditTemporal += pantallaProyectosGuardados.entradaEditTemporal === "" ? "0." : "." }
+                                onBorrarPresionado: { if (pantallaProyectosGuardados.entradaEditTemporal.length > 0) pantallaProyectosGuardados.entradaEditTemporal = pantallaProyectosGuardados.entradaEditTemporal.slice(0, -1) }
+                                onOkPresionado: {
+                                    let val = parseFloat(pantallaProyectosGuardados.entradaEditTemporal);
+                                    if (!isNaN(val)) {
+                                        if (pantallaProyectosGuardados.campoEditActivo === "Tem") {
+                                            let minT = mainWindow.unidadTemperatura === "C" ? 20 : 68;
+                                            let maxT = mainWindow.unidadTemperatura === "C" ? 100 : 212;
+                                            datosEdicion.temp = Math.max(minT, Math.min(maxT, val));
                                         }
+                                        else if (pantallaProyectosGuardados.campoEditActivo === "pH") datosEdicion.ph = Math.max(1, Math.min(14, val));
+                                        else if (pantallaProyectosGuardados.campoEditActivo === "Agua") datosEdicion.agua = Math.max(30, Math.min(100, val));
+                                        else if (pantallaProyectosGuardados.campoEditActivo === "Luz") datosEdicion.luz = Math.max(0, Math.min(100, val));
+                                        else if (pantallaProyectosGuardados.campoEditActivo === "Tiempo") datosEdicion.tiempo = Math.max(6, val).toString();
                                     }
+                                    pantallaProyectosGuardados.campoEditActivo = "";
+                                    pantallaProyectosGuardados.entradaEditTemporal = "";
                                 }
                             }
                         }
@@ -3143,72 +2354,19 @@ ApplicationWindow {
                         }
 
                         // --- TECLADO QWERTY RETRAÍBLE ---
-                        Rectangle {
+                        TecladoQwerty {
                             id: tecladoQwertyEdit
-                            z: 100 // Por encima de los botones
+                            z: 100
                             width: parent.width * 0.95
                             height: parent.height * 0.35
                             anchors.horizontalCenter: parent.horizontalCenter
-                            color: "#E0E0E0"
-                            radius: 10
                             anchors.bottom: parent.bottom
                             anchors.bottomMargin: pantallaProyectosGuardados.campoEditActivo === "Nombre" ? 10 : parent.height * -0.50
                             Behavior on anchors.bottomMargin { NumberAnimation { duration: 250; easing.type: Easing.OutQuad } }
-
-                            MouseArea { anchors.fill: parent }
-
-                            property string modoActual: "lowercase"
-                            property real anchoTecla: (width - (8 * 12)) / 11
-                            property real altoTecla: (height - (8 * 6)) / 5
-
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: 8
-                                width: parent.width * 0.98
-                                height: parent.height * 0.95
-
-                                Row {
-                                    spacing: 8; height: tecladoQwertyEdit.altoTecla; anchors.horizontalCenter: parent.horizontalCenter
-                                    Repeater {
-                                        model: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
-                                        Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: "white"; radius: 5; Text { anchors.centerIn: parent; font.pixelSize: parent.height * 0.60; color: "black"; text: tecladoQwertyEdit.modoActual === "symbols" ? ["!", "\"", "#", "$", "%", "&", "/", "(", ")", "="][index] : modelData } MouseArea { anchors.fill: parent; onClicked: pantallaProyectosGuardados.tempEditNombre += parent.children[0].text } }
-                                    }
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: "#A0A0A0"; radius: 5; Text { anchors.centerIn: parent; font.pixelSize: parent.height * 0.50; color: "black"; text: qsTr("Del") } MouseArea { anchors.fill: parent; onClicked: { if (pantallaProyectosGuardados.tempEditNombre.length > 0) pantallaProyectosGuardados.tempEditNombre = pantallaProyectosGuardados.tempEditNombre.substring(0, pantallaProyectosGuardados.tempEditNombre.length - 1) } } }
-                                }
-                                Row {
-                                    spacing: 8; height: tecladoQwertyEdit.altoTecla; anchors.horizontalCenter: parent.horizontalCenter
-                                    Repeater {
-                                        model: ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"]
-                                        Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: "white"; radius: 5; Text { anchors.centerIn: parent; font.pixelSize: parent.height * 0.60; color: "black"; text: tecladoQwertyEdit.modoActual === "symbols" ? ["+", "-", "*", ":", ";", "_", "¿", "?", "¡", "'"][index] : (tecladoQwertyEdit.modoActual === "uppercase" ? modelData : modelData.toLowerCase()) } MouseArea { anchors.fill: parent; onClicked: pantallaProyectosGuardados.tempEditNombre += parent.children[0].text } }
-                                    }
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: "#A0A0A0"; radius: 5; Text { anchors.centerIn: parent; font.pixelSize: parent.height * 0.50; color: "black"; text: "⌫" } MouseArea { anchors.fill: parent; onClicked: { if (pantallaProyectosGuardados.tempEditNombre.length > 0) pantallaProyectosGuardados.tempEditNombre = pantallaProyectosGuardados.tempEditNombre.substring(0, pantallaProyectosGuardados.tempEditNombre.length - 1) } } }
-                                }
-                                Row {
-                                    spacing: 8; height: tecladoQwertyEdit.altoTecla; anchors.horizontalCenter: parent.horizontalCenter
-                                    Repeater {
-                                        model: ["A", "S", "D", "F", "G", "H", "J", "K", "L", "Ñ"]
-                                        Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: "white"; radius: 5; Text { anchors.centerIn: parent; font.pixelSize: parent.height * 0.60; color: "black"; text: tecladoQwertyEdit.modoActual === "symbols" ? ["<", ">", "{", "}", "[", "]", "@", "\\", "|", "~"][index] : (tecladoQwertyEdit.modoActual === "uppercase" ? modelData : modelData.toLowerCase()) } MouseArea { anchors.fill: parent; onClicked: pantallaProyectosGuardados.tempEditNombre += parent.children[0].text } }
-                                    }
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: "#8b5cf6"; radius: 5; Text { anchors.centerIn: parent; font.pixelSize: parent.height * 0.40; color: "white"; font.bold: true; text: qsTr("Intro") } MouseArea { anchors.fill: parent; onClicked: pantallaProyectosGuardados.campoEditActivo = "" } }
-                                }
-                                Row {
-                                    spacing: 8; height: tecladoQwertyEdit.altoTecla; anchors.horizontalCenter: parent.horizontalCenter
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: tecladoQwertyEdit.modoActual === "symbols" ? "#D0D0D0" : "#A0A0A0"; radius: 5; Text { anchors.centerIn: parent; text: "↑"; font.pixelSize: parent.height * 0.60; color: tecladoQwertyEdit.modoActual === "symbols" ? "gray" : "black" } MouseArea { anchors.fill: parent; enabled: tecladoQwertyEdit.modoActual !== "symbols"; onClicked: tecladoQwertyEdit.modoActual = (tecladoQwertyEdit.modoActual === "lowercase") ? "uppercase" : "lowercase" } }
-                                    Repeater {
-                                        model: ["Z", "X", "C", "V", "B", "N", "M"]
-                                        Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: "white"; radius: 5; Text { anchors.centerIn: parent; font.pixelSize: parent.height * 0.60; color: "black"; text: tecladoQwertyEdit.modoActual === "symbols" ? ["^", "`", "€", "£", "¥", "©", "®"][index] : (tecladoQwertyEdit.modoActual === "uppercase" ? modelData : modelData.toLowerCase()) } MouseArea { anchors.fill: parent; onClicked: pantallaProyectosGuardados.tempEditNombre += parent.children[0].text } }
-                                    }
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: "white"; radius: 5; Text { anchors.centerIn: parent; text: ","; font.pixelSize: parent.height * 0.60; color: "black" } MouseArea { anchors.fill: parent; onClicked: pantallaProyectosGuardados.tempEditNombre += "," } }
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: "white"; radius: 5; Text { anchors.centerIn: parent; text: "."; font.pixelSize: parent.height * 0.60; color: "black" } MouseArea { anchors.fill: parent; onClicked: pantallaProyectosGuardados.tempEditNombre += "." } }
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla; height: parent.height; color: tecladoQwertyEdit.modoActual === "symbols" ? "#D0D0D0" : "#A0A0A0"; radius: 5; Text { anchors.centerIn: parent; text: "↑"; font.pixelSize: parent.height * 0.60; color: tecladoQwertyEdit.modoActual === "symbols" ? "gray" : "black" } MouseArea { anchors.fill: parent; enabled: tecladoQwertyEdit.modoActual !== "symbols"; onClicked: tecladoQwertyEdit.modoActual = (tecladoQwertyEdit.modoActual === "lowercase") ? "uppercase" : "lowercase" } }
-                                }
-                                Row {
-                                    spacing: 8; height: tecladoQwertyEdit.altoTecla; anchors.horizontalCenter: parent.horizontalCenter
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla * 2 + 8; height: parent.height; color: "#A0A0A0"; radius: 5; Text { anchors.centerIn: parent; text: tecladoQwertyEdit.modoActual === "symbols" ? "ABC" : "?123"; font.pixelSize: parent.height * 0.40; color: "black" } MouseArea { anchors.fill: parent; onClicked: tecladoQwertyEdit.modoActual = (tecladoQwertyEdit.modoActual === "symbols") ? "lowercase" : "symbols" } }
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla * 7 + (8 * 6); height: parent.height; color: "white"; radius: 5; Text { anchors.centerIn: parent; text: qsTr("Espacio"); font.pixelSize: parent.height * 0.40; color: "gray" } MouseArea { anchors.fill: parent; onClicked: pantallaProyectosGuardados.tempEditNombre += " " } }
-                                    Rectangle { width: tecladoQwertyEdit.anchoTecla * 2 + 8; height: parent.height; color: "#A0A0A0"; radius: 5; Text { anchors.centerIn: parent; text: qsTr("Cerrar"); font.pixelSize: parent.height * 0.40; color: "black" } MouseArea { anchors.fill: parent; onClicked: pantallaProyectosGuardados.campoEditActivo = "" } }
-                                }
-                            }
+                            onTeclaPresionada:  function(t) { datosEdicion.nombre += t }
+                            onBorrarPresionado: { if (datosEdicion.nombre.length > 0) datosEdicion.nombre = datosEdicion.nombre.slice(0, -1) }
+                            onIntroPresionado:  { pantallaProyectosGuardados.campoEditActivo = "" }
+                            onCerrarPresionado: { pantallaProyectosGuardados.campoEditActivo = "" }
                         }
                     }
                 }
@@ -3250,7 +2408,7 @@ ApplicationWindow {
                                             // Fila 1: Proyecto
                                             Text {
                                                 textFormat: Text.RichText
-                                                text: qsTr("Proyecto: <b>%1</b>").arg(pantallaProyectosGuardados.tempEditNombre)
+                                                text: qsTr("Proyecto: <b>%1</b>").arg(datosEdicion.nombre)
                                                 font.pixelSize: cajaConfirmarEdicion.height * 0.055
                                                 color: "black"
                                                 width: parent.width
@@ -3264,7 +2422,7 @@ ApplicationWindow {
                                                 Text {
                                                     width: (parent.width/2)-(parent.width*0.01)
                                                     textFormat: Text.RichText
-                                                    text: qsTr("Temperatura: <b>%1 °%2</b>").arg(pantallaProyectosGuardados.tempEditTemp.toFixed(1)).arg(mainWindow.unidadTemperatura)
+                                                    text: qsTr("Temperatura: <b>%1 °%2</b>").arg(datosEdicion.temp.toFixed(1)).arg(mainWindow.unidadTemperatura)
                                                     font.pixelSize: cajaConfirmarEdicion.height * 0.055
                                                     color: "black"
                                                     wrapMode: Text.WordWrap
@@ -3272,7 +2430,7 @@ ApplicationWindow {
                                                 Text {
                                                     width: (parent.width/2)-(parent.width*0.01)
                                                     textFormat: Text.RichText
-                                                    text: qsTr("Nivel de pH: <b>%1</b>").arg(pantallaProyectosGuardados.tempEditPh.toFixed(1))
+                                                    text: qsTr("Nivel de pH: <b>%1</b>").arg(datosEdicion.ph.toFixed(1))
                                                     font.pixelSize: cajaConfirmarEdicion.height * 0.055
                                                     color: "black"
                                                     wrapMode: Text.WordWrap
@@ -3286,7 +2444,7 @@ ApplicationWindow {
                                                 Text {
                                                     width: (parent.width/2)-(parent.width*0.01)
                                                     textFormat: Text.RichText
-                                                    text: qsTr("Nivel de agua: <b>%1 %</b>").arg(pantallaProyectosGuardados.tempEditAgua.toFixed(1))
+                                                    text: qsTr("Nivel de agua: <b>%1 %</b>").arg(datosEdicion.agua.toFixed(1))
                                                     font.pixelSize: cajaConfirmarEdicion.height * 0.055
                                                     color: "black"
                                                     wrapMode: Text.WordWrap
@@ -3294,7 +2452,7 @@ ApplicationWindow {
                                                 Text {
                                                     width: (parent.width/2)-(parent.width*0.01)
                                                     textFormat: Text.RichText
-                                                    text: qsTr("Nivel de luz: <b>%1 %</b>").arg(pantallaProyectosGuardados.tempEditLuz.toFixed(1))
+                                                    text: qsTr("Nivel de luz: <b>%1 %</b>").arg(datosEdicion.luz.toFixed(1))
                                                     font.pixelSize: cajaConfirmarEdicion.height * 0.055
                                                     color: "black"
                                                     wrapMode: Text.WordWrap
@@ -3304,7 +2462,7 @@ ApplicationWindow {
                                             // Fila 4: Tiempo
                                             Text {
                                                 textFormat: Text.RichText
-                                                property int t_total: parseFloat(pantallaProyectosGuardados.tempEditTiempo) || 0
+                                                property int t_total: parseFloat(datosEdicion.tiempo) || 0
                                                 property int t_semanas: Math.floor(t_total / 168)
                                                 property int t_dias: Math.floor((t_total % 168) / 24)
                                                 property int t_horas: Math.floor(t_total % 24)
@@ -3332,12 +2490,12 @@ ApplicationWindow {
                                 id: areaOkConfirmEdit;
                                 anchors.fill: parent;
                                 onClicked: {
-                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "nombre", pantallaProyectosGuardados.tempEditNombre);
-                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "temp", pantallaProyectosGuardados.tempEditTemp);
-                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "ph", pantallaProyectosGuardados.tempEditPh);
-                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "agua", pantallaProyectosGuardados.tempEditAgua);
-                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "luz", pantallaProyectosGuardados.tempEditLuz);
-                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "tiempo", pantallaProyectosGuardados.tempEditTiempo);
+                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "nombre", datosEdicion.nombre);
+                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "temp", datosEdicion.temp);
+                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "ph", datosEdicion.ph);
+                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "agua", datosEdicion.agua);
+                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "luz", datosEdicion.luz);
+                                    datos_guardados.setProperty(pantallaProyectosGuardados.indexEditando, "tiempo", datosEdicion.tiempo);
                                     pantallaProyectosGuardados.mostrarPopupConfirmarEdicion = false;
                                 }
                             }

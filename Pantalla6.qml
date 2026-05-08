@@ -43,12 +43,12 @@ Item {
                     if (root.campoActivo === "Tem") {
                         let minT = appWindow.unidadTemperatura === "C" ? 20 : 68;
                         let maxT = appWindow.unidadTemperatura === "C" ? 100 : 212;
-                        appWindow.var_deseada_Tem = Math.max(minT, Math.min(maxT, val));
+                        backend.setpointTem = Math.max(minT, Math.min(maxT, val));
                         root.tempConfigurada = true;
                     }
-                    else if (root.campoActivo === "pH") { appWindow.var_deseada_pH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
-                    else if (root.campoActivo === "Agua") { appWindow.var_deseada_Agua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
-                    else if (root.campoActivo === "Luz") { appWindow.var_deseada_Luz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
+                    else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
+                    else if (root.campoActivo === "Agua") { backend.setpointAgua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
+                    else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                     else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
                     else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
                     else if (root.campoActivo === "Horas") { appWindow.var_deseada_tiempo_horas = Math.max(0, val); root.tiempoConfigurado = true; }
@@ -73,28 +73,28 @@ Item {
             idCampo: "Tem"
             campoActivo: root.campoActivo
             textoEtiqueta: qsTranslate("Main", "Temperatura:")
-            valorMostrado: (root.campoActivo === "Tem" ? root.entradaTemporal + "|" : appWindow.var_deseada_Tem) + " °" + appWindow.unidadTemperatura
+            valorMostrado: (root.campoActivo === "Tem" ? root.entradaTemporal + "|" : backend.setpointTem) + " °" + appWindow.unidadTemperatura
             onBarraClicada: { root.campoActivo = "Tem"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
             idCampo: "pH"
             campoActivo: root.campoActivo
             textoEtiqueta: qsTranslate("Main", "Nivel de pH:")
-            valorMostrado: (root.campoActivo === "pH" ? root.entradaTemporal + "|" : appWindow.var_deseada_pH)
+            valorMostrado: (root.campoActivo === "pH" ? root.entradaTemporal + "|" : backend.setpointPH)
             onBarraClicada: { root.campoActivo = "pH"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
             idCampo: "Agua"
             campoActivo: root.campoActivo
             textoEtiqueta: qsTranslate("Main", "Nivel de agua:")
-            valorMostrado: (root.campoActivo === "Agua" ? root.entradaTemporal + "|" : appWindow.var_deseada_Agua) + " %"
+            valorMostrado: (root.campoActivo === "Agua" ? root.entradaTemporal + "|" : backend.setpointAgua) + " %"
             onBarraClicada: { root.campoActivo = "Agua"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
             idCampo: "Luz"
             campoActivo: root.campoActivo
             textoEtiqueta: qsTranslate("Main", "Nivel de luz:")
-            valorMostrado: (root.campoActivo === "Luz" ? root.entradaTemporal + "|" : appWindow.var_deseada_Luz) + " %"
+            valorMostrado: (root.campoActivo === "Luz" ? root.entradaTemporal + "|" : backend.setpointLuz) + " %"
             onBarraClicada: { root.campoActivo = "Luz"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
 
@@ -235,12 +235,12 @@ Item {
                 if (root.campoActivo === "Tem") {
                     let minT = appWindow.unidadTemperatura === "C" ? 20 : 68;
                     let maxT = appWindow.unidadTemperatura === "C" ? 100 : 212;
-                    appWindow.var_deseada_Tem = Math.max(minT, Math.min(maxT, val));
+                    backend.setpointTem = Math.max(minT, Math.min(maxT, val));
                     root.tempConfigurada = true;
                 }
-                else if (root.campoActivo === "pH") { appWindow.var_deseada_pH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
-                else if (root.campoActivo === "Agua") { appWindow.var_deseada_Agua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
-                else if (root.campoActivo === "Luz") { appWindow.var_deseada_Luz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
+                else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
+                else if (root.campoActivo === "Agua") { backend.setpointAgua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
+                else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                 else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
                 else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
                 else if (root.campoActivo === "Horas") { appWindow.var_deseada_tiempo_horas = Math.max(0, val); root.tiempoConfigurado = true; }
@@ -275,10 +275,10 @@ Item {
                 if (root.campoActivo !== "" && root.entradaTemporal !== "") {
                     let val = parseFloat(root.entradaTemporal);
                     if (!isNaN(val)) {
-                        if (root.campoActivo === "Tem") { appWindow.var_deseada_Tem = Math.max(20, Math.min(100, val)); root.tempConfigurada = true; }
-                        else if (root.campoActivo === "pH") { appWindow.var_deseada_pH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
-                        else if (root.campoActivo === "Agua") { appWindow.var_deseada_Agua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
-                        else if (root.campoActivo === "Luz") { appWindow.var_deseada_Luz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
+                        if (root.campoActivo === "Tem") { backend.setpointTem = Math.max(20, Math.min(100, val)); root.tempConfigurada = true; }
+                        else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
+                        else if (root.campoActivo === "Agua") { backend.setpointAgua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
+                        else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                         else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
                         else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
                         else if (root.campoActivo === "Horas") { appWindow.var_deseada_tiempo_horas = Math.max(0, val); root.tiempoConfigurado = true; }
@@ -364,10 +364,10 @@ Item {
         visible: root.mostrarPopupConfirmacion
         nombreProyecto: appWindow.var_nombre_proyecto
         nombreExperimento: appWindow.var_nombre_experimento
-        temp: appWindow.var_deseada_Tem
-        ph: appWindow.var_deseada_pH
-        agua: appWindow.var_deseada_Agua
-        luz: appWindow.var_deseada_Luz
+        temp: backend.setpointTem
+        ph: backend.setpointPH
+        agua: backend.setpointAgua
+        luz: backend.setpointLuz
         tiempoSemanas: appWindow.var_deseada_tiempo_semanas
         tiempoDias: appWindow.var_deseada_tiempo_dias
         tiempoHoras: appWindow.var_deseada_tiempo_horas

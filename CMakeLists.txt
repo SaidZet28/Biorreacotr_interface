@@ -67,6 +67,7 @@ qt_add_qml_module(appPrototipo
         Hongo_8.png
         Hongo_9.png
         SOURCES translationmanager.h translationmanager.cpp
+                gestorbiorreactor.h gestorbiorreactor.cpp
 )
 
 # 3. AHORA SÍ, le agregamos las traducciones al ejecutable
@@ -90,7 +91,7 @@ set_target_properties(appPrototipo PROPERTIES
 )
 
 target_link_libraries(appPrototipo
-    PRIVATE Qt6::Quick
+    PRIVATE Qt6::Quick Qt6::Core
 )
 
 install(TARGETS appPrototipo

@@ -12,6 +12,7 @@ Rectangle {
     signal cerrarPresionado()
 
     property string modoActual: "lowercase"
+    property bool esAleman: Window.window ? Window.window.idiomaActual === "Alemán" : false
 
     // Dimensiones internas de teclas, calculadas sobre el tamaño del componente
     property real anchoTecla: (width  - (8 * 12)) / 11
@@ -71,9 +72,12 @@ Rectangle {
                         anchors.centerIn: parent
                         font.pixelSize: parent.height * 0.60
                         color: "black"
-                        text: teclado.modoActual === "symbols"
-                              ? ["+","-","*",":",";","_","¿","?","¡","'"][index]
-                              : (teclado.modoActual === "uppercase" ? modelData : modelData.toLowerCase())
+                        text: {
+                            if (teclado.modoActual === "symbols")
+                                return ["+","-","*",":",";","_","¿","?","¡","'"][index]
+                            var letra = (index === 5 && teclado.esAleman) ? "Z" : modelData
+                            return teclado.modoActual === "uppercase" ? letra : letra.toLowerCase()
+                        }
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -143,9 +147,12 @@ Rectangle {
                         anchors.centerIn: parent
                         font.pixelSize: parent.height * 0.60
                         color: "black"
-                        text: teclado.modoActual === "symbols"
-                              ? ["^","`","€","£","¥","©","®"][index]
-                              : (teclado.modoActual === "uppercase" ? modelData : modelData.toLowerCase())
+                        text: {
+                            if (teclado.modoActual === "symbols")
+                                return ["^","`","€","£","¥","©","®"][index]
+                            var letra = (index === 0 && teclado.esAleman) ? "Y" : modelData
+                            return teclado.modoActual === "uppercase" ? letra : letra.toLowerCase()
+                        }
                     }
                     MouseArea {
                         anchors.fill: parent

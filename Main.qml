@@ -42,16 +42,6 @@ ApplicationWindow {
     // --- Lecturas actuales de sensores ---
     property real var_sensor_Tem: 24.5
     property real var_sensor_pH: 7.2
-    property real var_sensor_Agua: 85.0
-    property real var_sensor_Luz: 60.0
-    property real var_sensor_CO2: 400.0
-
-    // --- Setpoints (Valores deseados) ---
-    property real var_deseada_Tem: 0.0
-    property real var_deseada_pH: 0.0
-    property real var_deseada_Agua: 0.0
-    property real var_deseada_Luz: 0.0
-    property real var_deseada_CO2: 0.0
 
     // --- Control de Tiempo ---
     property real var_deseada_tiempo_semanas: 0.0
@@ -69,10 +59,11 @@ ApplicationWindow {
             var_nombre_experimento = ""
         }
 
-        var_deseada_Tem = 0.0
-        var_deseada_pH = 0.0
-        var_deseada_Agua = 0.0
-        var_deseada_Luz = 0.0
+        backend.setpointTem  = 0.0
+        backend.setpointPH   = 0.0
+        backend.setpointAgua = 0.0
+        backend.setpointLuz  = 0.0
+        backend.setpointCO2  = 0.0
         var_deseada_tiempo_semanas = 0.0
         var_deseada_tiempo_dias = 0.0
         var_deseada_tiempo_horas = 0.0

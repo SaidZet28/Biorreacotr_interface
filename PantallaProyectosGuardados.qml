@@ -138,10 +138,10 @@ Item {
                     onClicked: {
                         appWindow.limpiarDatos(false);
                         appWindow.var_nombre_proyecto = model.nombre;
-                        appWindow.var_deseada_Tem = (appWindow.unidadTemperatura === "C" ? model.temp : (model.temp * 9/5 + 32));
-                        appWindow.var_deseada_pH = model.ph;
-                        appWindow.var_deseada_Agua = model.agua;
-                        appWindow.var_deseada_Luz = model.luz;
+                        backend.setpointTem = (appWindow.unidadTemperatura === "C" ? model.temp : (model.temp * 9/5 + 32));
+                        backend.setpointPH = model.ph;
+                        backend.setpointAgua = model.agua;
+                        backend.setpointLuz = model.luz;
                         let total = parseFloat(model.tiempo);
                         appWindow.var_deseada_tiempo_total_horas = total;
                         appWindow.var_deseada_tiempo_semanas = Math.floor(total / 168);
@@ -217,10 +217,10 @@ Item {
         visible: root.mostrarPopupConfirmacion
         nombreProyecto: appWindow.var_nombre_proyecto
         nombreExperimento: appWindow.var_nombre_experimento
-        temp: appWindow.var_deseada_Tem
-        ph: appWindow.var_deseada_pH
-        agua: appWindow.var_deseada_Agua
-        luz: appWindow.var_deseada_Luz
+        temp: backend.setpointTem
+        ph: backend.setpointPH
+        agua: backend.setpointAgua
+        luz: backend.setpointLuz
         tiempoSemanas: appWindow.var_deseada_tiempo_semanas
         tiempoDias: appWindow.var_deseada_tiempo_dias
         tiempoHoras: appWindow.var_deseada_tiempo_horas

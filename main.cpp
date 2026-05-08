@@ -1,7 +1,8 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include "translationmanager.h" // Ojo: en tu foto está con minúsculas, déjalo como lo tienes
+#include "translationmanager.h"
+#include "gestorbiorreactor.h"
 
 int main(int argc, char *argv[])
 {
@@ -11,6 +12,9 @@ int main(int argc, char *argv[])
 
     TranslationManager traductorManager(&app, &engine);
     engine.rootContext()->setContextProperty("TraductorC", &traductorManager);
+
+    GestorBiorreactor backend;
+    engine.rootContext()->setContextProperty("backend", &backend);
 
     QObject::connect(
         &engine,

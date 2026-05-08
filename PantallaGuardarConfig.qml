@@ -186,7 +186,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTranslate("Main", "Temperatura: <b>%1 °%2</b>").arg(appWindow.var_deseada_Tem).arg(appWindow.unidadTemperatura)
+                        text: qsTranslate("Main", "Temperatura: <b>%1 °%2</b>").arg(backend.setpointTem).arg(appWindow.unidadTemperatura)
                         font.pixelSize: cajaPopupGuardar13.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -194,7 +194,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTranslate("Main", "Nivel de pH: <b>%1</b>").arg(appWindow.var_deseada_pH)
+                        text: qsTranslate("Main", "Nivel de pH: <b>%1</b>").arg(backend.setpointPH)
                         font.pixelSize: cajaPopupGuardar13.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -206,7 +206,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTranslate("Main", "Nivel de agua: <b>%1 %</b>").arg(appWindow.var_deseada_Agua)
+                        text: qsTranslate("Main", "Nivel de agua: <b>%1 %</b>").arg(backend.setpointAgua)
                         font.pixelSize: cajaPopupGuardar13.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -214,7 +214,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTranslate("Main", "Nivel de luz: <b>%1 %</b>").arg(appWindow.var_deseada_Luz)
+                        text: qsTranslate("Main", "Nivel de luz: <b>%1 %</b>").arg(backend.setpointLuz)
                         font.pixelSize: cajaPopupGuardar13.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -250,10 +250,10 @@ Item {
                         }
                         appWindow.datos_guardados.append({
                             nombre: appWindow.var_nombre_proyecto,
-                            temp: appWindow.var_deseada_Tem,
-                            ph: appWindow.var_deseada_pH,
-                            agua: appWindow.var_deseada_Agua,
-                            luz: appWindow.var_deseada_Luz,
+                            temp: backend.setpointTem,
+                            ph: backend.setpointPH,
+                            agua: backend.setpointAgua,
+                            luz: backend.setpointLuz,
                             tiempo: appWindow.var_deseada_tiempo_total_horas.toFixed(1)
                         });
                         root.mostrarPopupConfirmarDatos = false;

@@ -110,7 +110,7 @@ Item {
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30
                     textoEtiqueta: "pH"
-                    textoValor: appWindow.var_sensor_pH.toFixed(1)
+                    textoValor: backend.sensorPH.toFixed(1)
                 }
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30

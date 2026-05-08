@@ -252,10 +252,10 @@ Item {
                     onClicked: {
                         if (appWindow.unidadTemperatura === "C" && root.tempUnidades === "F") {
                             backend.setpointTem = (backend.setpointTem * 9/5) + 32;
-                            appWindow.var_sensor_Tem = (appWindow.var_sensor_Tem * 9/5) + 32;
+                            backend.sensorTem = (backend.sensorTem * 9/5) + 32;
                         } else if (appWindow.unidadTemperatura === "F" && root.tempUnidades === "C") {
                             backend.setpointTem = (backend.setpointTem - 32) * 5/9;
-                            appWindow.var_sensor_Tem = (appWindow.var_sensor_Tem - 32) * 5/9;
+                            backend.sensorTem = (backend.sensorTem - 32) * 5/9;
                         }
                         appWindow.unidadTemperatura = root.tempUnidades;
                         root.mostrarPopupUnidades = false;

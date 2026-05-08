@@ -39,10 +39,6 @@ ApplicationWindow {
     property int var_vaciado_nivel_1: 5000
     property int var_vaciado_nivel_2: 5000
 
-    // --- Lecturas actuales de sensores ---
-    property real var_sensor_Tem: 24.5
-    property real var_sensor_pH: 7.2
-
     // --- Control de Tiempo ---
     property real var_deseada_tiempo_semanas: 0.0
     property real var_deseada_tiempo_dias: 0.0

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
 
 # 1. Buscamos los paquetes requeridos
-find_package(Qt6 REQUIRED COMPONENTS Quick LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Quick LinguistTools SerialPort)
 
 if(MINGW)
     add_compile_options("-Wa,-mbig-obj")
@@ -91,7 +91,7 @@ set_target_properties(appPrototipo PROPERTIES
 )
 
 target_link_libraries(appPrototipo
-    PRIVATE Qt6::Quick Qt6::Core
+    PRIVATE Qt6::Quick Qt6::Core Qt6::SerialPort
 )
 
 install(TARGETS appPrototipo

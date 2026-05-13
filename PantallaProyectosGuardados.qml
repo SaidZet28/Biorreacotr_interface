@@ -23,7 +23,7 @@ Item {
         property real ph: 0.0
         property real agua: 0.0
         property real luz: 0.0
-        property string tiempo: ""
+        property real tiempo: 0.0
     }
 
     property string campoEditActivo: ""
@@ -237,9 +237,10 @@ Item {
                 "experimento": appWindow.var_nombre_experimento,
                 "fecha": cadenaFecha,
                 "tiempo": "0.0 / " + appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " hrs",
-                "peso": (Math.random() * 5 + 0.5).toFixed(1) + " MB",
+                "peso": "N/A",
                 "seleccionado": false
             });
+            appWindow.estadoPrevioPantalla7 = "pantalla_proyectos_guardados"
             appWindow.estadoActual = "pantalla_7"
         }
         onCancelado: { root.mostrarPopupConfirmacion = false; }
@@ -290,7 +291,7 @@ Item {
                             datosEdicion.ph = item.ph;
                             datosEdicion.agua = item.agua;
                             datosEdicion.luz = item.luz;
-                            datosEdicion.tiempo = item.tiempo;
+                            datosEdicion.tiempo = parseFloat(item.tiempo);
                             root.mostrarPopupOpciones = false;
                             root.mostrarPopupEdicionProyecto = true;
                         }
@@ -441,7 +442,7 @@ Item {
                         else if (root.campoEditActivo === "pH") datosEdicion.ph = Math.max(1, Math.min(14, val));
                         else if (root.campoEditActivo === "Agua") datosEdicion.agua = Math.max(30, Math.min(100, val));
                         else if (root.campoEditActivo === "Luz") datosEdicion.luz = Math.max(0, Math.min(100, val));
-                        else if (root.campoEditActivo === "Tiempo") datosEdicion.tiempo = Math.max(6, val).toString();
+                        else if (root.campoEditActivo === "Tiempo") datosEdicion.tiempo = Math.max(6, val);
                     }
                     root.campoEditActivo = "";
                     root.entradaEditTemporal = "";
@@ -519,7 +520,7 @@ Item {
                     Rectangle {
                         width: parent.width; height: parent.height * 0.13; radius: height/2; color: root.campoEditActivo === "Tiempo" ? "#A5D6A7" : "#8DBB5A"
                         Text { anchors.left: parent.left; anchors.leftMargin: 15; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Duración (h):"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                        Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (root.campoEditActivo === "Tiempo" ? root.entradaEditTemporal + "|" : datosEdicion.tiempo); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                        Text { anchors.left: parent.left; anchors.leftMargin: parent.width * 0.45; anchors.verticalCenter: parent.verticalCenter; text: (root.campoEditActivo === "Tiempo" ? root.entradaEditTemporal + "|" : datosEdicion.tiempo.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                         MouseArea { anchors.fill: parent; onClicked: { root.campoEditActivo = "Tiempo"; root.entradaEditTemporal = ""; popupEdicionDatosRoot.forceActiveFocus(); } }
                     }
                 }
@@ -543,7 +544,7 @@ Item {
                             else if (root.campoEditActivo === "pH") datosEdicion.ph = Math.max(1, Math.min(14, val));
                             else if (root.campoEditActivo === "Agua") datosEdicion.agua = Math.max(30, Math.min(100, val));
                             else if (root.campoEditActivo === "Luz") datosEdicion.luz = Math.max(0, Math.min(100, val));
-                            else if (root.campoEditActivo === "Tiempo") datosEdicion.tiempo = Math.max(6, val).toString();
+                            else if (root.campoEditActivo === "Tiempo") datosEdicion.tiempo = Math.max(6, val);
                         }
                         root.campoEditActivo = "";
                         root.entradaEditTemporal = "";
@@ -694,7 +695,7 @@ Item {
 
                 Text {
                     textFormat: Text.RichText
-                    property int t_total: parseFloat(datosEdicion.tiempo) || 0
+                    property int t_total: datosEdicion.tiempo
                     property int t_semanas: Math.floor(t_total / 168)
                     property int t_dias: Math.floor((t_total % 168) / 24)
                     property int t_horas: Math.floor(t_total % 24)
@@ -722,11 +723,12 @@ Item {
                     anchors.fill: parent
                     onClicked: {
                         appWindow.datos_guardados.setProperty(root.indexEditando, "nombre", datosEdicion.nombre);
-                        appWindow.datos_guardados.setProperty(root.indexEditando, "temp", datosEdicion.temp);
+                        appWindow.datos_guardados.setProperty(root.indexEditando, "temp",
+                            appWindow.unidadTemperatura === "F" ? (datosEdicion.temp - 32) * 5/9 : datosEdicion.temp);
                         appWindow.datos_guardados.setProperty(root.indexEditando, "ph", datosEdicion.ph);
                         appWindow.datos_guardados.setProperty(root.indexEditando, "agua", datosEdicion.agua);
                         appWindow.datos_guardados.setProperty(root.indexEditando, "luz", datosEdicion.luz);
-                        appWindow.datos_guardados.setProperty(root.indexEditando, "tiempo", datosEdicion.tiempo);
+                        appWindow.datos_guardados.setProperty(root.indexEditando, "tiempo", datosEdicion.tiempo.toFixed(1));
                         root.mostrarPopupConfirmarEdicion = false;
                     }
                 }

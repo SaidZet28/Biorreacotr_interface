@@ -18,7 +18,7 @@ Item {
         property: "progresoSimulado"
         from: 0.0
         to: 1.0
-        duration: Math.max(1000, Math.floor(appWindow.var_deseada_tiempo_total_horas * 3600000))
+        duration: Math.max(1000, Math.min(Math.floor(appWindow.var_deseada_tiempo_total_horas * 3600000), 2100000000))
         onFinished: {
             if (root.progresoSimulado >= 1.0) {
                 root.mostrarPopupFinalizado = true;
@@ -28,7 +28,9 @@ Item {
 
     onVisibleChanged: {
         if (visible) {
-            if (progresoSimulado === 0.0 && !mostrarPopupFinalizado) {
+            if (appWindow.procesoListoParaIniciar) {
+                appWindow.procesoListoParaIniciar = false;
+                progresoSimulado = 0.0;
                 mostrarPopupPausa = false;
                 mostrarPopupFinalizado = false;
                 mostrarPopupConfirmarDetener = false;
@@ -53,7 +55,9 @@ Item {
             onClicked: appWindow.estadoActual = "pantalla_configuracion_graficas"
         }
         Text {
-            text: qsTranslate("Main", "Gráfica de :")
+            text: qsTranslate("Main", "Gráfica de :") + " " + [
+                "", qsTranslate("Main", "Temperatura"), qsTranslate("Main", "N. Agua"), "pH", qsTranslate("Main", "Luz")
+            ][appWindow.var_seleccion_grafica]
             font.pixelSize: parent.height * 0.08
             font.bold: true
             color: "black"
@@ -97,7 +101,7 @@ Item {
             height: appWindow.height * 0.08
             color: "#8DBB5A"
             radius: height / 2
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(backend.sensorTem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg((appWindow.unidadTemperatura === "F" ? (backend.sensorTem * 9/5 + 32) : backend.sensorTem).toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
             Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(backend.setpointTem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
@@ -134,6 +138,8 @@ Item {
             color: "#8DBB5A"
             radius: height / 2
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. CO2: %1 ppm").arg(backend.sensorCO2.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. CO2: %1 ppm").arg(backend.setpointCO2.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
     }
 

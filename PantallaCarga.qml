@@ -21,15 +21,19 @@ Item {
         }
     }
 
+    onVisibleChanged: {
+        if (visible) backend.buscarYConectar()
+    }
+
     Timer {
         interval: 3000
         running: root.visible
         onTriggered: {
-            if (appWindow.sensor_estado_primero === 1) {
+            if (backend.puertoConectado) {
                 appWindow.estadoActual = "pantalla_principal"
             } else {
                 appWindow.estado_sensor_retorno_error = "pantalla_de_carga"
-                appWindow.textoMensajeError = qsTranslate("Main", "Falla en sensor")
+                appWindow.textoMensajeError = qsTranslate("Main", "No se detectó hardware")
                 appWindow.estadoActual = "pantalla_de_error"
             }
         }

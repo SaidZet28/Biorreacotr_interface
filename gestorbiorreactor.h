@@ -65,6 +65,7 @@ public:
 
     Q_INVOKABLE void cargarConfiguracion();
     Q_INVOKABLE void guardarConfiguracion();
+    Q_INVOKABLE void resetearSetpoints();
     Q_INVOKABLE bool buscarYConectar(const QString &nombreForzado = QString());
     Q_INVOKABLE void desconectar();
 

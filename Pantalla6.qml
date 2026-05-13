@@ -20,6 +20,20 @@ Item {
     property bool luzConfigurada: false
     property bool tiempoConfigurado: false
 
+    function aplicarValor(campo, entrada) {
+        let v = parseFloat(entrada)
+        if (isNaN(v)) return
+        if      (campo === "Tem")     { let mn = appWindow.unidadTemperatura === "C" ? 20 : 68; let mx = appWindow.unidadTemperatura === "C" ? 100 : 212; backend.setpointTem = Math.max(mn, Math.min(mx, v)); root.tempConfigurada = true }
+        else if (campo === "pH")      { backend.setpointPH   = Math.max(1,  Math.min(14,  v)); root.phConfigurado   = true }
+        else if (campo === "Agua")    { backend.setpointAgua = Math.max(30, Math.min(100, v)); root.aguaConfigurada = true }
+        else if (campo === "Luz")     { backend.setpointLuz  = Math.max(0,  Math.min(100, v)); root.luzConfigurada  = true }
+        else if (campo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, Math.min(52, v)); root.tiempoConfigurado = true }
+        else if (campo === "Dias")    { appWindow.var_deseada_tiempo_dias    = Math.max(0, Math.min(6,  v)); root.tiempoConfigurado = true }
+        else if (campo === "Horas")   { appWindow.var_deseada_tiempo_horas   = Math.max(0, Math.min(23, v)); root.tiempoConfigurado = true }
+        else if (campo === "Minutos") { appWindow.var_deseada_tiempo_minutos = Math.max(0, Math.min(59, v)); root.tiempoConfigurado = true }
+        appWindow.var_deseada_tiempo_total_horas = (appWindow.var_deseada_tiempo_semanas * 168) + (appWindow.var_deseada_tiempo_dias * 24) + appWindow.var_deseada_tiempo_horas + (appWindow.var_deseada_tiempo_minutos / 60)
+    }
+
     focus: visible
     Keys.onPressed: (event) => {
         if (root.campoActivo !== "" && !root.mostrarPopupGuardar && !root.mostrarPopupAdvertencia && !root.mostrarPopupConfirmacion) {
@@ -38,24 +52,7 @@ Item {
                 }
                 event.accepted = true
             } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-                let val = parseFloat(root.entradaTemporal);
-                if (!isNaN(val)) {
-                    if (root.campoActivo === "Tem") {
-                        let minT = appWindow.unidadTemperatura === "C" ? 20 : 68;
-                        let maxT = appWindow.unidadTemperatura === "C" ? 100 : 212;
-                        backend.setpointTem = Math.max(minT, Math.min(maxT, val));
-                        root.tempConfigurada = true;
-                    }
-                    else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
-                    else if (root.campoActivo === "Agua") { backend.setpointAgua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
-                    else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
-                    else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
-                    else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
-                    else if (root.campoActivo === "Horas") { appWindow.var_deseada_tiempo_horas = Math.max(0, val); root.tiempoConfigurado = true; }
-                    else if (root.campoActivo === "Minutos") { appWindow.var_deseada_tiempo_minutos = Math.max(0, val); root.tiempoConfigurado = true; }
-
-                    appWindow.var_deseada_tiempo_total_horas = (appWindow.var_deseada_tiempo_semanas * 168) + (appWindow.var_deseada_tiempo_dias * 24) + appWindow.var_deseada_tiempo_horas + (appWindow.var_deseada_tiempo_minutos / 60);
-                }
+                aplicarValor(root.campoActivo, root.entradaTemporal)
                 root.campoActivo = ""; root.entradaTemporal = ""; event.accepted = true
             }
         }
@@ -230,23 +227,7 @@ Item {
         onPuntoPresionado:  { if (root.entradaTemporal.indexOf(".") === -1) root.entradaTemporal += root.entradaTemporal === "" ? "0." : "." }
         onBorrarPresionado: { if (root.entradaTemporal.length > 0) root.entradaTemporal = root.entradaTemporal.slice(0, -1) }
         onOkPresionado: {
-            let val = parseFloat(root.entradaTemporal);
-            if (!isNaN(val)) {
-                if (root.campoActivo === "Tem") {
-                    let minT = appWindow.unidadTemperatura === "C" ? 20 : 68;
-                    let maxT = appWindow.unidadTemperatura === "C" ? 100 : 212;
-                    backend.setpointTem = Math.max(minT, Math.min(maxT, val));
-                    root.tempConfigurada = true;
-                }
-                else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
-                else if (root.campoActivo === "Agua") { backend.setpointAgua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
-                else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
-                else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
-                else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
-                else if (root.campoActivo === "Horas") { appWindow.var_deseada_tiempo_horas = Math.max(0, val); root.tiempoConfigurado = true; }
-                else if (root.campoActivo === "Minutos") { appWindow.var_deseada_tiempo_minutos = Math.max(0, val); root.tiempoConfigurado = true; }
-                appWindow.var_deseada_tiempo_total_horas = (appWindow.var_deseada_tiempo_semanas * 168) + (appWindow.var_deseada_tiempo_dias * 24) + appWindow.var_deseada_tiempo_horas + (appWindow.var_deseada_tiempo_minutos / 60);
-            }
+            aplicarValor(root.campoActivo, root.entradaTemporal)
             root.campoActivo = "";
             root.entradaTemporal = "";
         }
@@ -273,17 +254,7 @@ Item {
             anchors.fill: parent
             onClicked: {
                 if (root.campoActivo !== "" && root.entradaTemporal !== "") {
-                    let val = parseFloat(root.entradaTemporal);
-                    if (!isNaN(val)) {
-                        if (root.campoActivo === "Tem") { backend.setpointTem = Math.max(20, Math.min(100, val)); root.tempConfigurada = true; }
-                        else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
-                        else if (root.campoActivo === "Agua") { backend.setpointAgua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
-                        else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
-                        else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
-                        else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
-                        else if (root.campoActivo === "Horas") { appWindow.var_deseada_tiempo_horas = Math.max(0, val); root.tiempoConfigurado = true; }
-                        else if (root.campoActivo === "Minutos") { appWindow.var_deseada_tiempo_minutos = Math.max(0, val); root.tiempoConfigurado = true; }
-                    }
+                    aplicarValor(root.campoActivo, root.entradaTemporal)
                     root.campoActivo = "";
                     root.entradaTemporal = "";
                 }
@@ -296,6 +267,9 @@ Item {
                     appWindow.var_deseada_tiempo_dias = 0;
                     appWindow.var_deseada_tiempo_semanas = 0;
                     appWindow.var_deseada_tiempo_total_horas = 6;
+                }
+                if (appWindow.var_deseada_tiempo_total_horas > 583) {
+                    appWindow.var_deseada_tiempo_total_horas = 583;
                 }
 
                 if (root.tempConfigurada && root.phConfigurado && root.aguaConfigurada && root.luzConfigurada && root.tiempoConfigurado) {
@@ -385,9 +359,10 @@ Item {
                 "experimento": appWindow.var_nombre_experimento,
                 "fecha": cadenaFecha,
                 "tiempo": "0.0 / " + appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " hrs",
-                "peso": (Math.random() * 5 + 0.5).toFixed(1) + " MB",
+                "peso": "N/A",
                 "seleccionado": false
             });
+            appWindow.estadoPrevioPantalla7 = "pantalla_6"
             appWindow.estadoActual = "pantalla_7"
         }
         onCancelado: {

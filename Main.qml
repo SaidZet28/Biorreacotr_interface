@@ -18,11 +18,13 @@ ApplicationWindow {
 
     property string estadoPrevioAjustes: "pantalla_principal"
     property string estadoPrevioPantalla6: "pantalla_nuevo_proyecto"
+    property string estadoPrevioPantalla7: "pantalla_6"
+    property bool   procesoListoParaIniciar: false
 
     property int sensor_estado_primero: 1
     property int sensor_estado_calibracion: 1
     property string estado_sensor_retorno_error: "pantalla_de_carga"
-    property string textoMensajeError: qsTr("Falla en sensor")
+    property string textoMensajeError: qsTranslate("Main", "Falla en sensor")
 
     // --- Configuraciones Globales ---
     property string idiomaActual: "Español"
@@ -55,11 +57,7 @@ ApplicationWindow {
             var_nombre_experimento = ""
         }
 
-        backend.setpointTem  = 0.0
-        backend.setpointPH   = 0.0
-        backend.setpointAgua = 0.0
-        backend.setpointLuz  = 0.0
-        backend.setpointCO2  = 0.0
+        backend.resetearSetpoints()
         var_deseada_tiempo_semanas = 0.0
         var_deseada_tiempo_dias = 0.0
         var_deseada_tiempo_horas = 0.0
@@ -101,6 +99,13 @@ ApplicationWindow {
     // ==========================================
     // 4. COMPONENTES REUTILIZABLES (archivos externos)
     // ==========================================
+
+    Timer {
+        interval: 5000
+        running: !backend.puertoConectado
+        repeat: true
+        onTriggered: backend.buscarYConectar()
+    }
 
     CabeceraPersistente {}
 

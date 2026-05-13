@@ -10,6 +10,7 @@ Item {
     property bool modoBorrar: false
     property int itemsSeleccionados: 0
     property bool mostrarPopupConfirmarBorrado: false
+    property bool mostrarPopupExportar: false
 
     Rectangle {
         id: cabeceraRegistro
@@ -139,7 +140,7 @@ Item {
                         MouseArea {
                             id: areaBotonExportar
                             anchors.fill: parent
-                            onClicked: console.log("Exportar presionado para " + model.proyecto)
+                            onClicked: root.mostrarPopupExportar = true
                         }
                     }
                 }
@@ -278,6 +279,42 @@ Item {
                 radius: height / 2
                 Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea { id: areaAtrasConfirmarBorrado; anchors.fill: parent; onClicked: root.mostrarPopupConfirmarBorrado = false }
+            }
+        }
+    }
+
+    Item {
+        anchors.fill: parent
+        z: 300
+        visible: root.mostrarPopupExportar
+        MouseArea { anchors.fill: parent; hoverEnabled: true }
+
+        Rectangle {
+            width: parent.width * 0.55
+            height: parent.height * 0.35
+            anchors.centerIn: parent
+            color: Qt.rgba(0.8, 0.8, 0.8, 0.95)
+            radius: 20
+
+            Text {
+                anchors.centerIn: parent
+                anchors.verticalCenterOffset: -parent.height * 0.08
+                text: qsTranslate("Main", "Función no disponible\nen esta versión")
+                font.pixelSize: parent.height * 0.12
+                font.bold: true
+                color: "black"
+                horizontalAlignment: Text.AlignHCenter
+            }
+            Rectangle {
+                width: appWindow.width * 0.15
+                height: appWindow.height * 0.08
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: parent.height * 0.10
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: areaOkExportar.pressed ? "#6b42b5" : "#8b5cf6"
+                radius: height / 2
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+                MouseArea { id: areaOkExportar; anchors.fill: parent; onClicked: root.mostrarPopupExportar = false }
             }
         }
     }

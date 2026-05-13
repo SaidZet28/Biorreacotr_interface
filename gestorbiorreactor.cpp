@@ -1,11 +1,17 @@
 #include "gestorbiorreactor.h"
 #include <QSettings>
-#include <QCoreApplication>
+#include <QStandardPaths>
+#include <QDir>
 #include <QtMath>
 #include <QSerialPortInfo>
 #include <QDebug>
 
-static const QString INI_PATH = QCoreApplication::applicationDirPath() + "/biorreactor.ini";
+static QString iniPath()
+{
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir().mkpath(dir);
+    return dir + "/biorreactor.ini";
+}
 
 GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
 {
@@ -30,27 +36,27 @@ double GestorBiorreactor::sensorCO2()  const { return m_sensorCO2;  }
 double GestorBiorreactor::sensorDO()   const { return m_sensorDO;   }
 
 void GestorBiorreactor::setSensorTem(double value) {
-    if (qFuzzyCompare(m_sensorTem, value)) return;
+    if (qAbs(m_sensorTem - value) < 1e-9) return;
     m_sensorTem = value; emit sensorTemChanged();
 }
 void GestorBiorreactor::setSensorPH(double value) {
-    if (qFuzzyCompare(m_sensorPH, value)) return;
+    if (qAbs(m_sensorPH - value) < 1e-9) return;
     m_sensorPH = value; emit sensorPHChanged();
 }
 void GestorBiorreactor::setSensorAgua(double value) {
-    if (qFuzzyCompare(m_sensorAgua, value)) return;
+    if (qAbs(m_sensorAgua - value) < 1e-9) return;
     m_sensorAgua = value; emit sensorAguaChanged();
 }
 void GestorBiorreactor::setSensorLuz(double value) {
-    if (qFuzzyCompare(m_sensorLuz, value)) return;
+    if (qAbs(m_sensorLuz - value) < 1e-9) return;
     m_sensorLuz = value; emit sensorLuzChanged();
 }
 void GestorBiorreactor::setSensorCO2(double value) {
-    if (qFuzzyCompare(m_sensorCO2, value)) return;
+    if (qAbs(m_sensorCO2 - value) < 1e-9) return;
     m_sensorCO2 = value; emit sensorCO2Changed();
 }
 void GestorBiorreactor::setSensorDO(double value) {
-    if (qFuzzyCompare(m_sensorDO, value)) return;
+    if (qAbs(m_sensorDO - value) < 1e-9) return;
     m_sensorDO = value; emit sensorDOChanged();
 }
 
@@ -87,7 +93,7 @@ void GestorBiorreactor::setSetpointCO2(double value) {
 
 void GestorBiorreactor::cargarConfiguracion()
 {
-    QSettings settings(INI_PATH, QSettings::IniFormat);
+    QSettings settings(iniPath(), QSettings::IniFormat);
     settings.beginGroup("Setpoints");
     m_setpointTem  = settings.value("temperatura", 0.0).toDouble();
     m_setpointPH   = settings.value("pH",          0.0).toDouble();
@@ -99,7 +105,7 @@ void GestorBiorreactor::cargarConfiguracion()
 
 void GestorBiorreactor::guardarConfiguracion()
 {
-    QSettings settings(INI_PATH, QSettings::IniFormat);
+    QSettings settings(iniPath(), QSettings::IniFormat);
     settings.beginGroup("Setpoints");
     settings.setValue("temperatura", m_setpointTem);
     settings.setValue("pH",          m_setpointPH);
@@ -107,6 +113,21 @@ void GestorBiorreactor::guardarConfiguracion()
     settings.setValue("luz",         m_setpointLuz);
     settings.setValue("CO2",         m_setpointCO2);
     settings.endGroup();
+}
+
+void GestorBiorreactor::resetearSetpoints()
+{
+    m_setpointTem  = 0.0;
+    m_setpointPH   = 0.0;
+    m_setpointAgua = 0.0;
+    m_setpointLuz  = 0.0;
+    m_setpointCO2  = 0.0;
+    emit setpointTemChanged();
+    emit setpointPHChanged();
+    emit setpointAguaChanged();
+    emit setpointLuzChanged();
+    emit setpointCO2Changed();
+    guardarConfiguracion();
 }
 
 // ── Puerto serial ─────────────────────────────────────────────────────────

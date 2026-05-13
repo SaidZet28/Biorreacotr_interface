@@ -1,29 +1,50 @@
-#ifndef GESTORBIORREACTOR_H
-#define GESTORBIORREACTOR_H
+#pragma once
 
 #include <QObject>
 #include <QSerialPort>
+#include <QTimer>
+#include <QDateTime>
+
+#include "controladorpid.h"
+#include "controladorfuzzy.h"
+#include "controladorhisteresis.h"
+#include "driverpca9685.h"
+#include "driverxm125.h"
 
 class GestorBiorreactor : public QObject
 {
     Q_OBJECT
 
-    // ── Lecturas de sensores ───────────────────────────────────────────────
-    Q_PROPERTY(double sensorTem  READ sensorTem  WRITE setSensorTem  NOTIFY sensorTemChanged  FINAL)
-    Q_PROPERTY(double sensorPH   READ sensorPH   WRITE setSensorPH   NOTIFY sensorPHChanged   FINAL)
-    Q_PROPERTY(double sensorAgua READ sensorAgua WRITE setSensorAgua NOTIFY sensorAguaChanged FINAL)
-    Q_PROPERTY(double sensorLuz  READ sensorLuz  WRITE setSensorLuz  NOTIFY sensorLuzChanged  FINAL)
-    Q_PROPERTY(double sensorCO2  READ sensorCO2  WRITE setSensorCO2  NOTIFY sensorCO2Changed  FINAL)
-    Q_PROPERTY(double sensorDO   READ sensorDO   WRITE setSensorDO   NOTIFY sensorDOChanged   FINAL)
+    // ── Sensores ─────────────────────────────────────────────────────────────
+    Q_PROPERTY(double sensorTem   READ sensorTem   NOTIFY sensorTemChanged   FINAL)
+    Q_PROPERTY(double sensorPH    READ sensorPH    NOTIFY sensorPHChanged    FINAL)
+    Q_PROPERTY(double sensorNivel READ sensorNivel NOTIFY sensorNivelChanged FINAL)
+    Q_PROPERTY(double sensorLuz   READ sensorLuz   NOTIFY sensorLuzChanged   FINAL)
+    Q_PROPERTY(double sensorCO2   READ sensorCO2   NOTIFY sensorCO2Changed   FINAL)
+    Q_PROPERTY(double sensorDO    READ sensorDO    NOTIFY sensorDOChanged    FINAL)
 
-    // ── Setpoints (valores deseados) ──────────────────────────────────────
-    Q_PROPERTY(double setpointTem  READ setpointTem  WRITE setSetpointTem  NOTIFY setpointTemChanged  FINAL)
-    Q_PROPERTY(double setpointPH   READ setpointPH   WRITE setSetpointPH   NOTIFY setpointPHChanged   FINAL)
-    Q_PROPERTY(double setpointAgua READ setpointAgua WRITE setSetpointAgua NOTIFY setpointAguaChanged FINAL)
-    Q_PROPERTY(double setpointLuz  READ setpointLuz  WRITE setSetpointLuz  NOTIFY setpointLuzChanged  FINAL)
-    Q_PROPERTY(double setpointCO2  READ setpointCO2  WRITE setSetpointCO2  NOTIFY setpointCO2Changed  FINAL)
+    // ── Setpoints ─────────────────────────────────────────────────────────────
+    Q_PROPERTY(double setpointTem   READ setpointTem   WRITE setSetpointTem   NOTIFY setpointTemChanged   FINAL)
+    Q_PROPERTY(double setpointPH    READ setpointPH    WRITE setSetpointPH    NOTIFY setpointPHChanged    FINAL)
+    Q_PROPERTY(double setpointNivel READ setpointNivel WRITE setSetpointNivel NOTIFY setpointNivelChanged FINAL)
+    Q_PROPERTY(double setpointLuz   READ setpointLuz   WRITE setSetpointLuz   NOTIFY setpointLuzChanged   FINAL)
+    Q_PROPERTY(double setpointCO2   READ setpointCO2   WRITE setSetpointCO2   NOTIFY setpointCO2Changed   FINAL)
 
-    // ── Puerto serial ─────────────────────────────────────────────────────
+    // ── Alertas watchdog ──────────────────────────────────────────────────────
+    Q_PROPERTY(bool alertaDivergenciaTemp READ alertaDivergenciaTemp NOTIFY alertaDivergenciaTempChanged FINAL)
+    Q_PROPERTY(bool alertaSerial          READ alertaSerial          NOTIFY alertaSerialChanged          FINAL)
+    Q_PROPERTY(bool alertaNivel           READ alertaNivel           NOTIFY alertaNivelChanged           FINAL)
+
+    // ── Estado del proceso ───────────────────────────────────────────────────
+    Q_PROPERTY(bool procesoActivo READ procesoActivo WRITE setProcesoActivo NOTIFY procesoActivoChanged FINAL)
+
+    // ── Salidas de control (para gráficas y monitoreo) ───────────────────────
+    Q_PROPERTY(double salidaCalentador   READ salidaCalentador   NOTIFY salidaCalentadorChanged   FINAL)
+    Q_PROPERTY(double salidaBombaEtanol  READ salidaBombaEtanol  NOTIFY salidaBombaEtanolChanged  FINAL)
+    Q_PROPERTY(double salidaBombaAgua    READ salidaBombaAgua    NOTIFY salidaBombaAguaChanged    FINAL)
+    Q_PROPERTY(bool   salidaBombaNivel   READ salidaBombaNivel   NOTIFY salidaBombaNivelChanged   FINAL)
+
+    // ── Puerto serial ────────────────────────────────────────────────────────
     Q_PROPERTY(bool    puertoConectado READ puertoConectado NOTIFY puertoConectadoChanged FINAL)
     Q_PROPERTY(QString nombrePuerto   READ nombrePuerto    NOTIFY nombrePuertoChanged    FINAL)
 
@@ -31,35 +52,37 @@ public:
     explicit GestorBiorreactor(QObject *parent = nullptr);
     ~GestorBiorreactor();
 
-    // Sensores
-    double sensorTem()  const;
-    double sensorPH()   const;
-    double sensorAgua() const;
-    double sensorLuz()  const;
-    double sensorCO2()  const;
-    double sensorDO()   const;
+    double sensorTem()   const;
+    double sensorPH()    const;
+    double sensorNivel() const;
+    double sensorLuz()   const;
+    double sensorCO2()   const;
+    double sensorDO()    const;
 
-    void setSensorTem (double value);
-    void setSensorPH  (double value);
-    void setSensorAgua(double value);
-    void setSensorLuz (double value);
-    void setSensorCO2 (double value);
-    void setSensorDO  (double value);
+    double setpointTem()   const;
+    double setpointPH()    const;
+    double setpointNivel() const;
+    double setpointLuz()   const;
+    double setpointCO2()   const;
 
-    // Setpoints
-    double setpointTem()  const;
-    double setpointPH()   const;
-    double setpointAgua() const;
-    double setpointLuz()  const;
-    double setpointCO2()  const;
+    void setSetpointTem  (double v);
+    void setSetpointPH   (double v);
+    void setSetpointNivel(double v);
+    void setSetpointLuz  (double v);
+    void setSetpointCO2  (double v);
 
-    void setSetpointTem (double value);
-    void setSetpointPH  (double value);
-    void setSetpointAgua(double value);
-    void setSetpointLuz (double value);
-    void setSetpointCO2 (double value);
+    bool alertaDivergenciaTemp() const;
+    bool alertaSerial()          const;
+    bool alertaNivel()           const;
 
-    // Puerto serial
+    bool procesoActivo() const;
+    void setProcesoActivo(bool activo);
+
+    double salidaCalentador()  const;
+    double salidaBombaEtanol() const;
+    double salidaBombaAgua()   const;
+    bool   salidaBombaNivel()  const;
+
     bool    puertoConectado() const;
     QString nombrePuerto()    const;
 
@@ -68,47 +91,118 @@ public:
     Q_INVOKABLE bool buscarYConectar(const QString &nombreForzado = QString());
     Q_INVOKABLE void desconectar();
 
+    Q_INVOKABLE void          guardarModelo(const QString &nombre, const QVariantList &datos);
+    Q_INVOKABLE QVariantList  cargarModelo (const QString &nombre);
+
+    void parsearTrama(const QByteArray &linea);
+
 signals:
     void sensorTemChanged();
     void sensorPHChanged();
-    void sensorAguaChanged();
+    void sensorNivelChanged();
     void sensorLuzChanged();
     void sensorCO2Changed();
     void sensorDOChanged();
 
     void setpointTemChanged();
     void setpointPHChanged();
-    void setpointAguaChanged();
+    void setpointNivelChanged();
     void setpointLuzChanged();
     void setpointCO2Changed();
+
+    void alertaDivergenciaTempChanged();
+    void alertaSerialChanged();
+    void alertaNivelChanged();
+
+    void procesoActivoChanged();
+
+    void salidaCalentadorChanged();
+    void salidaBombaEtanolChanged();
+    void salidaBombaAguaChanged();
+    void salidaBombaNivelChanged();
 
     void puertoConectadoChanged();
     void nombrePuertoChanged();
 
 private slots:
     void leerDatosSerial();
+    void consultarSensoresRS485();
+    void ejecutarControlLoop();
+    void onWatchdogSerialTimeout();
+    void onWatchdogI2CTimeout();
+    void verificarStaleness();
+    void leerSensorNivel();
 
 private:
-    void parsearTrama(const QByteArray &linea);
+    void actualizarTemperaturaFusionada();
 
-    // Sensores (valores en tiempo real, no se persisten)
-    double m_sensorTem  = 24.5;
-    double m_sensorPH   = 7.2;
-    double m_sensorAgua = 85.0;
-    double m_sensorLuz  = 60.0;
-    double m_sensorCO2  = 400.0;
-    double m_sensorDO   = 8.2;
+    void setSensorTem  (double v);
+    void setSensorPH   (double v);
+    void setSensorNivel(double v);
+    void setSensorLuz  (double v);
+    void setSensorCO2  (double v);
+    void setSensorDO   (double v);
 
-    // Setpoints (se persisten con QSettings)
-    double m_setpointTem  = 0.0;
-    double m_setpointPH   = 0.0;
-    double m_setpointAgua = 0.0;
-    double m_setpointLuz  = 0.0;
-    double m_setpointCO2  = 0.0;
+    void setAlertaDivergenciaTemp(bool v);
+    void setAlertaSerial(bool v);
+    void setAlertaNivel (bool v);
+    void resetWatchdogSerial();
 
-    // Puerto serial
+    // ── Valores de sensores ───────────────────────────────────────────────────
+    double m_sensorTem   = 24.5;
+    double m_sensorPH    = 7.2;
+    double m_sensorNivel = 85.0;
+    double m_sensorLuz   = 60.0;
+    double m_sensorCO2   = 400.0;
+    double m_sensorDO    = 8.2;
+
+    // Temperaturas internas para fusión (una por cada sensor RS-485)
+    double m_tempPH = 24.5;
+    double m_tempDO = 24.5;
+    bool   m_tempPHValida = false;
+    bool   m_tempDOValida = false;
+
+    // ── Setpoints ─────────────────────────────────────────────────────────────
+    double m_setpointTem   = 0.0;
+    double m_setpointPH    = 0.0;
+    double m_setpointNivel = 0.0;
+    double m_setpointLuz   = 0.0;
+    double m_setpointCO2   = 0.0;
+
+    // ── Alertas ───────────────────────────────────────────────────────────────
+    bool m_alertaDivergenciaTemp = false;
+    bool m_alertaSerial          = false;
+    bool m_alertaNivel           = false;
+
+    // ── Proceso y salidas ─────────────────────────────────────────────────────
+    bool   m_procesoActivo     = false;
+    double m_salidaCalentador  = 0.0;
+    double m_salidaBombaEtanol = 0.0;
+    double m_salidaBombaAgua   = 0.0;
+    bool   m_salidaBombaNivel  = false;
+
+    // ── Comunicación serial ───────────────────────────────────────────────────
     QSerialPort m_puerto;
     QByteArray  m_buffer;
-};
+    int         m_turnoRS485 = 0;   // 0 = consultar pH, 1 = consultar DO
 
-#endif // GESTORBIORREACTOR_H
+    // ── Controladores ─────────────────────────────────────────────────────────
+    ControladorPID        m_pidTemp;
+    ControladorFuzzy      m_fuzzyPH;
+    ControladorHisteresis m_histeresisNivel;
+
+    // ── Drivers de hardware ───────────────────────────────────────────────────
+    DriverPCA9685 m_pca9685;
+    DriverXM125   m_xm125;
+
+    // ── Timers ────────────────────────────────────────────────────────────────
+    QTimer m_timerRS485;          // 500 ms  — query a sensores RS-485
+    QTimer m_timerControlLoop;    // 1000 ms — ejecuta algoritmos de control
+    QTimer m_timerWatchdogSerial; // 3000 ms one-shot — timeout sin datos serial
+    QTimer m_timerWatchdogI2C;    // 2000 ms one-shot — timeout sin datos I2C
+    QTimer m_timerStaleness;      // 1000 ms — revisa freshness de sensores
+    QTimer m_timerNivel;          // 500 ms  — lee XM125
+
+    QDateTime m_ultimaLecturaRS485;
+    QDateTime m_ultimaLecturaI2C;
+};

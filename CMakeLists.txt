@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
 
 # 1. Buscamos los paquetes requeridos
-find_package(Qt6 REQUIRED COMPONENTS Quick LinguistTools SerialPort)
+find_package(Qt6 REQUIRED COMPONENTS Quick Charts LinguistTools SerialPort)
 
 if(MINGW)
     add_compile_options("-Wa,-mbig-obj")
@@ -39,7 +39,13 @@ qt_add_qml_module(appPrototipo
         Pantalla6.qml
         Pantalla7.qml
         PantallaProcesos.qml
+        GraficaChart.qml
         PantallaProyectosGuardados.qml
+        TarjetaProyecto.qml
+        PopupOpcionesProyecto.qml
+        PopupBorrarProyecto.qml
+        PopupEdicionProyecto.qml
+        PopupConfirmarEdicion.qml
         PantallaConfigGraficas.qml
         PantallaPostProceso.qml
         PantallaExtraccion.qml
@@ -68,6 +74,11 @@ qt_add_qml_module(appPrototipo
         Hongo_9.png
         SOURCES translationmanager.h translationmanager.cpp
                 gestorbiorreactor.h gestorbiorreactor.cpp
+                controladorpid.h controladorpid.cpp
+                controladorfuzzy.h controladorfuzzy.cpp
+                controladorhisteresis.h controladorhisteresis.cpp
+                driverpca9685.h driverpca9685.cpp
+                driverxm125.h driverxm125.cpp
 )
 
 # 3. AHORA SÍ, le agregamos las traducciones al ejecutable
@@ -91,8 +102,19 @@ set_target_properties(appPrototipo PROPERTIES
 )
 
 target_link_libraries(appPrototipo
-    PRIVATE Qt6::Quick Qt6::Core Qt6::SerialPort
+    PRIVATE Qt6::Quick Qt6::Charts Qt6::Core Qt6::SerialPort
 )
+
+# En Raspberry Pi: enlazar pigpio (GPIO) y pthread
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_library(PIGPIO_LIB pigpio)
+    if(PIGPIO_LIB)
+        target_link_libraries(appPrototipo PRIVATE ${PIGPIO_LIB} pthread)
+        message(STATUS "pigpio encontrado: ${PIGPIO_LIB}")
+    else()
+        message(WARNING "pigpio no encontrado — sin control GPIO de cruce por cero")
+    endif()
+endif()
 
 install(TARGETS appPrototipo
     BUNDLE DESTINATION .

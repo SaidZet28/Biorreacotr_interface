@@ -47,7 +47,7 @@ Item {
                         root.tempConfigurada = true;
                     }
                     else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
-                    else if (root.campoActivo === "Agua") { backend.setpointAgua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
+                    else if (root.campoActivo === "Agua") { backend.setpointNivel = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
                     else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                     else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
                     else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
@@ -87,7 +87,7 @@ Item {
             idCampo: "Agua"
             campoActivo: root.campoActivo
             textoEtiqueta: qsTranslate("Main", "Nivel de agua:")
-            valorMostrado: (root.campoActivo === "Agua" ? root.entradaTemporal + "|" : backend.setpointAgua) + " %"
+            valorMostrado: (root.campoActivo === "Agua" ? root.entradaTemporal + "|" : backend.setpointNivel) + " %"
             onBarraClicada: { root.campoActivo = "Agua"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
@@ -239,7 +239,7 @@ Item {
                     root.tempConfigurada = true;
                 }
                 else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
-                else if (root.campoActivo === "Agua") { backend.setpointAgua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
+                else if (root.campoActivo === "Agua") { backend.setpointNivel = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
                 else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                 else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
                 else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
@@ -277,7 +277,7 @@ Item {
                     if (!isNaN(val)) {
                         if (root.campoActivo === "Tem") { backend.setpointTem = Math.max(20, Math.min(100, val)); root.tempConfigurada = true; }
                         else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
-                        else if (root.campoActivo === "Agua") { backend.setpointAgua = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
+                        else if (root.campoActivo === "Agua") { backend.setpointNivel = Math.max(30, Math.min(100, val)); root.aguaConfigurada = true; }
                         else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                         else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
                         else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
@@ -366,7 +366,7 @@ Item {
         nombreExperimento: appWindow.var_nombre_experimento
         temp: backend.setpointTem
         ph: backend.setpointPH
-        agua: backend.setpointAgua
+        agua: backend.setpointNivel
         luz: backend.setpointLuz
         tiempoSemanas: appWindow.var_deseada_tiempo_semanas
         tiempoDias: appWindow.var_deseada_tiempo_dias

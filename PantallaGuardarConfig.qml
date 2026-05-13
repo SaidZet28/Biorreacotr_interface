@@ -206,7 +206,7 @@ Item {
                     Text {
                         width: (parent.width/2)-(parent.width*0.01)
                         textFormat: Text.RichText
-                        text: qsTranslate("Main", "Nivel de agua: <b>%1 %</b>").arg(backend.setpointAgua)
+                        text: qsTranslate("Main", "Nivel de agua: <b>%1 %</b>").arg(backend.setpointNivel)
                         font.pixelSize: cajaPopupGuardar13.height * 0.055
                         color: "black"
                         wrapMode: Text.WordWrap
@@ -247,12 +247,13 @@ Item {
                         let lastIdx = appWindow.registro_experimentos.count - 1;
                         if (lastIdx >= 0) {
                             appWindow.registro_experimentos.setProperty(lastIdx, "proyecto", appWindow.var_nombre_proyecto);
+                            appWindow.salvarRegistroExperimentos()
                         }
                         appWindow.datos_guardados.append({
                             nombre: appWindow.var_nombre_proyecto,
                             temp: backend.setpointTem,
                             ph: backend.setpointPH,
-                            agua: backend.setpointAgua,
+                            agua: backend.setpointNivel,
                             luz: backend.setpointLuz,
                             tiempo: appWindow.var_deseada_tiempo_total_horas.toFixed(1)
                         });

@@ -27,6 +27,9 @@ Item {
     property bool nivelCalibrado:  false
     property int  stNivel: 0
 
+    // true mientras cualquier temporizador de calibración esté activo
+    readonly property bool calibracionEnCurso: stPH4 === 1 || stPH7 === 1 || stPH10 === 1 || stDO === 1 || stNivel === 1
+
     // ── Popup advertencia ─────────────────────
     property bool mostrarAdvertencia: false
 
@@ -120,7 +123,7 @@ Item {
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30
                     textoEtiqueta: qsTranslate("Main", "Nivel")
-                    textoValor: backend.sensorAgua.toFixed(1) + " %"
+                    textoValor: backend.sensorNivel.toFixed(1) + " %"
                 }
             }
 
@@ -222,7 +225,7 @@ Item {
                                 Text { anchors.centerIn: parent; visible: root.stPH4 === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 MouseArea {
                                     id: maPH4; anchors.fill: parent
-                                    enabled: root.stPH4 === 0 || root.stPH4 === 3
+                                    enabled: (root.stPH4 === 0 || root.stPH4 === 3) && !root.calibracionEnCurso
                                     onClicked: { root.stPH4 = 1; tPH4.restart() }
                                 }
                             }
@@ -242,7 +245,7 @@ Item {
                                 }
                                 Text { anchors.centerIn: parent; visible: root.stPH7 === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 Text { anchors.centerIn: parent; visible: root.stPH7 === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                MouseArea { id: maPH7; anchors.fill: parent; enabled: root.stPH7 === 0 || root.stPH7 === 3; onClicked: { root.stPH7 = 1; tPH7.restart() } }
+                                MouseArea { id: maPH7; anchors.fill: parent; enabled: (root.stPH7 === 0 || root.stPH7 === 3) && !root.calibracionEnCurso; onClicked: { root.stPH7 = 1; tPH7.restart() } }
                             }
 
                             // ── pH 10 ──
@@ -260,7 +263,7 @@ Item {
                                 }
                                 Text { anchors.centerIn: parent; visible: root.stPH10 === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 Text { anchors.centerIn: parent; visible: root.stPH10 === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                MouseArea { id: maPH10; anchors.fill: parent; enabled: root.stPH10 === 0 || root.stPH10 === 3; onClicked: { root.stPH10 = 1; tPH10.restart() } }
+                                MouseArea { id: maPH10; anchors.fill: parent; enabled: (root.stPH10 === 0 || root.stPH10 === 3) && !root.calibracionEnCurso; onClicked: { root.stPH10 = 1; tPH10.restart() } }
                             }
                         }
 
@@ -342,7 +345,7 @@ Item {
                                 }
                                 Text { anchors.centerIn: parent; visible: root.stDO === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 Text { anchors.centerIn: parent; visible: root.stDO === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                MouseArea { id: maCalDO; anchors.fill: parent; enabled: root.stDO === 0 || root.stDO === 3; onClicked: { root.stDO = 1; tDO.restart() } }
+                                MouseArea { id: maCalDO; anchors.fill: parent; enabled: (root.stDO === 0 || root.stDO === 3) && !root.calibracionEnCurso; onClicked: { root.stDO = 1; tDO.restart() } }
                             }
                             Rectangle {
                                 width: appWindow.width * 0.12; height: appWindow.height * 0.10; radius: height / 2
@@ -396,7 +399,7 @@ Item {
                             }
                             Text { anchors.centerIn: parent; visible: root.stNivel === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                             Text { anchors.centerIn: parent; visible: root.stNivel === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                            MouseArea { id: maCalNivel; anchors.fill: parent; enabled: root.stNivel === 0 || root.stNivel === 3; onClicked: { root.stNivel = 1; tNivel.restart() } }
+                            MouseArea { id: maCalNivel; anchors.fill: parent; enabled: (root.stNivel === 0 || root.stNivel === 3) && !root.calibracionEnCurso; onClicked: { root.stNivel = 1; tNivel.restart() } }
                         }
                         Rectangle {
                             width: appWindow.width * 0.12; height: appWindow.height * 0.10; radius: height / 2

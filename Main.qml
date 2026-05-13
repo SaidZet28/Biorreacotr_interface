@@ -57,7 +57,7 @@ ApplicationWindow {
 
         backend.setpointTem  = 0.0
         backend.setpointPH   = 0.0
-        backend.setpointAgua = 0.0
+        backend.setpointNivel = 0.0
         backend.setpointLuz  = 0.0
         backend.setpointCO2  = 0.0
         var_deseada_tiempo_semanas = 0.0
@@ -82,20 +82,47 @@ ApplicationWindow {
     property alias datos_guardados: _modelDatosGuardados
     property alias registro_experimentos: _modelRegistroExperimentos
 
-    ListModel {
-        id: _modelDatosGuardados
-        ListElement { nombre: "Cultivo Fresa"; temp: 24.5; ph: 6.0; agua: 80.0; luz: 50.0; tiempo: "168.0" }
-        ListElement { nombre: "Cultivo Alga"; temp: 26.0; ph: 7.5; agua: 90.0; luz: 60.0; tiempo: "336.0" }
-        ListElement { nombre: "Cepa X-12"; temp: 22.0; ph: 6.8; agua: 75.0; luz: 80.0; tiempo: "72.0" }
-        ListElement { nombre: "Prueba Levadura"; temp: 25.0; ph: 4.5; agua: 50.0; luz: 0.0; tiempo: "48.0" }
-        ListElement { nombre: "Proyecto Beta"; temp: 30.0; ph: 7.0; agua: 100.0; luz: 90.0; tiempo: "12.0" }
+    ListModel { id: _modelDatosGuardados }
+
+    ListModel { id: _modelRegistroExperimentos }
+
+    // ── Persistencia JSON ─────────────────────────────────────────────────
+    function salvarDatosGuardados() {
+        let arr = []
+        for (let i = 0; i < datos_guardados.count; i++)
+            arr.push(datos_guardados.get(i))
+        backend.guardarModelo("datos_guardados", arr)
     }
 
-    ListModel {
-        id: _modelRegistroExperimentos
-        ListElement { proyecto: "Cepa X-12"; experimento: "Beta-1"; fecha: "20/03/2026"; tiempo: "72.0 / 72.0 hrs"; peso: "1.2 MB"; seleccionado: false }
-        ListElement { proyecto: "Cultivo Fresa"; experimento: "Fase 2"; fecha: "21/03/2026"; tiempo: "160.0 / 168.0 hrs"; peso: "0.8 MB"; seleccionado: false }
-        ListElement { proyecto: "Prueba Levadura"; experimento: "Muestra A"; fecha: "22/03/2026"; tiempo: "24.5 / 48.0 hrs"; peso: "0.5 MB"; seleccionado: false }
+    function salvarRegistroExperimentos() {
+        let arr = []
+        for (let i = 0; i < registro_experimentos.count; i++)
+            arr.push(registro_experimentos.get(i))
+        backend.guardarModelo("registro_experimentos", arr)
+    }
+
+    // Carga al inicio; si no existe el JSON mantiene los datos de muestra
+    Component.onCompleted: {
+        let dg = backend.cargarModelo("datos_guardados")
+        if (dg.length > 0) {
+            _modelDatosGuardados.clear()
+            for (let i = 0; i < dg.length; i++) _modelDatosGuardados.append(dg[i])
+        }
+        let re = backend.cargarModelo("registro_experimentos")
+        if (re.length > 0) {
+            _modelRegistroExperimentos.clear()
+            for (let i = 0; i < re.length; i++) _modelRegistroExperimentos.append(re[i])
+        }
+    }
+
+    // Auto-guardo cuando cambia el número de elementos (append / remove)
+    Connections {
+        target: _modelDatosGuardados
+        function onCountChanged() { salvarDatosGuardados() }
+    }
+    Connections {
+        target: _modelRegistroExperimentos
+        function onCountChanged() { salvarRegistroExperimentos() }
     }
 
     // ==========================================

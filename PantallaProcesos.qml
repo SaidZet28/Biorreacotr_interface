@@ -12,6 +12,9 @@ Item {
     property bool mostrarPopupFinalizado: false
     property bool mostrarPopupConfirmarDetener: false
 
+    // true once the screen has been shown at least once; keeps Loader alive
+    property bool chartaActivada: false
+
     PropertyAnimation {
         id: animacionProgreso
         target: root
@@ -28,17 +31,21 @@ Item {
 
     onVisibleChanged: {
         if (visible) {
+            chartaActivada = true
             if (progresoSimulado === 0.0 && !mostrarPopupFinalizado) {
                 mostrarPopupPausa = false;
                 mostrarPopupFinalizado = false;
                 mostrarPopupConfirmarDetener = false;
+                if (chartLoader.item) chartLoader.item.resetear()
                 animacionProgreso.start();
             }
         }
     }
 
+    // ── Gráfica en tiempo real (carga diferida para evitar crash de plugin) ──
+    // DIAGNÓSTICO: Loader desactivado temporalmente para aislar crash
     Rectangle {
-        id: cajaGrafica
+        id: chartLoader
         width: parent.width * 0.45
         height: parent.height * 0.55
         anchors.left: parent.left
@@ -46,49 +53,17 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: parent.height * 0.20
         color: "#6E9C9C"
-        radius: 20
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: appWindow.estadoActual = "pantalla_configuracion_graficas"
-        }
-        Text {
-            text: qsTranslate("Main", "Gráfica de :")
-            font.pixelSize: parent.height * 0.08
-            font.bold: true
-            color: "black"
-            anchors.top: parent.top
-            anchors.topMargin: 20
-            anchors.left: parent.left
-            anchors.leftMargin: 30
-        }
-        Rectangle {
-            width: 4
-            color: "black"
-            anchors.left: parent.left
-            anchors.leftMargin: 40
-            anchors.top: parent.top
-            anchors.topMargin: 70
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 40
-        }
-        Rectangle {
-            height: 4
-            color: "black"
-            anchors.left: parent.left
-            anchors.leftMargin: 20
-            anchors.right: parent.right
-            anchors.rightMargin: 40
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 40
-        }
+        visible: root.chartaActivada
+        property var item: null
+        function resetear() {}
     }
 
+    // ── Pildoras de sensor/setpoint ───────────────────────────────────────
     Column {
         id: pildorasProceso
         anchors.right: parent.right
         anchors.rightMargin: parent.width * 0.05
-        anchors.verticalCenter: cajaGrafica.verticalCenter
+        anchors.verticalCenter: chartLoader.verticalCenter
         width: parent.width * 0.40
         spacing: appWindow.height * 0.025
 
@@ -115,9 +90,9 @@ Item {
             height: appWindow.height * 0.08
             color: "#8DBB5A"
             radius: height / 2
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Agua: %1%").arg(backend.sensorAgua.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Agua: %1%").arg(backend.sensorNivel.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Agua: %1%").arg(backend.setpointAgua.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Agua: %1%").arg(backend.setpointNivel.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
             width: parent.width
@@ -137,6 +112,7 @@ Item {
         }
     }
 
+    // ── Barra de progreso y controles ─────────────────────────────────────
     Item {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
@@ -256,6 +232,7 @@ Item {
         }
     }
 
+    // ── Popup Pausa ───────────────────────────────────────────────────────
     Item {
         id: overlayPausa
         anchors.fill: parent
@@ -287,9 +264,7 @@ Item {
                 MouseArea {
                     id: areaDetenerProceso
                     anchors.fill: parent
-                    onClicked: {
-                        root.mostrarPopupConfirmarDetener = true;
-                    }
+                    onClicked: root.mostrarPopupConfirmarDetener = true
                 }
             }
 
@@ -302,13 +277,7 @@ Item {
                 anchors.rightMargin: parent.width * 0.05
                 color: areaAtrasPausa.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text {
-                    anchors.centerIn: parent
-                    text: "↶"
-                    font.pixelSize: parent.height * 0.70
-                    font.bold: true
-                    color: "black"
-                }
+                Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaAtrasPausa
                     anchors.fill: parent
@@ -321,6 +290,7 @@ Item {
         }
     }
 
+    // ── Popup Confirmar Detener ───────────────────────────────────────────
     Item {
         id: overlayConfirmarParo
         anchors.fill: parent
@@ -355,13 +325,7 @@ Item {
                 anchors.leftMargin: parent.width * 0.10
                 color: areaOkDetener.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text {
-                    anchors.centerIn: parent
-                    text: qsTranslate("Main", "Okay")
-                    font.pixelSize: parent.height * 0.40
-                    font.bold: true
-                    color: "black"
-                }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkDetener
                     anchors.fill: parent
@@ -371,6 +335,7 @@ Item {
                         if (lastIdx >= 0) {
                             let e_total = root.progresoSimulado * appWindow.var_deseada_tiempo_total_horas;
                             appWindow.registro_experimentos.setProperty(lastIdx, "tiempo", e_total.toFixed(1) + " / " + appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " hrs");
+                            appWindow.salvarRegistroExperimentos()
                         }
                         root.mostrarPopupConfirmarDetener = false;
                         root.mostrarPopupPausa = false;
@@ -389,24 +354,17 @@ Item {
                 anchors.rightMargin: parent.width * 0.10
                 color: areaAtrasDetener.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text {
-                    anchors.centerIn: parent
-                    text: "↶"
-                    font.pixelSize: parent.height * 0.70
-                    font.bold: true
-                    color: "black"
-                }
+                Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaAtrasDetener
                     anchors.fill: parent
-                    onClicked: {
-                        root.mostrarPopupConfirmarDetener = false;
-                    }
+                    onClicked: root.mostrarPopupConfirmarDetener = false
                 }
             }
         }
     }
 
+    // ── Popup Finalizado ──────────────────────────────────────────────────
     Item {
         id: overlayFinalizado
         anchors.fill: parent
@@ -439,13 +397,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: areaOkFinalizado.pressed ? "#6b42b5" : "#8b5cf6"
                 radius: height / 2
-                Text {
-                    anchors.centerIn: parent
-                    text: qsTranslate("Main", "Okay")
-                    font.pixelSize: parent.height * 0.40
-                    font.bold: true
-                    color: "black"
-                }
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaOkFinalizado
                     anchors.fill: parent
@@ -453,6 +405,7 @@ Item {
                         let lastIdx = appWindow.registro_experimentos.count - 1;
                         if (lastIdx >= 0) {
                             appWindow.registro_experimentos.setProperty(lastIdx, "tiempo", appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " / " + appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " hrs");
+                            appWindow.salvarRegistroExperimentos()
                         }
                         root.progresoSimulado = 0.0;
                         root.mostrarPopupFinalizado = false;

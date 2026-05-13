@@ -34,7 +34,10 @@ Item {
     property bool mostrarAdvertencia: false
 
     onVisibleChanged: {
-        if (!visible) return
+        if (!visible) {
+            tPH4.stop(); tPH7.stop(); tPH10.stop(); tDO.stop(); tNivel.stop()
+            return
+        }
         expandidoPH = false; expandidoDO = false; expandidoNivel = false
         phCalibrado = false; doCalibrado = false; nivelCalibrado = false
         puntos_pH = 0
@@ -417,6 +420,29 @@ Item {
         }
     }
 
+    // ── Botón Atrás ───────────────────────────
+    Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.margins: parent.width * 0.05
+        anchors.bottomMargin: parent.height * 0.03
+        width: parent.width * 0.12
+        height: parent.height * 0.10
+        radius: height / 2
+        color: maAtrasPantalla7.pressed ? "#cc1e1e" : "#FF2D2D"
+
+        Text { anchors.centerIn: parent; text: "↶"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
+        MouseArea {
+            id: maAtrasPantalla7
+            anchors.fill: parent
+            onClicked: {
+                if (appWindow.registro_experimentos.count > 0)
+                    appWindow.registro_experimentos.remove(appWindow.registro_experimentos.count - 1)
+                appWindow.estadoActual = appWindow.estadoPrevioPantalla7
+            }
+        }
+    }
+
     // ── Botón OK Principal ────────────────────
     Rectangle {
         id: botonOkPrincipal
@@ -434,10 +460,12 @@ Item {
             id: maOkPrincipal
             anchors.fill: parent
             onClicked: {
-                if (root.phCalibrado && root.doCalibrado && root.nivelCalibrado)
+                if (root.phCalibrado && root.doCalibrado && root.nivelCalibrado) {
+                    appWindow.procesoListoParaIniciar = true
                     appWindow.estadoActual = "pantalla_procesos"
-                else
+                } else {
                     root.mostrarAdvertencia = true
+                }
             }
         }
     }
@@ -475,7 +503,7 @@ Item {
                 anchors.left: parent.left; anchors.leftMargin: parent.width * 0.10
                 color: maContinuar.pressed ? "#6b42b5" : "#8b5cf6"
                 Text { anchors.centerIn: parent; text: qsTranslate("Main", "Continuar"); font.pixelSize: parent.height * 0.38; font.bold: true; color: "black" }
-                MouseArea { id: maContinuar; anchors.fill: parent; onClicked: { root.mostrarAdvertencia = false; appWindow.estadoActual = "pantalla_procesos" } }
+                MouseArea { id: maContinuar; anchors.fill: parent; onClicked: { root.mostrarAdvertencia = false; appWindow.procesoListoParaIniciar = true; appWindow.estadoActual = "pantalla_procesos" } }
             }
 
             Rectangle {

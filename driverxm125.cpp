@@ -60,26 +60,24 @@ void DriverXM125::cerrar()
 #endif
 }
 
-double DriverXM125::leerDistanciaMm()
+bool DriverXM125::iniciarMedicion()
+{
+#ifdef Q_OS_LINUX
+    return escribirRegistro(REG_MEASURE_START, 0x01);
+#else
+    return false;
+#endif
+}
+
+double DriverXM125::leerResultado()
 {
 #ifdef Q_OS_LINUX
     if (m_fd < 0) return -1.0;
-
-    // Iniciar medición
-    if (!escribirRegistro(REG_MEASURE_START, 0x01)) return -1.0;
-
-    // Esperar listo (máx 50 ms, poll cada 2 ms)
-    for (int i = 0; i < 25; ++i) {
-        usleep(2000);
-        uint32_t status = 0;
-        if (leerRegistro(REG_STATUS, status) && (status & 0x01)) break;
-        if (i == 24) return -1.0;
-    }
-
-    // Leer distancia (32-bit big-endian, en mm)
+    uint32_t status = 0;
+    if (!leerRegistro(REG_STATUS, status) || !(status & 0x01))
+        return -1.0;   // medición aún no lista
     uint32_t dist = 0;
     if (!leerRegistro(REG_DISTANCE, dist)) return -1.0;
-
     return static_cast<double>(dist);
 #else
     return -1.0;

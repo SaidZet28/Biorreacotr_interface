@@ -253,6 +253,11 @@ void GestorBiorreactor::cargarConfiguracion()
     m_setpointLuz   = s.value("luz",         0.0).toDouble();
     m_setpointCO2   = s.value("CO2",         0.0).toDouble();
     s.endGroup();
+    emit setpointTemChanged();
+    emit setpointPHChanged();
+    emit setpointNivelChanged();
+    emit setpointLuzChanged();
+    emit setpointCO2Changed();
 }
 
 void GestorBiorreactor::guardarConfiguracion()
@@ -269,17 +274,13 @@ void GestorBiorreactor::guardarConfiguracion()
 
 void GestorBiorreactor::resetearSetpoints()
 {
-    m_setpointTem   = 0.0;
-    m_setpointPH    = 0.0;
-    m_setpointNivel = 0.0;
-    m_setpointLuz   = 0.0;
-    m_setpointCO2   = 0.0;
-    emit setpointTemChanged();
-    emit setpointPHChanged();
-    emit setpointNivelChanged();
-    emit setpointLuzChanged();
-    emit setpointCO2Changed();
-    guardarConfiguracion();
+    bool changed = false;
+    if (qAbs(m_setpointTem)   > 1e-9) { m_setpointTem   = 0.0; emit setpointTemChanged();   changed = true; }
+    if (qAbs(m_setpointPH)    > 1e-9) { m_setpointPH    = 0.0; emit setpointPHChanged();    changed = true; }
+    if (qAbs(m_setpointNivel) > 1e-9) { m_setpointNivel = 0.0; emit setpointNivelChanged(); changed = true; }
+    if (qAbs(m_setpointLuz)   > 1e-9) { m_setpointLuz   = 0.0; emit setpointLuzChanged();   changed = true; }
+    if (qAbs(m_setpointCO2)   > 1e-9) { m_setpointCO2   = 0.0; emit setpointCO2Changed();   changed = true; }
+    if (changed) guardarConfiguracion();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -422,6 +423,7 @@ void GestorBiorreactor::desconectar()
 void GestorBiorreactor::leerDatosSerial()
 {
     m_buffer += m_puerto.readAll();
+    if (m_buffer.size() > 4096) m_buffer.clear();
     resetWatchdogSerial();
 
     int idx;
@@ -523,17 +525,23 @@ void GestorBiorreactor::leerSensorNivel()
 {
     if (!m_xm125.conectado()) return;
 
-    double distMm = m_xm125.leerDistanciaMm();
+    // Tick par: arrancar medición (no bloquea)
+    if (m_nivelPaso == 0) {
+        m_xm125.iniciarMedicion();
+        m_nivelPaso = 1;
+        return;
+    }
+
+    // Tick impar: leer resultado (no bloquea; -1 si aún no listo)
+    m_nivelPaso = 0;
+    double distMm = m_xm125.leerResultado();
     if (distMm < 0.0) return;
 
     m_ultimaLecturaI2C = QDateTime::currentDateTime();
-    m_timerWatchdogI2C.start();   // reinicia el watchdog
+    m_timerWatchdogI2C.start();
 
-    // Convertir distancia (mm) a porcentaje de nivel.
-    // Los límites se definen en raspberrypi_config.h (ajustar según geometría real).
     double nivel = (DIST_VACIO_MM - distMm) / (DIST_VACIO_MM - DIST_LLENO_MM) * 100.0;
     nivel = std::clamp(nivel, 0.0, 100.0);
-
     setSensorNivel(nivel);
     setAlertaNivel(false);
 }
@@ -633,6 +641,10 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
         for (const QVariant &v : cargado)
             m_lecturas.append(v.toMap());
     }
+    if (m_lecturas.isEmpty()) {
+        qWarning() << "[CSV] Sin lecturas para exportar";
+        return false;
+    }
 
     QString carpeta = carpetaDestino.isEmpty()
                     ? QCoreApplication::applicationDirPath()
@@ -680,10 +692,11 @@ QString GestorBiorreactor::detectarUSB()
 {
 #ifdef Q_OS_LINUX
     // Raspberry Pi OS
+    const QString usuario = qEnvironmentVariable("USER", "pi");
     const QStringList raices = {
         "/media/pi",
-        "/media/" + qgetenv("USER"),
-        "/run/media/" + qgetenv("USER"),
+        "/media/" + usuario,
+        "/run/media/" + usuario,
         "/media",
         "/mnt"
     };

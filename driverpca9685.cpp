@@ -85,7 +85,8 @@ void DriverPCA9685::escribirCanal(int canal, int valor)
         static_cast<uint8_t>(valor & 0xFF),
         static_cast<uint8_t>(valor >> 8)
     };
-    write(m_fd, buf, 5);
+    if (write(m_fd, buf, 5) != 5)
+        qWarning() << "[PCA9685] Error escribiendo canal" << canal;
 #else
     Q_UNUSED(canal) Q_UNUSED(valor)
 #endif
@@ -107,7 +108,8 @@ void DriverPCA9685::escribirRegistro(uint8_t reg, uint8_t valor)
 #ifdef Q_OS_LINUX
     if (m_fd < 0) return;
     uint8_t buf[2] = {reg, valor};
-    write(m_fd, buf, 2);
+    if (write(m_fd, buf, 2) != 2)
+        qWarning() << "[PCA9685] Error escribiendo registro" << Qt::hex << (int)reg;
 #else
     Q_UNUSED(reg) Q_UNUSED(valor)
 #endif

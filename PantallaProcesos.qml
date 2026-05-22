@@ -36,7 +36,7 @@ Item {
                 mostrarPopupPausa = false;
                 mostrarPopupFinalizado = false;
                 mostrarPopupConfirmarDetener = false;
-                if (chartLoader.item) chartLoader.item.resetear()
+                chartLoader.resetear()
                 animacionProgreso.start();
                 backend.iniciarRegistro();
             }
@@ -67,8 +67,7 @@ Item {
         anchors.top: chartBackground.top
         active: root.chartaActivada && Qt.platform.os === "linux"
         source: active ? "GraficaChart.qml" : ""
-        property var item: chartLoader.item
-        function resetear() { if (item && item.resetear) item.resetear() }
+        function resetear() { if (chartLoader.item && chartLoader.item.resetear) chartLoader.item.resetear() }
     }
 
     // ── Pildoras de sensor/setpoint ───────────────────────────────────────
@@ -131,6 +130,8 @@ Item {
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. CO2: %1 ppm").arg(backend.sensorCO2.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. CO2: %1 ppm").arg(backend.setpointCO2.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
     }
 

@@ -12,8 +12,11 @@ public:
     bool inicializar(int bus = 1);
     void cerrar();
 
-    // Lee distancia en mm. Retorna -1.0 si hay error o no está conectado.
-    double leerDistanciaMm();
+    // API no bloqueante (usar en timers del event loop):
+    //   tick par  → iniciarMedicion()
+    //   tick impar → leerResultado()  (returns -1.0 si no listo aún o error)
+    bool   iniciarMedicion();
+    double leerResultado();
 
     bool conectado() const { return m_fd >= 0; }
 

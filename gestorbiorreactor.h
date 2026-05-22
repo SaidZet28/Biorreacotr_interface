@@ -228,7 +228,8 @@ private:
     QDateTime m_ultimaLecturaI2C;
     QDateTime m_tiempoInicioRegistro;
 
-    double m_tickSim = 0.0;
+    double m_tickSim  = 0.0;
+    int    m_nivelPaso = 0;   // 0 = iniciar medición XM125, 1 = leer resultado
 
     QVector<QVariantMap> m_lecturas;
 };

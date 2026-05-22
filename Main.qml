@@ -57,11 +57,7 @@ ApplicationWindow {
             var_nombre_experimento = ""
         }
 
-        backend.setpointTem  = 0.0
-        backend.setpointPH   = 0.0
-        backend.setpointNivel = 0.0
-        backend.setpointLuz  = 0.0
-        backend.setpointCO2  = 0.0
+        backend.resetearSetpoints()
         var_deseada_tiempo_semanas = 0.0
         var_deseada_tiempo_dias = 0.0
         var_deseada_tiempo_horas = 0.0
@@ -83,6 +79,7 @@ ApplicationWindow {
     // ==========================================
     property alias datos_guardados: _modelDatosGuardados
     property alias registro_experimentos: _modelRegistroExperimentos
+    property bool _cargandoModelos: false
 
     ListModel { id: _modelDatosGuardados }
 
@@ -112,6 +109,7 @@ ApplicationWindow {
 
     // Carga al inicio; si no existe el JSON mantiene los datos de muestra
     Component.onCompleted: {
+        _cargandoModelos = true
         let dg = backend.cargarModelo("datos_guardados")
         if (dg.length > 0) {
             _modelDatosGuardados.clear()
@@ -122,16 +120,18 @@ ApplicationWindow {
             _modelRegistroExperimentos.clear()
             for (let i = 0; i < re.length; i++) _modelRegistroExperimentos.append(re[i])
         }
+        _cargandoModelos = false
     }
 
-    // Auto-guardo cuando cambia el número de elementos (append / remove)
+    // Auto-guardo cuando cambia el número de elementos (append / remove),
+    // excepto durante la carga inicial para evitar N escrituras en disco.
     Connections {
         target: _modelDatosGuardados
-        function onCountChanged() { salvarDatosGuardados() }
+        function onCountChanged() { if (!_cargandoModelos) salvarDatosGuardados() }
     }
     Connections {
         target: _modelRegistroExperimentos
-        function onCountChanged() { salvarRegistroExperimentos() }
+        function onCountChanged() { if (!_cargandoModelos) salvarRegistroExperimentos() }
     }
 
     // ==========================================

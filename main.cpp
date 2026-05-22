@@ -1,14 +1,18 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQuickWindow>
 #include "translationmanager.h"
 #include "gestorbiorreactor.h"
 
 int main(int argc, char *argv[])
 {
-    // En Qt 6, el backend gráfico por defecto en Windows es D3D11 (no OpenGL ni ANGLE).
-    // AA_UseDesktopOpenGL forzaba OpenGL, lo cual causa crash con MinGW al inicializar
-    // QtCharts en Windows. Se elimina para usar D3D11 por defecto.
+    // En Linux (Raspberry Pi) forzamos OpenGL para que QtCharts funcione correctamente.
+    // En Windows el backend D3D11 por defecto causa crash con MinGW + QtCharts,
+    // por eso la gráfica queda desactivada en Windows (condición en PantallaProcesos.qml).
+#ifdef Q_OS_LINUX
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+#endif
 
     QGuiApplication app(argc, argv);
 

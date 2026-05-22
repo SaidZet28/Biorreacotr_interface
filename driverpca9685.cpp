@@ -1,4 +1,5 @@
 #include "driverpca9685.h"
+#include "raspberrypi_config.h"
 #include <QDebug>
 #include <algorithm>
 
@@ -37,8 +38,9 @@ bool DriverPCA9685::inicializar(int bus, int frecuenciaHz)
         return false;
     }
 
-    // Sleep para configurar prescaler
+    // Sleep para configurar prescaler (datasheet: esperar ≥500 µs antes de escribir PRESCALE)
     escribirRegistro(REG_MODE1, 0x10);
+    usleep(500);
 
     uint8_t prescale = static_cast<uint8_t>(
         std::round(25000000.0 / (4096.0 * frecuenciaHz)) - 1);
@@ -49,7 +51,7 @@ bool DriverPCA9685::inicializar(int bus, int frecuenciaHz)
     usleep(500);
     escribirRegistro(REG_MODE1, 0xA0);
 
-    qDebug() << "[PCA9685] Inicializado en" << dev << "@" << frecuenciaHz << "Hz";
+    qDebug() << "[PCA9685] Inicializado en" << dev << "— I2C bus" << PCA9685_I2C_BUS << "@" << frecuenciaHz << "Hz";
     return true;
 #else
     Q_UNUSED(bus) Q_UNUSED(frecuenciaHz)

@@ -18,6 +18,8 @@ ApplicationWindow {
 
     property string estadoPrevioAjustes: "pantalla_principal"
     property string estadoPrevioPantalla6: "pantalla_nuevo_proyecto"
+    property string estadoPrevioPantalla7: "pantalla_6"
+    property bool   procesoListoParaIniciar: false
 
     property int sensor_estado_primero: 1
     property int sensor_estado_calibracion: 1
@@ -89,15 +91,22 @@ ApplicationWindow {
     // ── Persistencia JSON ─────────────────────────────────────────────────
     function salvarDatosGuardados() {
         let arr = []
-        for (let i = 0; i < datos_guardados.count; i++)
-            arr.push(datos_guardados.get(i))
+        for (let i = 0; i < datos_guardados.count; i++) {
+            let it = datos_guardados.get(i)
+            arr.push({ "nombre": it.nombre, "temp": it.temp, "ph": it.ph,
+                        "agua": it.agua, "luz": it.luz, "tiempo": it.tiempo })
+        }
         backend.guardarModelo("datos_guardados", arr)
     }
 
     function salvarRegistroExperimentos() {
         let arr = []
-        for (let i = 0; i < registro_experimentos.count; i++)
-            arr.push(registro_experimentos.get(i))
+        for (let i = 0; i < registro_experimentos.count; i++) {
+            let it = registro_experimentos.get(i)
+            arr.push({ "proyecto": it.proyecto, "experimento": it.experimento,
+                        "fecha": it.fecha, "tiempo": it.tiempo,
+                        "peso": it.peso, "seleccionado": it.seleccionado })
+        }
         backend.guardarModelo("registro_experimentos", arr)
     }
 

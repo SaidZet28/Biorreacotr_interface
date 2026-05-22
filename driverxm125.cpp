@@ -10,14 +10,7 @@
 #define I2C_SLAVE 0x0703
 #endif
 
-// Registro map del XM125 (Acconeer A121, SparkFun Qwiic)
-// Referencia: Acconeer XM125 Datasheet / SparkFun_XM125_Arduino_Library
-static constexpr int     XM125_ADDR           = 0x52;
-static constexpr uint8_t REG_PRODUCT_ID_MSB   = 0x00;
-static constexpr uint8_t REG_MEASURE_START     = 0x0A; // escribe 1 para iniciar medición
-static constexpr uint8_t REG_STATUS            = 0x0B; // bit 0 = listo
-static constexpr uint8_t REG_DISTANCE_MSB      = 0x10; // distancia en mm (big-endian 2 bytes)
-static constexpr uint8_t REG_DISTANCE_LSB      = 0x11;
+static constexpr int XM125_ADDR = 0x52;
 #endif
 
 DriverXM125::DriverXM125(QObject *parent) : QObject(parent) {}
@@ -39,16 +32,15 @@ bool DriverXM125::inicializar(int bus)
         return false;
     }
 
-    // Verificar producto
-    uint8_t id = 0;
-    if (write(m_fd, &REG_PRODUCT_ID_MSB, 1) != 1 ||
-        read(m_fd,  &id,                 1) != 1) {
+    // Verificar presencia del sensor leyendo el Product ID (registro 32-bit)
+    uint32_t productId = 0;
+    if (!leerRegistro(REG_PRODUCT_ID, productId)) {
         qWarning() << "[XM125] No responde en la dirección 0x52";
         ::close(m_fd); m_fd = -1;
         return false;
     }
 
-    qDebug() << "[XM125] Conectado, ID =" << Qt::hex << id;
+    qDebug() << "[XM125] Conectado en" << dev << "— Product ID =" << Qt::hex << productId;
     return true;
 #else
     Q_UNUSED(bus)
@@ -74,26 +66,69 @@ double DriverXM125::leerDistanciaMm()
     if (m_fd < 0) return -1.0;
 
     // Iniciar medición
-    uint8_t cmd[2] = {REG_MEASURE_START, 0x01};
-    if (write(m_fd, cmd, 2) != 2) return -1.0;
+    if (!escribirRegistro(REG_MEASURE_START, 0x01)) return -1.0;
 
     // Esperar listo (máx 50 ms, poll cada 2 ms)
     for (int i = 0; i < 25; ++i) {
         usleep(2000);
-        uint8_t status = 0;
-        if (write(m_fd, &REG_STATUS, 1) == 1 &&
-            read (m_fd, &status,     1) == 1 &&
-            (status & 0x01)) break;
+        uint32_t status = 0;
+        if (leerRegistro(REG_STATUS, status) && (status & 0x01)) break;
         if (i == 24) return -1.0;
     }
 
-    // Leer distancia (2 bytes big-endian en mm)
-    uint8_t buf[2] = {0, 0};
-    if (write(m_fd, &REG_DISTANCE_MSB, 1) != 1) return -1.0;
-    if (read (m_fd,  buf,              2) != 2) return -1.0;
+    // Leer distancia (32-bit big-endian, en mm)
+    uint32_t dist = 0;
+    if (!leerRegistro(REG_DISTANCE, dist)) return -1.0;
 
-    return static_cast<double>((buf[0] << 8) | buf[1]);
+    return static_cast<double>(dist);
 #else
     return -1.0;
+#endif
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Protocolo I2C SparkFun XM125:
+//   Escritura: [addr_hi, addr_lo, val_b3, val_b2, val_b1, val_b0]  (6 bytes)
+//   Lectura:   write [addr_hi, addr_lo] (2 bytes), luego read [b3,b2,b1,b0] (4 bytes)
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool DriverXM125::escribirRegistro(uint16_t reg, uint32_t valor)
+{
+#ifdef Q_OS_LINUX
+    if (m_fd < 0) return false;
+    uint8_t buf[6] = {
+        static_cast<uint8_t>(reg   >> 8),
+        static_cast<uint8_t>(reg   & 0xFF),
+        static_cast<uint8_t>(valor >> 24),
+        static_cast<uint8_t>((valor >> 16) & 0xFF),
+        static_cast<uint8_t>((valor >>  8) & 0xFF),
+        static_cast<uint8_t>( valor        & 0xFF)
+    };
+    return write(m_fd, buf, 6) == 6;
+#else
+    Q_UNUSED(reg) Q_UNUSED(valor)
+    return false;
+#endif
+}
+
+bool DriverXM125::leerRegistro(uint16_t reg, uint32_t &valor)
+{
+#ifdef Q_OS_LINUX
+    if (m_fd < 0) return false;
+    uint8_t addr[2] = {
+        static_cast<uint8_t>(reg >> 8),
+        static_cast<uint8_t>(reg & 0xFF)
+    };
+    if (write(m_fd, addr, 2) != 2) return false;
+    uint8_t data[4] = {0, 0, 0, 0};
+    if (read(m_fd, data, 4) != 4) return false;
+    valor = (static_cast<uint32_t>(data[0]) << 24)
+          | (static_cast<uint32_t>(data[1]) << 16)
+          | (static_cast<uint32_t>(data[2]) <<  8)
+          |  static_cast<uint32_t>(data[3]);
+    return true;
+#else
+    Q_UNUSED(reg) Q_UNUSED(valor)
+    return false;
 #endif
 }

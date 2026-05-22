@@ -39,11 +39,20 @@ Item {
             return
         }
         expandidoPH = false; expandidoDO = false; expandidoNivel = false
-        phCalibrado = false; doCalibrado = false; nivelCalibrado = false
-        puntos_pH = 0
-        stPH4 = 0; stPH7 = 0; stPH10 = 0
-        stDO = 0; stNivel = 0
         mostrarAdvertencia = false
+
+        if (backend.modoSimulacion) {
+            // Sin hardware real: calibración instantánea para no bloquear el flujo
+            phCalibrado = true; doCalibrado = true; nivelCalibrado = true
+            puntos_pH = 3
+            stPH4 = 2; stPH7 = 2; stPH10 = 2
+            stDO = 2; stNivel = 2
+        } else {
+            phCalibrado = false; doCalibrado = false; nivelCalibrado = false
+            puntos_pH = 0
+            stPH4 = 0; stPH7 = 0; stPH10 = 0
+            stDO = 0; stNivel = 0
+        }
     }
 
     // ── Timers ────────────────────────────────

@@ -5,6 +5,14 @@ project(Prototipo VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
 
+# Activar con: cmake -DSIMULACION=ON
+# Genera datos sintéticos sin necesidad de hardware (Raspberry Pi / sensores)
+option(SIMULACION "Modo simulación — sin hardware real" OFF)
+if(SIMULACION)
+    add_compile_definitions(SIMULACION_ACTIVA)
+    message(STATUS ">>> MODO SIMULACIÓN ACTIVO — sin hardware real <<<")
+endif()
+
 # 1. Buscamos los paquetes requeridos
 find_package(Qt6 REQUIRED COMPONENTS Quick Charts LinguistTools SerialPort)
 
@@ -79,6 +87,7 @@ qt_add_qml_module(appPrototipo
                 controladorhisteresis.h controladorhisteresis.cpp
                 driverpca9685.h driverpca9685.cpp
                 driverxm125.h driverxm125.cpp
+                raspberrypi_config.h
 )
 
 # 3. AHORA SÍ, le agregamos las traducciones al ejecutable

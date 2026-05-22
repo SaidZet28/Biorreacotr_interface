@@ -25,4 +25,30 @@ Item {
         anchors.margins: parent.width * 0.02
         fillMode: Image.PreserveAspectFit
     }
+
+    // Banner de simulación — visible solo cuando SIMULACION_ACTIVA está definido
+    Rectangle {
+        visible: backend.modoSimulacion
+        anchors.centerIn: parent
+        width: labelSim.implicitWidth + 32
+        height: labelSim.implicitHeight + 10
+        radius: 6
+        color: "#F59E0B"
+
+        SequentialAnimation on opacity {
+            running: backend.modoSimulacion
+            loops: Animation.Infinite
+            NumberAnimation { to: 0.55; duration: 800; easing.type: Easing.InOutSine }
+            NumberAnimation { to: 1.00; duration: 800; easing.type: Easing.InOutSine }
+        }
+
+        Text {
+            id: labelSim
+            anchors.centerIn: parent
+            text: "⚠  MODO SIMULACIÓN — SIN HARDWARE REAL"
+            font.pixelSize: parent.parent.height * 0.11
+            font.bold: true
+            color: "#1C1917"
+        }
+    }
 }

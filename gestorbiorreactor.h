@@ -48,6 +48,9 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(bool    puertoConectado READ puertoConectado NOTIFY puertoConectadoChanged FINAL)
     Q_PROPERTY(QString nombrePuerto   READ nombrePuerto    NOTIFY nombrePuertoChanged    FINAL)
 
+    // ── Simulación ───────────────────────────────────────────────────────────
+    Q_PROPERTY(bool modoSimulacion READ modoSimulacion CONSTANT)
+
 public:
     explicit GestorBiorreactor(QObject *parent = nullptr);
     ~GestorBiorreactor();
@@ -86,6 +89,8 @@ public:
     bool    puertoConectado() const;
     QString nombrePuerto()    const;
 
+    bool modoSimulacion() const;
+
     Q_INVOKABLE void cargarConfiguracion();
     Q_INVOKABLE void guardarConfiguracion();
     Q_INVOKABLE void resetearSetpoints();
@@ -94,6 +99,17 @@ public:
 
     Q_INVOKABLE void          guardarModelo(const QString &nombre, const QVariantList &datos);
     Q_INVOKABLE QVariantList  cargarModelo (const QString &nombre);
+
+    Q_INVOKABLE QString detectarUSB();
+    Q_INVOKABLE bool    exportarCSV(const QVariantList &datos, const QString &carpetaDestino);
+
+    // ── Registro histórico de sensores ───────────────────────────────────────
+    Q_INVOKABLE void iniciarRegistro();
+    Q_INVOKABLE void detenerRegistro();
+    Q_INVOKABLE int  totalLecturas() const;
+    Q_INVOKABLE bool exportarRegistroCSV(const QString &carpetaDestino,
+                                         const QString &nombreExp,
+                                         const QString &nombreProyecto);
 
     void parsearTrama(const QByteArray &linea);
 
@@ -133,6 +149,8 @@ private slots:
     void onWatchdogI2CTimeout();
     void verificarStaleness();
     void leerSensorNivel();
+    void tickSimulacion();
+    void registrarLectura();
 
 private:
     void actualizarTemperaturaFusionada();
@@ -203,7 +221,14 @@ private:
     QTimer m_timerWatchdogI2C;    // 2000 ms one-shot — timeout sin datos I2C
     QTimer m_timerStaleness;      // 1000 ms — revisa freshness de sensores
     QTimer m_timerNivel;          // 500 ms  — lee XM125
+    QTimer m_timerSimulacion;     // 1000 ms — genera datos sintéticos (solo SIMULACION_ACTIVA)
+    QTimer m_timerRegistro;       // muestreo periódico de sensores durante el proceso
 
     QDateTime m_ultimaLecturaRS485;
     QDateTime m_ultimaLecturaI2C;
+    QDateTime m_tiempoInicioRegistro;
+
+    double m_tickSim = 0.0;
+
+    QVector<QVariantMap> m_lecturas;
 };

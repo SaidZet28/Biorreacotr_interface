@@ -29,7 +29,7 @@ Item {
         interval: 3000
         running: root.visible
         onTriggered: {
-            if (backend.puertoConectado) {
+            if (backend.modoSimulacion || backend.puertoConectado) {
                 appWindow.estadoActual = "pantalla_principal"
             } else {
                 appWindow.estado_sensor_retorno_error = "pantalla_de_carga"

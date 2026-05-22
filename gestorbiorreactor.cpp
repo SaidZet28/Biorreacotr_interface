@@ -1,14 +1,22 @@
 #include "gestorbiorreactor.h"
+#include "raspberrypi_config.h"
 #include <QSettings>
 #include <QCoreApplication>
 #include <QSerialPortInfo>
 #include <QDebug>
 #include <QtMath>
+#include <QRandomGenerator>
 #include <algorithm>
 #include <QFile>
+#include <QTextStream>
+#include <QDir>
+#include <QDateTime>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
 
 static QString iniPath() {
     return QCoreApplication::applicationDirPath() + "/biorreactor.ini";
@@ -27,6 +35,7 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
     m_pidTemp.configurar(2.0, 0.5, 0.1, 1.0, 0.0, 100.0);
     m_histeresisNivel.configurar(5.0);
 
+#ifndef SIMULACION_ACTIVA
     // Serial
     connect(&m_puerto, &QSerialPort::readyRead,
             this, &GestorBiorreactor::leerDatosSerial);
@@ -36,6 +45,7 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
             this, &GestorBiorreactor::consultarSensoresRS485);
     m_timerRS485.setInterval(500);
     m_timerRS485.start();
+#endif
 
     // Timer loop de control: 1 s
     connect(&m_timerControlLoop, &QTimer::timeout,
@@ -43,6 +53,7 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
     m_timerControlLoop.setInterval(1000);
     m_timerControlLoop.start();
 
+#ifndef SIMULACION_ACTIVA
     // Watchdog serial: 3 s sin datos → alerta
     m_timerWatchdogSerial.setSingleShot(true);
     m_timerWatchdogSerial.setInterval(3000);
@@ -54,6 +65,7 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
     m_timerWatchdogI2C.setInterval(2000);
     connect(&m_timerWatchdogI2C, &QTimer::timeout,
             this, &GestorBiorreactor::onWatchdogI2CTimeout);
+#endif
 
     // Timer staleness: revisa cada 1 s
     connect(&m_timerStaleness, &QTimer::timeout,
@@ -61,6 +73,7 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
     m_timerStaleness.setInterval(1000);
     m_timerStaleness.start();
 
+#ifndef SIMULACION_ACTIVA
     // Timer nivel: lee XM125 cada 500 ms
     connect(&m_timerNivel, &QTimer::timeout,
             this, &GestorBiorreactor::leerSensorNivel);
@@ -71,9 +84,17 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
     m_pca9685.inicializar(1, 50);
     m_xm125.inicializar(1);
 
-    // Cargar setpoints y conectar puerto
-    cargarConfiguracion();
     buscarYConectar();
+#else
+    // Modo simulación: generar datos sintéticos cada segundo
+    connect(&m_timerSimulacion, &QTimer::timeout,
+            this, &GestorBiorreactor::tickSimulacion);
+    m_timerSimulacion.setInterval(1000);
+    m_timerSimulacion.start();
+    qDebug() << "[SIM] Modo simulación activo — sin hardware real";
+#endif
+
+    cargarConfiguracion();
 }
 
 GestorBiorreactor::~GestorBiorreactor()
@@ -101,27 +122,27 @@ double GestorBiorreactor::sensorCO2()   const { return m_sensorCO2;   }
 double GestorBiorreactor::sensorDO()    const { return m_sensorDO;    }
 
 void GestorBiorreactor::setSensorTem(double v) {
-    if (qFuzzyCompare(m_sensorTem, v)) return;
+    if (qAbs(m_sensorTem - v) < 1e-9) return;
     m_sensorTem = v; emit sensorTemChanged();
 }
 void GestorBiorreactor::setSensorPH(double v) {
-    if (qFuzzyCompare(m_sensorPH, v)) return;
+    if (qAbs(m_sensorPH - v) < 1e-9) return;
     m_sensorPH = v; emit sensorPHChanged();
 }
 void GestorBiorreactor::setSensorNivel(double v) {
-    if (qFuzzyCompare(m_sensorNivel, v)) return;
+    if (qAbs(m_sensorNivel - v) < 1e-9) return;
     m_sensorNivel = v; emit sensorNivelChanged();
 }
 void GestorBiorreactor::setSensorLuz(double v) {
-    if (qFuzzyCompare(m_sensorLuz, v)) return;
+    if (qAbs(m_sensorLuz - v) < 1e-9) return;
     m_sensorLuz = v; emit sensorLuzChanged();
 }
 void GestorBiorreactor::setSensorCO2(double v) {
-    if (qFuzzyCompare(m_sensorCO2, v)) return;
+    if (qAbs(m_sensorCO2 - v) < 1e-9) return;
     m_sensorCO2 = v; emit sensorCO2Changed();
 }
 void GestorBiorreactor::setSensorDO(double v) {
-    if (qFuzzyCompare(m_sensorDO, v)) return;
+    if (qAbs(m_sensorDO - v) < 1e-9) return;
     m_sensorDO = v; emit sensorDOChanged();
 }
 
@@ -136,23 +157,23 @@ double GestorBiorreactor::setpointLuz()   const { return m_setpointLuz;   }
 double GestorBiorreactor::setpointCO2()   const { return m_setpointCO2;   }
 
 void GestorBiorreactor::setSetpointTem(double v) {
-    if (qFuzzyCompare(m_setpointTem, v)) return;
+    if (qAbs(m_setpointTem - v) < 1e-9) return;
     m_setpointTem = v; emit setpointTemChanged(); guardarConfiguracion();
 }
 void GestorBiorreactor::setSetpointPH(double v) {
-    if (qFuzzyCompare(m_setpointPH, v)) return;
+    if (qAbs(m_setpointPH - v) < 1e-9) return;
     m_setpointPH = v; emit setpointPHChanged(); guardarConfiguracion();
 }
 void GestorBiorreactor::setSetpointNivel(double v) {
-    if (qFuzzyCompare(m_setpointNivel, v)) return;
+    if (qAbs(m_setpointNivel - v) < 1e-9) return;
     m_setpointNivel = v; emit setpointNivelChanged(); guardarConfiguracion();
 }
 void GestorBiorreactor::setSetpointLuz(double v) {
-    if (qFuzzyCompare(m_setpointLuz, v)) return;
+    if (qAbs(m_setpointLuz - v) < 1e-9) return;
     m_setpointLuz = v; emit setpointLuzChanged(); guardarConfiguracion();
 }
 void GestorBiorreactor::setSetpointCO2(double v) {
-    if (qFuzzyCompare(m_setpointCO2, v)) return;
+    if (qAbs(m_setpointCO2 - v) < 1e-9) return;
     m_setpointCO2 = v; emit setpointCO2Changed(); guardarConfiguracion();
 }
 
@@ -246,6 +267,21 @@ void GestorBiorreactor::guardarConfiguracion()
     s.endGroup();
 }
 
+void GestorBiorreactor::resetearSetpoints()
+{
+    m_setpointTem   = 0.0;
+    m_setpointPH    = 0.0;
+    m_setpointNivel = 0.0;
+    m_setpointLuz   = 0.0;
+    m_setpointCO2   = 0.0;
+    emit setpointTemChanged();
+    emit setpointPHChanged();
+    emit setpointNivelChanged();
+    emit setpointLuzChanged();
+    emit setpointCO2Changed();
+    guardarConfiguracion();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Persistencia JSON de modelos QML
 // ─────────────────────────────────────────────────────────────────────────────
@@ -273,6 +309,41 @@ QVariantList GestorBiorreactor::cargarModelo(const QString &nombre)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Modo simulación
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool GestorBiorreactor::modoSimulacion() const
+{
+#ifdef SIMULACION_ACTIVA
+    return true;
+#else
+    return false;
+#endif
+}
+
+void GestorBiorreactor::tickSimulacion()
+{
+#ifdef SIMULACION_ACTIVA
+    m_tickSim += 1.0;
+
+    auto noise = [](double amp) -> double {
+        return amp * (QRandomGenerator::global()->generateDouble() * 2.0 - 1.0);
+    };
+
+    setSensorTem  (24.5  + 1.5  * qSin(m_tickSim * 0.05) + noise(0.10));
+    setSensorPH   ( 7.2  + 0.3  * qCos(m_tickSim * 0.03) + noise(0.02));
+    setSensorNivel(85.0  + 5.0  * qSin(m_tickSim * 0.02) + noise(0.50));
+    setSensorLuz  (60.0  + 8.0  * qCos(m_tickSim * 0.04) + noise(0.30));
+    setSensorCO2  (400.0 + 30.0 * qSin(m_tickSim * 0.06) + noise(2.00));
+    setSensorDO   ( 8.2  + 0.5  * qCos(m_tickSim * 0.07) + noise(0.05));
+
+    // Evitar alertas de staleness — marcar como datos recibidos ahora
+    m_ultimaLecturaRS485 = QDateTime::currentDateTime();
+    m_ultimaLecturaI2C   = QDateTime::currentDateTime();
+#endif
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Puerto serial
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -281,14 +352,28 @@ QString GestorBiorreactor::nombrePuerto() const { return m_puerto.portName(); }
 
 bool GestorBiorreactor::buscarYConectar(const QString &nombreForzado)
 {
+#ifdef SIMULACION_ACTIVA
+    Q_UNUSED(nombreForzado)
+    return false;
+#endif
     if (m_puerto.isOpen()) m_puerto.close();
 
     QString portName = nombreForzado;
     if (portName.isEmpty()) {
+        // 1ª pasada: preferir adaptadores USB-RS485 (ttyUSB en Linux)
         for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
-            if (!info.portName().contains("Bluetooth", Qt::CaseInsensitive)) {
+            if (info.portName().startsWith("ttyUSB")) {
                 portName = info.portName();
                 break;
+            }
+        }
+        // 2ª pasada: cualquier puerto no-Bluetooth si no hay ttyUSB
+        if (portName.isEmpty()) {
+            for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
+                if (!info.portName().contains("Bluetooth", Qt::CaseInsensitive)) {
+                    portName = info.portName();
+                    break;
+                }
             }
         }
     }
@@ -320,6 +405,9 @@ bool GestorBiorreactor::buscarYConectar(const QString &nombreForzado)
 
 void GestorBiorreactor::desconectar()
 {
+#ifdef SIMULACION_ACTIVA
+    return;
+#endif
     if (!m_puerto.isOpen()) return;
     m_puerto.close();
     m_buffer.clear();
@@ -442,10 +530,8 @@ void GestorBiorreactor::leerSensorNivel()
     m_timerWatchdogI2C.start();   // reinicia el watchdog
 
     // Convertir distancia (mm) a porcentaje de nivel.
-    // Ajustar DIST_VACIO y DIST_LLENO según geometría del biorreactor.
-    constexpr double DIST_VACIO  = 400.0;  // mm cuando está vacío
-    constexpr double DIST_LLENO  = 50.0;   // mm cuando está lleno
-    double nivel = (DIST_VACIO - distMm) / (DIST_VACIO - DIST_LLENO) * 100.0;
+    // Los límites se definen en raspberrypi_config.h (ajustar según geometría real).
+    double nivel = (DIST_VACIO_MM - distMm) / (DIST_VACIO_MM - DIST_LLENO_MM) * 100.0;
     nivel = std::clamp(nivel, 0.0, 100.0);
 
     setSensorNivel(nivel);
@@ -491,13 +577,192 @@ void GestorBiorreactor::ejecutarControlLoop()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Registro histórico de sensores
+// ─────────────────────────────────────────────────────────────────────────────
+
+void GestorBiorreactor::iniciarRegistro()
+{
+    m_lecturas.clear();
+    m_tiempoInicioRegistro = QDateTime::currentDateTime();
+    connect(&m_timerRegistro, &QTimer::timeout,
+            this, &GestorBiorreactor::registrarLectura, Qt::UniqueConnection);
+    // 30 s = 2 muestras/min; suficiente resolución para tendencias en fermentaciones largas
+    m_timerRegistro.setInterval(30000);
+    m_timerRegistro.start();
+    registrarLectura(); // punto t = 0
+}
+
+void GestorBiorreactor::detenerRegistro()
+{
+    if (!m_timerRegistro.isActive()) return;
+    m_timerRegistro.stop();
+    // Persiste las lecturas en disco para sobrevivir reinicios
+    QVariantList lista;
+    lista.reserve(m_lecturas.size());
+    for (const QVariantMap &m : m_lecturas)
+        lista.append(m);
+    guardarModelo("lecturas_experimento", lista);
+    qDebug() << "[Registro] Guardadas" << m_lecturas.size() << "lecturas";
+}
+
+int GestorBiorreactor::totalLecturas() const
+{
+    return m_lecturas.size();
+}
+
+void GestorBiorreactor::registrarLectura()
+{
+    QVariantMap lec;
+    lec["hora"]  = QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss");
+    lec["temp"]  = m_sensorTem;
+    lec["ph"]    = m_sensorPH;
+    lec["nivel"] = m_sensorNivel;
+    lec["luz"]   = m_sensorLuz;
+    lec["co2"]   = m_sensorCO2;
+    lec["do"]    = m_sensorDO;
+    m_lecturas.append(lec);
+}
+
+bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
+                                             const QString &nombreExp,
+                                             const QString &nombreProyecto)
+{
+    // Si no hay lecturas en memoria, intentar cargar del disco
+    if (m_lecturas.isEmpty()) {
+        const QVariantList cargado = cargarModelo("lecturas_experimento");
+        for (const QVariant &v : cargado)
+            m_lecturas.append(v.toMap());
+    }
+
+    QString carpeta = carpetaDestino.isEmpty()
+                    ? QCoreApplication::applicationDirPath()
+                    : carpetaDestino;
+
+    QString nombreArchivo = "sensores_" +
+        QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + ".csv";
+    QFile f(carpeta + "/" + nombreArchivo);
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "[CSV] No se pudo crear" << f.fileName();
+        return false;
+    }
+
+    QTextStream out(&f);
+    out.setEncoding(QStringConverter::Utf8);
+
+    out << "# Proyecto: "    << nombreProyecto << "\n"
+        << "# Experimento: " << nombreExp      << "\n"
+        << "# Inicio: "      << m_tiempoInicioRegistro.toString("dd/MM/yyyy HH:mm:ss") << "\n"
+        << "# Exportado: "   << QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss") << "\n"
+        << "# Lecturas: "    << m_lecturas.size() << "\n"
+        << "#\n"
+        << "Fecha y Hora,Temperatura (°C),pH,Nivel (%),Luz (%),CO2 (ppm),DO (mg/L)\n";
+
+    for (const QVariantMap &lec : m_lecturas) {
+        out << lec["hora"].toString() << ","
+            << QString::number(lec["temp"].toDouble(),  'f', 2) << ","
+            << QString::number(lec["ph"].toDouble(),    'f', 2) << ","
+            << QString::number(lec["nivel"].toDouble(), 'f', 1) << ","
+            << QString::number(lec["luz"].toDouble(),   'f', 1) << ","
+            << QString::number(lec["co2"].toDouble(),   'f', 0) << ","
+            << QString::number(lec["do"].toDouble(),    'f', 2) << "\n";
+    }
+
+    qDebug() << "[CSV] Registro exportado a" << f.fileName()
+             << "(" << m_lecturas.size() << "lecturas)";
+    return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exportación USB
+// ─────────────────────────────────────────────────────────────────────────────
+
+QString GestorBiorreactor::detectarUSB()
+{
+#ifdef Q_OS_LINUX
+    // Raspberry Pi OS
+    const QStringList raices = {
+        "/media/pi",
+        "/media/" + qgetenv("USER"),
+        "/run/media/" + qgetenv("USER"),
+        "/media",
+        "/mnt"
+    };
+    for (const QString &raiz : raices) {
+        QDir dir(raiz);
+        if (!dir.exists()) continue;
+        const QStringList subs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString &sub : subs) {
+            QString ruta = raiz + "/" + sub;
+            QFileInfo fi(ruta);
+            if (fi.isWritable())
+                return ruta;
+        }
+    }
+    return QString();
+#elif defined(Q_OS_WIN)
+    DWORD drives = GetLogicalDrives();
+    for (int i = 2; i < 26; ++i) {   // empezar en C:
+        if (!(drives & (1 << i))) continue;
+        QString letra = QString("%1:\\").arg(QChar('A' + i));
+        if (GetDriveTypeW(reinterpret_cast<LPCWSTR>(letra.utf16())) == DRIVE_REMOVABLE) {
+            QFileInfo fi(letra);
+            if (fi.isWritable())
+                return letra;
+        }
+    }
+    return QString();
+#else
+    return QString();
+#endif
+}
+
+bool GestorBiorreactor::exportarCSV(const QVariantList &datos, const QString &carpetaDestino)
+{
+    QString carpeta = carpetaDestino;
+    if (carpeta.isEmpty())
+        carpeta = QCoreApplication::applicationDirPath();
+
+    QString nombreArchivo = "reporte_" +
+        QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + ".csv";
+    QString rutaCompleta = carpeta + "/" + nombreArchivo;
+
+    QFile f(rutaCompleta);
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "[CSV] No se pudo crear" << rutaCompleta;
+        return false;
+    }
+
+    QTextStream out(&f);
+    out.setEncoding(QStringConverter::Utf8);
+    out << "Proyecto,Experimento,Fecha,Tiempo,Tamaño\n";
+
+    for (const QVariant &v : datos) {
+        const QVariantMap m = v.toMap();
+        auto esc = [](QString s) {
+            s.replace('"', "\"\"");
+            if (s.contains(',') || s.contains('"') || s.contains('\n'))
+                s = '"' + s + '"';
+            return s;
+        };
+        out << esc(m.value("proyecto").toString())    << ","
+            << esc(m.value("experimento").toString()) << ","
+            << esc(m.value("fecha").toString())       << ","
+            << esc(m.value("tiempo").toString())      << ","
+            << esc(m.value("peso").toString())        << "\n";
+    }
+
+    qDebug() << "[CSV] Exportado a" << rutaCompleta;
+    return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Watchdogs
 // ─────────────────────────────────────────────────────────────────────────────
 
 void GestorBiorreactor::resetWatchdogSerial()
 {
     setAlertaSerial(false);
-    if (m_puerto.isOpen())
+    if (m_puerto.isOpen() && m_procesoActivo)
         m_timerWatchdogSerial.start();
 }
 
@@ -531,8 +796,8 @@ void GestorBiorreactor::verificarStaleness()
             setAlertaSerial(true);
     }
 
-    // Si los datos I2C son viejos, activar alerta nivel
-    if (m_ultimaLecturaI2C.isValid()) {
+    // Si los datos I2C son viejos y hay proceso activo, activar alerta nivel
+    if (m_procesoActivo && m_ultimaLecturaI2C.isValid()) {
         qint64 edadI2C = ahora - m_ultimaLecturaI2C.toMSecsSinceEpoch();
         if (edadI2C > UMBRAL_STALENESS_MS)
             setAlertaNivel(true);

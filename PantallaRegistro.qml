@@ -11,6 +11,10 @@ Item {
     property int itemsSeleccionados: 0
     property bool mostrarPopupConfirmarBorrado: false
     property bool mostrarPopupExportar: false
+    property int itemExportarIndex: -1
+    property string rutaUSBDetectada: ""
+    property bool exportarExito: false
+    property bool exportarError: false
 
     Rectangle {
         id: cabeceraRegistro
@@ -140,7 +144,13 @@ Item {
                         MouseArea {
                             id: areaBotonExportar
                             anchors.fill: parent
-                            onClicked: root.mostrarPopupExportar = true
+                            onClicked: {
+                                root.itemExportarIndex = index
+                                root.exportarExito = false
+                                root.exportarError = false
+                                root.rutaUSBDetectada = backend.detectarUSB()
+                                root.mostrarPopupExportar = true
+                            }
                         }
                     }
                 }
@@ -290,31 +300,200 @@ Item {
         MouseArea { anchors.fill: parent; hoverEnabled: true }
 
         Rectangle {
-            width: parent.width * 0.55
-            height: parent.height * 0.35
+            width: parent.width * 0.60
+            height: parent.height * 0.50
             anchors.centerIn: parent
             color: Qt.rgba(0.8, 0.8, 0.8, 0.95)
             radius: 20
 
-            Text {
-                anchors.centerIn: parent
-                anchors.verticalCenterOffset: -parent.height * 0.08
-                text: qsTranslate("Main", "Función no disponible\nen esta versión")
-                font.pixelSize: parent.height * 0.12
-                font.bold: true
-                color: "black"
-                horizontalAlignment: Text.AlignHCenter
-            }
+            // Botón cerrar (esquina superior derecha)
             Rectangle {
-                width: appWindow.width * 0.15
-                height: appWindow.height * 0.08
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: parent.height * 0.10
-                anchors.horizontalCenter: parent.horizontalCenter
-                color: areaOkExportar.pressed ? "#6b42b5" : "#8b5cf6"
-                radius: height / 2
-                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Okay"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                MouseArea { id: areaOkExportar; anchors.fill: parent; onClicked: root.mostrarPopupExportar = false }
+                width: parent.height * 0.12
+                height: width
+                radius: width / 2
+                anchors.top: parent.top
+                anchors.topMargin: parent.height * 0.04
+                anchors.right: parent.right
+                anchors.rightMargin: parent.width * 0.03
+                color: areaCerrarExportar.pressed ? "#cc1e1e" : "#FF2D2D"
+                Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "black" }
+                MouseArea {
+                    id: areaCerrarExportar
+                    anchors.fill: parent
+                    onClicked: {
+                        root.mostrarPopupExportar = false
+                        root.exportarExito = false
+                        root.exportarError = false
+                    }
+                }
+            }
+
+            // ── Estado: éxito ──────────────────────────────────────────────
+            Column {
+                anchors.centerIn: parent
+                spacing: parent.height * 0.06
+                visible: root.exportarExito
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "✓"
+                    font.pixelSize: parent.parent.height * 0.18
+                    color: "#2e7d32"
+                    font.bold: true
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTranslate("Main", "Archivo guardado\nen la USB")
+                    font.pixelSize: parent.parent.height * 0.09
+                    font.bold: true
+                    color: "black"
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                Rectangle {
+                    width: appWindow.width * 0.18
+                    height: appWindow.height * 0.08
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: areaOkExitoExportar.pressed ? "#6b42b5" : "#8b5cf6"
+                    radius: height / 2
+                    Text { anchors.centerIn: parent; text: qsTranslate("Main", "Cerrar"); font.pixelSize: parent.height * 0.38; font.bold: true; color: "black" }
+                    MouseArea {
+                        id: areaOkExitoExportar
+                        anchors.fill: parent
+                        onClicked: { root.mostrarPopupExportar = false; root.exportarExito = false }
+                    }
+                }
+            }
+
+            // ── Estado: error al escribir ──────────────────────────────────
+            Column {
+                anchors.centerIn: parent
+                spacing: parent.height * 0.06
+                visible: root.exportarError && !root.exportarExito
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "✕"
+                    font.pixelSize: parent.parent.height * 0.18
+                    color: "#c62828"
+                    font.bold: true
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTranslate("Main", "No se pudo guardar\nel archivo")
+                    font.pixelSize: parent.parent.height * 0.09
+                    font.bold: true
+                    color: "black"
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                Rectangle {
+                    width: appWindow.width * 0.18
+                    height: appWindow.height * 0.08
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: areaOkErrorExportar.pressed ? "#6b42b5" : "#8b5cf6"
+                    radius: height / 2
+                    Text { anchors.centerIn: parent; text: qsTranslate("Main", "Cerrar"); font.pixelSize: parent.height * 0.38; font.bold: true; color: "black" }
+                    MouseArea {
+                        id: areaOkErrorExportar
+                        anchors.fill: parent
+                        onClicked: { root.mostrarPopupExportar = false; root.exportarError = false }
+                    }
+                }
+            }
+
+            // ── Estado: USB detectada, listo para guardar ──────────────────
+            Column {
+                anchors.centerIn: parent
+                spacing: parent.height * 0.05
+                visible: !root.exportarExito && !root.exportarError && root.rutaUSBDetectada !== ""
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTranslate("Main", "USB detectada")
+                    font.pixelSize: parent.parent.height * 0.10
+                    font.bold: true
+                    color: "black"
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.rutaUSBDetectada
+                    font.pixelSize: parent.parent.height * 0.07
+                    color: "#444444"
+                    elide: Text.ElideMiddle
+                    width: parent.parent.width * 0.80
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                Rectangle {
+                    width: appWindow.width * 0.22
+                    height: appWindow.height * 0.09
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: areaGuardarUSB.pressed ? "#388e3c" : "#43a047"
+                    radius: height / 2
+                    Text { anchors.centerIn: parent; text: qsTranslate("Main", "Guardar en USB"); font.pixelSize: parent.height * 0.35; font.bold: true; color: "white" }
+                    MouseArea {
+                        id: areaGuardarUSB
+                        anchors.fill: parent
+                        onClicked: {
+                            let item = appWindow.registro_experimentos.get(root.itemExportarIndex)
+                            let ok = backend.exportarRegistroCSV(root.rutaUSBDetectada, item.experimento, item.proyecto)
+                            if (ok) { root.exportarExito = true }
+                            else    { root.exportarError = true }
+                        }
+                    }
+                }
+            }
+
+            // ── Estado: sin USB conectada ──────────────────────────────────
+            Column {
+                anchors.centerIn: parent
+                spacing: parent.height * 0.06
+                visible: !root.exportarExito && !root.exportarError && root.rutaUSBDetectada === ""
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "⚠"
+                    font.pixelSize: parent.parent.height * 0.18
+                    color: "#e65100"
+                    font.bold: true
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTranslate("Main", "Conecte una USB\ne intente de nuevo")
+                    font.pixelSize: parent.parent.height * 0.09
+                    font.bold: true
+                    color: "black"
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                Rectangle {
+                    width: appWindow.width * 0.18
+                    height: appWindow.height * 0.08
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: areaReintentar.pressed ? "#1565c0" : "#1976d2"
+                    radius: height / 2
+                    Text { anchors.centerIn: parent; text: qsTranslate("Main", "Reintentar"); font.pixelSize: parent.height * 0.38; font.bold: true; color: "white" }
+                    MouseArea {
+                        id: areaReintentar
+                        anchors.fill: parent
+                        onClicked: root.rutaUSBDetectada = backend.detectarUSB()
+                    }
+                }
+                Rectangle {
+                    width: appWindow.width * 0.22
+                    height: appWindow.height * 0.08
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: areaGuardarLocal.pressed ? "#5a6e00" : "#7c9a00"
+                    radius: height / 2
+                    Text { anchors.centerIn: parent; text: qsTranslate("Main", "Guardar localmente"); font.pixelSize: parent.height * 0.35; font.bold: true; color: "white" }
+                    MouseArea {
+                        id: areaGuardarLocal
+                        anchors.fill: parent
+                        onClicked: {
+                            let item = appWindow.registro_experimentos.get(root.itemExportarIndex)
+                            let ok = backend.exportarRegistroCSV("", item.experimento, item.proyecto)
+                            if (ok) { root.exportarExito = true }
+                            else    { root.exportarError = true }
+                        }
+                    }
+                }
             }
         }
     }

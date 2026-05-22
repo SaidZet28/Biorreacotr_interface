@@ -38,14 +38,16 @@ Item {
                 mostrarPopupConfirmarDetener = false;
                 if (chartLoader.item) chartLoader.item.resetear()
                 animacionProgreso.start();
+                backend.iniciarRegistro();
             }
         }
     }
 
-    // ── Gráfica en tiempo real (carga diferida para evitar crash de plugin) ──
-    // DIAGNÓSTICO: Loader desactivado temporalmente para aislar crash
+    // ── Gráfica en tiempo real ────────────────────────────────────────────────
+    // Activa solo en Linux (RPi con OpenGL). En Windows D3D11 + MinGW causa crash
+    // con QtCharts; se muestra un fondo decorativo como placeholder.
     Rectangle {
-        id: chartLoader
+        id: chartBackground
         width: parent.width * 0.45
         height: parent.height * 0.55
         anchors.left: parent.left
@@ -53,9 +55,20 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: parent.height * 0.20
         color: "#6E9C9C"
+        radius: 10
         visible: root.chartaActivada
-        property var item: null
-        function resetear() {}
+    }
+
+    Loader {
+        id: chartLoader
+        width: chartBackground.width
+        height: chartBackground.height
+        anchors.left: chartBackground.left
+        anchors.top: chartBackground.top
+        active: root.chartaActivada && Qt.platform.os === "linux"
+        source: active ? "GraficaChart.qml" : ""
+        property var item: chartLoader.item
+        function resetear() { if (item && item.resetear) item.resetear() }
     }
 
     // ── Pildoras de sensor/setpoint ───────────────────────────────────────
@@ -70,8 +83,9 @@ Item {
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
-            color: "#8DBB5A"
+            color: backend.alertaDivergenciaTemp ? "#FF4444" : "#8DBB5A"
             radius: height / 2
+            Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(backend.sensorTem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
             Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(backend.setpointTem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
@@ -79,8 +93,10 @@ Item {
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
-            color: "#8DBB5A"
+            color: backend.alertaSerial ? "#AAAAAA" : "#8DBB5A"
             radius: height / 2
+            opacity: backend.alertaSerial ? 0.7 : 1.0
+            Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(backend.sensorPH.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
             Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(backend.setpointPH.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
@@ -88,8 +104,10 @@ Item {
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
-            color: "#8DBB5A"
+            color: backend.alertaNivel ? "#FF4444" : (backend.alertaSerial ? "#AAAAAA" : "#8DBB5A")
             radius: height / 2
+            opacity: backend.alertaSerial ? 0.7 : 1.0
+            Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Agua: %1%").arg(backend.sensorNivel.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
             Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Agua: %1%").arg(backend.setpointNivel.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
@@ -97,8 +115,10 @@ Item {
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
-            color: "#8DBB5A"
+            color: backend.alertaSerial ? "#AAAAAA" : "#8DBB5A"
             radius: height / 2
+            opacity: backend.alertaSerial ? 0.7 : 1.0
+            Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Luz: %1%").arg(backend.sensorLuz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
             Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Luz: %1%").arg(backend.setpointLuz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
@@ -106,8 +126,10 @@ Item {
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
-            color: "#8DBB5A"
+            color: backend.alertaSerial ? "#AAAAAA" : "#8DBB5A"
             radius: height / 2
+            opacity: backend.alertaSerial ? 0.7 : 1.0
+            Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. CO2: %1 ppm").arg(backend.sensorCO2.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
     }
@@ -331,10 +353,14 @@ Item {
                     anchors.fill: parent
                     onClicked: {
                         animacionProgreso.stop();
+                        backend.detenerRegistro();
                         let lastIdx = appWindow.registro_experimentos.count - 1;
                         if (lastIdx >= 0) {
                             let e_total = root.progresoSimulado * appWindow.var_deseada_tiempo_total_horas;
                             appWindow.registro_experimentos.setProperty(lastIdx, "tiempo", e_total.toFixed(1) + " / " + appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " hrs");
+                            let lects = backend.totalLecturas();
+                            let kb = Math.ceil(lects * 55 / 1024);
+                            appWindow.registro_experimentos.setProperty(lastIdx, "peso", lects + " lect. (~" + kb + " KB)");
                             appWindow.salvarRegistroExperimentos()
                         }
                         root.mostrarPopupConfirmarDetener = false;
@@ -402,9 +428,13 @@ Item {
                     id: areaOkFinalizado
                     anchors.fill: parent
                     onClicked: {
+                        backend.detenerRegistro();
                         let lastIdx = appWindow.registro_experimentos.count - 1;
                         if (lastIdx >= 0) {
                             appWindow.registro_experimentos.setProperty(lastIdx, "tiempo", appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " / " + appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " hrs");
+                            let lects = backend.totalLecturas();
+                            let kb = Math.ceil(lects * 55 / 1024);
+                            appWindow.registro_experimentos.setProperty(lastIdx, "peso", lects + " lect. (~" + kb + " KB)");
                             appWindow.salvarRegistroExperimentos()
                         }
                         root.progresoSimulado = 0.0;

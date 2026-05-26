@@ -14,12 +14,36 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QStandardPaths>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
 
+// Carpeta raíz donde se almacenan todos los datos de la aplicación.
+// Linux (Raspberry Pi): ~/Documents/Biorreactor
+// Windows:             Documentos/Biorreactor
+static QString basePathStr()
+{
+    QString docs = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    if (docs.isEmpty())
+        docs = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    QString dir = docs + "/Biorreactor";
+    QDir().mkpath(dir);
+    return dir;
+}
+
 static QString iniPath() {
-    return QCoreApplication::applicationDirPath() + "/biorreactor.ini";
+    return basePathStr() + "/biorreactor.ini";
+}
+
+// Reemplaza caracteres inválidos en nombres de archivo/directorio.
+static QString sanitizarNombre(const QString &s)
+{
+    QString r = s.trimmed();
+    for (QChar c : {QChar('/'), QChar('\\'), QChar(':'), QChar('*'),
+                    QChar('?'), QChar('"'), QChar('<'), QChar('>'), QChar('|')})
+        r.replace(c, '_');
+    return r.isEmpty() ? QStringLiteral("sin_nombre") : r;
 }
 
 // Umbral de staleness: si no hay datos en 5 s, la alerta se activa
@@ -72,6 +96,11 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
             this, &GestorBiorreactor::verificarStaleness);
     m_timerStaleness.setInterval(1000);
     m_timerStaleness.start();
+
+    // Timer preparación: se activa solo cuando el operador inicia la preparación
+    connect(&m_timerPreparacion, &QTimer::timeout,
+            this, &GestorBiorreactor::tickPreparacion);
+    m_timerPreparacion.setInterval(1000);
 
 #ifndef SIMULACION_ACTIVA
     // Timer nivel: lee XM125 cada 500 ms
@@ -210,8 +239,26 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
     if (m_procesoActivo == activo) return;
     m_procesoActivo = activo;
 
-    if (!activo) {
-        // Estado seguro al detener: apagar actuadores y reiniciar controladores
+    if (activo) {
+        // Al activar el proceso completo, ambos controladores quedan habilitados
+        if (!m_fuzzyPHHabilitado) {
+            m_fuzzyPHHabilitado = true;
+            emit fuzzyPHHabilitadoChanged();
+        }
+        if (!m_histeresisNivelHabilitado) {
+            m_histeresisNivelHabilitado = true;
+            emit histeresisNivelHabilitadoChanged();
+        }
+    } else {
+        // Detener registro si estaba activo (evita pérdida silenciosa de datos)
+        if (m_timerRegistro.isActive()) detenerRegistro();
+
+        // Estado seguro al detener: apagar actuadores, reiniciar controladores y flags
+        m_fuzzyPHHabilitado         = false;
+        m_histeresisNivelHabilitado = false;
+        emit fuzzyPHHabilitadoChanged();
+        emit histeresisNivelHabilitadoChanged();
+
         m_pidTemp.reiniciar();
         m_histeresisNivel.reiniciar();
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_CALENTADOR,   0.0);
@@ -292,14 +339,14 @@ void GestorBiorreactor::guardarModelo(const QString &nombre, const QVariantList 
     QJsonArray arr;
     for (const QVariant &v : datos)
         arr.append(QJsonObject::fromVariantMap(v.toMap()));
-    QFile f(QCoreApplication::applicationDirPath() + "/" + nombre + ".json");
+    QFile f(basePathStr() + "/" + nombre + ".json");
     if (f.open(QIODevice::WriteOnly | QIODevice::Truncate))
         f.write(QJsonDocument(arr).toJson(QJsonDocument::Compact));
 }
 
 QVariantList GestorBiorreactor::cargarModelo(const QString &nombre)
 {
-    QFile f(QCoreApplication::applicationDirPath() + "/" + nombre + ".json");
+    QFile f(basePathStr() + "/" + nombre + ".json");
     if (!f.open(QIODevice::ReadOnly))
         return {};
     const QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
@@ -320,6 +367,268 @@ bool GestorBiorreactor::modoSimulacion() const
 #else
     return false;
 #endif
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Habilitación individual de controladores (usados internamente por preparación)
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool GestorBiorreactor::fuzzyPHHabilitado()         const { return m_fuzzyPHHabilitado; }
+bool GestorBiorreactor::histeresisNivelHabilitado() const { return m_histeresisNivelHabilitado; }
+
+void GestorBiorreactor::habilitarFuzzyPH(bool v)
+{
+    if (m_fuzzyPHHabilitado == v) return;
+    m_fuzzyPHHabilitado = v;
+    if (!v) {
+        m_salidaBombaEtanol = 0.0;
+        m_salidaBombaAgua   = 0.0;
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
+        emit salidaBombaEtanolChanged();
+        emit salidaBombaAguaChanged();
+    }
+    emit fuzzyPHHabilitadoChanged();
+}
+
+void GestorBiorreactor::habilitarHisteresisNivel(bool v)
+{
+    if (m_histeresisNivelHabilitado == v) return;
+    m_histeresisNivelHabilitado = v;
+    if (!v) {
+        m_salidaBombaNivel = false;
+        m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_NIVEL, false);
+        emit salidaBombaNivelChanged();
+    }
+    emit histeresisNivelHabilitadoChanged();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Preparación del tanque — máquina de estados
+// ─────────────────────────────────────────────────────────────────────────────
+
+int     GestorBiorreactor::estadoPreparacion()     const { return m_estadoPreparacion; }
+double  GestorBiorreactor::progresoPreparacion()   const { return m_progresoPreparacion; }
+bool    GestorBiorreactor::preparacionCompletada() const { return m_preparacionCompletada; }
+bool    GestorBiorreactor::alertaEscalacion()      const { return m_alertaEscalacion; }
+
+QString GestorBiorreactor::textoTareaPreparacion() const
+{
+    switch (m_estadoPreparacion) {
+    case 0:  return QString("Verificando el sistema...");
+    case 1:  return QString("Llenando el tanque...");
+    case 2:  return QString("Estabilizando el sensor de pH...");
+    case 3:  return QString("Acondicionando el medio de cultivo...");
+    case 4:  return QString("Completando el llenado...");
+    case 5:  return QString("Verificando estabilidad final...");
+    case 6:  return QString("Tanque preparado");
+    default: return QString("Iniciando...");
+    }
+}
+
+QString GestorBiorreactor::textoDetallePreparacion() const
+{
+    switch (m_estadoPreparacion) {
+    case 0:  return QString("Comprobando que las válvulas de drenaje estén cerradas y que todos los sensores estén disponibles.");
+    case 1:  return QString("Entrando el medio de cultivo. El sistema de temperatura está activo para precalentar mientras se llena.");
+    case 2:  return QString("El sensor de pH acaba de hacer contacto con el líquido. Se espera a que la lectura se estabilice antes de realizar ajustes de pH.");
+    case 3:  return QString("Dosificando reactivos para alcanzar el pH deseado. El sistema de temperatura trabaja al mismo tiempo. Corregir el pH en poco volumen requiere menos reactivo.");
+    case 4:  return QString("pH y temperatura en sus valores objetivo. Completando el llenado hasta el volumen de trabajo.");
+    case 5:  return QString("Se confirma que las condiciones se mantienen estables antes de introducir el organismo.");
+    case 6:  return QString("pH, temperatura y nivel en sus valores objetivo. El tanque está listo para recibir el organismo.");
+    default: return QString();
+    }
+}
+
+void GestorBiorreactor::setEstadoPreparacion(int estado)
+{
+    m_estadoPreparacion = estado;
+    m_ticksPrep         = 0;
+    m_contadorEstabPH   = 0;
+    m_contadorEstabFino = 0;
+
+    // Configurar controladores según el estado
+    switch (estado) {
+    case 1:
+        if (!m_procesoActivo) { m_procesoActivo = true; emit procesoActivoChanged(); }
+        habilitarFuzzyPH(false);
+        habilitarHisteresisNivel(false);
+        break;
+    case 2:
+        habilitarFuzzyPH(false);
+        habilitarHisteresisNivel(false);
+        break;
+    case 3:
+        habilitarFuzzyPH(true);
+        habilitarHisteresisNivel(false);
+        break;
+    case 4:
+        habilitarFuzzyPH(false);
+        habilitarHisteresisNivel(false);
+        break;
+    case 5:
+        habilitarFuzzyPH(true);
+        habilitarHisteresisNivel(false);
+        break;
+    case 6:
+        habilitarFuzzyPH(true);
+        habilitarHisteresisNivel(true);
+        setPreparacionCompletada(true);
+        break;
+    }
+
+    // Progreso: proporción lineal entre estados (milestones fijos)
+    static const double hitos[] = { 0.0, 0.15, 0.32, 0.48, 0.65, 0.82, 1.0 };
+    setProgresoPreparacion(hitos[qBound(0, estado, 6)]);
+
+    emit estadoPreparacionChanged();
+}
+
+void GestorBiorreactor::setProgresoPreparacion(double v)
+{
+    if (qAbs(m_progresoPreparacion - v) < 1e-9) return;
+    m_progresoPreparacion = v;
+    emit progresoPreparacionChanged();
+}
+
+void GestorBiorreactor::setPreparacionCompletada(bool v)
+{
+    if (m_preparacionCompletada == v) return;
+    m_preparacionCompletada = v;
+    emit preparacionCompletadaChanged();
+}
+
+void GestorBiorreactor::setAlertaEscalacion(bool v)
+{
+    if (m_alertaEscalacion == v) return;
+    m_alertaEscalacion = v;
+    emit alertaEscalacionChanged();
+}
+
+void GestorBiorreactor::iniciarPreparacion()
+{
+    if (m_timerPreparacion.isActive()) return;  // idempotente: no reinicia si ya corre
+
+    m_estadoPreparacion     = 0;
+    m_ticksPrep             = 0;
+    m_contadorEstabPH       = 0;
+    m_contadorEstabFino     = 0;
+    m_preparacionCompletada = false;
+    m_alertaEscalacion      = false;
+    m_progresoPreparacion   = 0.0;
+
+    emit estadoPreparacionChanged();
+    emit progresoPreparacionChanged();
+    emit preparacionCompletadaChanged();
+    emit alertaEscalacionChanged();
+
+    m_timerPreparacion.start();
+}
+
+void GestorBiorreactor::cancelarPreparacion()
+{
+    m_timerPreparacion.stop();
+    setProcesoActivo(false);   // apaga todos los actuadores y reinicia controladores
+    m_estadoPreparacion     = -1;
+    m_preparacionCompletada = false;
+    m_alertaEscalacion      = false;
+    m_progresoPreparacion   = 0.0;
+    emit estadoPreparacionChanged();
+    emit progresoPreparacionChanged();
+    emit preparacionCompletadaChanged();
+    emit alertaEscalacionChanged();
+}
+
+void GestorBiorreactor::continuarDesdeEscalacion()
+{
+    setAlertaEscalacion(false);
+    m_ticksPrep = 0;   // reinicia contador para dar otro intervalo completo
+}
+
+void GestorBiorreactor::tickPreparacion()
+{
+    m_ticksPrep++;
+
+    switch (m_estadoPreparacion) {
+
+    case 0: {
+        // Verificar que los sensores respondan sin alertas activas
+#ifdef SIMULACION_ACTIVA
+        if (m_ticksPrep >= 2) setEstadoPreparacion(1);
+#else
+        if (!m_alertaSerial && !m_alertaNivel) setEstadoPreparacion(1);
+#endif
+        break;
+    }
+
+    case 1: {
+        // Llenado hasta que el nivel alcanza el sensor de pH
+#ifdef SIMULACION_ACTIVA
+        if (m_ticksPrep >= 5) setEstadoPreparacion(2);
+#else
+        static constexpr double NIVEL_CONTACTO_PH = 20.0;
+        if (m_sensorNivel >= NIVEL_CONTACTO_PH) setEstadoPreparacion(2);
+#endif
+        break;
+    }
+
+    case 2: {
+#ifdef SIMULACION_ACTIVA
+        // En simulación: tiempo fijo, sin depender de valores simulados
+        if (m_ticksPrep >= 5) setEstadoPreparacion(3);
+#else
+        if (m_sensorPH >= 2.0 && m_sensorPH <= 12.0)
+            m_contadorEstabPH++;
+        else
+            m_contadorEstabPH = 0;
+        if (m_contadorEstabPH >= 5) setEstadoPreparacion(3);
+#endif
+        break;
+    }
+
+    case 3: {
+#ifdef SIMULACION_ACTIVA
+        if (m_ticksPrep >= 8) setEstadoPreparacion(4);
+#else
+        bool phOk  = qAbs(m_sensorPH  - m_setpointPH)  <= 0.5;
+        bool temOk = qAbs(m_sensorTem - m_setpointTem) <= 1.0;
+        if (phOk && temOk) {
+            setEstadoPreparacion(4);
+        } else if (m_ticksPrep >= 120 && !m_alertaEscalacion) {
+            setAlertaEscalacion(true);
+        }
+#endif
+        break;
+    }
+
+    case 4: {
+#ifdef SIMULACION_ACTIVA
+        if (m_ticksPrep >= 8) setEstadoPreparacion(5);
+#else
+        if (m_sensorNivel >= m_setpointNivel) setEstadoPreparacion(5);
+#endif
+        break;
+    }
+
+    case 5: {
+#ifdef SIMULACION_ACTIVA
+        if (m_ticksPrep >= 10) setEstadoPreparacion(6);
+#else
+        bool phOk  = qAbs(m_sensorPH  - m_setpointPH)  <= 0.5;
+        bool temOk = qAbs(m_sensorTem - m_setpointTem) <= 1.0;
+        if (phOk && temOk)
+            m_contadorEstabFino++;
+        else
+            m_contadorEstabFino = 0;
+        if (m_contadorEstabFino >= 30) setEstadoPreparacion(6);
+#endif
+        break;
+    }
+
+    case 6:
+        // Esperando que el operador confirme la introducción del organismo
+        break;
+    }
 }
 
 void GestorBiorreactor::tickSimulacion()
@@ -444,6 +753,7 @@ void GestorBiorreactor::leerDatosSerial()
 
 void GestorBiorreactor::parsearTrama(const QByteArray &linea)
 {
+    if (linea.size() > 256) return;  // rechazar tramas anormalmente largas
     const QByteArray upper = linea.toUpper();
 
     // Determinar fuente
@@ -535,7 +845,11 @@ void GestorBiorreactor::leerSensorNivel()
     // Tick impar: leer resultado (no bloquea; -1 si aún no listo)
     m_nivelPaso = 0;
     double distMm = m_xm125.leerResultado();
-    if (distMm < 0.0) return;
+    if (distMm < 0.0) {
+        if (++m_fallosNivel >= 5) setAlertaNivel(true);
+        return;
+    }
+    m_fallosNivel = 0;
 
     m_ultimaLecturaI2C = QDateTime::currentDateTime();
     m_timerWatchdogI2C.start();
@@ -554,7 +868,7 @@ void GestorBiorreactor::ejecutarControlLoop()
 {
     if (!m_procesoActivo) return;
 
-    // PID — Temperatura → calentador
+    // PID — Temperatura → calentador (siempre activo cuando procesoActivo)
     double nuevoCalentador = m_pidTemp.calcular(m_setpointTem, m_sensorTem);
     if (!qFuzzyCompare(m_salidaCalentador, nuevoCalentador)) {
         m_salidaCalentador = nuevoCalentador;
@@ -562,25 +876,29 @@ void GestorBiorreactor::ejecutarControlLoop()
         emit salidaCalentadorChanged();
     }
 
-    // Fuzzy — pH → bomba etanol + bomba agua
-    auto [pEtanol, pAgua] = m_fuzzyPH.calcular(m_setpointPH, m_sensorPH);
-    if (!qFuzzyCompare(m_salidaBombaEtanol, pEtanol)) {
-        m_salidaBombaEtanol = pEtanol;
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, pEtanol);
-        emit salidaBombaEtanolChanged();
-    }
-    if (!qFuzzyCompare(m_salidaBombaAgua, pAgua)) {
-        m_salidaBombaAgua = pAgua;
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, pAgua);
-        emit salidaBombaAguaChanged();
+    // Fuzzy — pH → bomba etanol + bomba agua (solo si habilitado)
+    if (m_fuzzyPHHabilitado) {
+        auto [pEtanol, pAgua] = m_fuzzyPH.calcular(m_setpointPH, m_sensorPH);
+        if (!qFuzzyCompare(m_salidaBombaEtanol, pEtanol)) {
+            m_salidaBombaEtanol = pEtanol;
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, pEtanol);
+            emit salidaBombaEtanolChanged();
+        }
+        if (!qFuzzyCompare(m_salidaBombaAgua, pAgua)) {
+            m_salidaBombaAgua = pAgua;
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, pAgua);
+            emit salidaBombaAguaChanged();
+        }
     }
 
-    // Histéresis — Nivel → bomba de nivel
-    bool nuevoNivel = m_histeresisNivel.calcular(m_setpointNivel, m_sensorNivel);
-    if (m_salidaBombaNivel != nuevoNivel) {
-        m_salidaBombaNivel = nuevoNivel;
-        m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_NIVEL, nuevoNivel);
-        emit salidaBombaNivelChanged();
+    // Histéresis — Nivel → bomba de nivel (solo si habilitado)
+    if (m_histeresisNivelHabilitado) {
+        bool nuevoNivel = m_histeresisNivel.calcular(m_setpointNivel, m_sensorNivel);
+        if (m_salidaBombaNivel != nuevoNivel) {
+            m_salidaBombaNivel = nuevoNivel;
+            m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_NIVEL, nuevoNivel);
+            emit salidaBombaNivelChanged();
+        }
     }
 }
 
@@ -588,13 +906,15 @@ void GestorBiorreactor::ejecutarControlLoop()
 // Registro histórico de sensores
 // ─────────────────────────────────────────────────────────────────────────────
 
-void GestorBiorreactor::iniciarRegistro()
+void GestorBiorreactor::iniciarRegistro(const QString &proyecto, const QString &experimento)
 {
+    if (m_timerRegistro.isActive()) return;  // guard doble llamada
+    m_nombreProyectoRegistro = proyecto;
+    m_nombreExpRegistro      = experimento;
     m_lecturas.clear();
     m_tiempoInicioRegistro = QDateTime::currentDateTime();
     connect(&m_timerRegistro, &QTimer::timeout,
             this, &GestorBiorreactor::registrarLectura, Qt::UniqueConnection);
-    // 30 s = 2 muestras/min; suficiente resolución para tendencias en fermentaciones largas
     m_timerRegistro.setInterval(30000);
     m_timerRegistro.start();
     registrarLectura(); // punto t = 0
@@ -604,13 +924,14 @@ void GestorBiorreactor::detenerRegistro()
 {
     if (!m_timerRegistro.isActive()) return;
     m_timerRegistro.stop();
-    // Persiste las lecturas en disco para sobrevivir reinicios
+    QString clave = "lecturas_" + sanitizarNombre(m_nombreProyectoRegistro)
+                  + "_" + sanitizarNombre(m_nombreExpRegistro);
     QVariantList lista;
     lista.reserve(m_lecturas.size());
     for (const QVariantMap &m : m_lecturas)
         lista.append(m);
-    guardarModelo("lecturas_experimento", lista);
-    qDebug() << "[Registro] Guardadas" << m_lecturas.size() << "lecturas";
+    guardarModelo(clave, lista);
+    qDebug() << "[Registro] Guardadas" << m_lecturas.size() << "lecturas en" << clave;
 }
 
 int GestorBiorreactor::totalLecturas() const
@@ -635,9 +956,11 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
                                              const QString &nombreExp,
                                              const QString &nombreProyecto)
 {
-    // Si no hay lecturas en memoria, intentar cargar del disco
+    // Si no hay lecturas en memoria, cargar del archivo específico del experimento
     if (m_lecturas.isEmpty()) {
-        const QVariantList cargado = cargarModelo("lecturas_experimento");
+        QString clave = "lecturas_" + sanitizarNombre(nombreProyecto)
+                      + "_" + sanitizarNombre(nombreExp);
+        const QVariantList cargado = cargarModelo(clave);
         for (const QVariant &v : cargado)
             m_lecturas.append(v.toMap());
     }
@@ -647,8 +970,14 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
     }
 
     QString carpeta = carpetaDestino.isEmpty()
-                    ? QCoreApplication::applicationDirPath()
+                    ? basePathStr()
                     : carpetaDestino;
+
+    carpeta += "/" + sanitizarNombre(nombreProyecto) + "/" + sanitizarNombre(nombreExp);
+    if (!QDir().mkpath(carpeta)) {
+        qWarning() << "[CSV] No se pudo crear carpeta" << carpeta;
+        return false;
+    }
 
     QString nombreArchivo = "sensores_" +
         QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + ".csv";
@@ -682,6 +1011,29 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
     qDebug() << "[CSV] Registro exportado a" << f.fileName()
              << "(" << m_lecturas.size() << "lecturas)";
     return true;
+}
+
+QString GestorBiorreactor::rutaBaseData() const
+{
+    return basePathStr();
+}
+
+void GestorBiorreactor::eliminarCarpetaExperimento(const QString &nombreProyecto,
+                                                    const QString &nombreExp)
+{
+    QString carpetaExp = basePathStr()
+                       + "/" + sanitizarNombre(nombreProyecto)
+                       + "/" + sanitizarNombre(nombreExp);
+    QDir dirExp(carpetaExp);
+    if (dirExp.exists()) {
+        dirExp.removeRecursively();
+        qDebug() << "[Data] Eliminada carpeta experimento:" << carpetaExp;
+    }
+    // Si el proyecto quedó vacío, eliminarlo también
+    QString carpetaProyecto = basePathStr() + "/" + sanitizarNombre(nombreProyecto);
+    QDir dirProyecto(carpetaProyecto);
+    if (dirProyecto.exists() && dirProyecto.isEmpty())
+        dirProyecto.removeRecursively();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -731,9 +1083,7 @@ QString GestorBiorreactor::detectarUSB()
 
 bool GestorBiorreactor::exportarCSV(const QVariantList &datos, const QString &carpetaDestino)
 {
-    QString carpeta = carpetaDestino;
-    if (carpeta.isEmpty())
-        carpeta = QCoreApplication::applicationDirPath();
+    QString carpeta = carpetaDestino.isEmpty() ? basePathStr() : carpetaDestino;
 
     QString nombreArchivo = "reporte_" +
         QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + ".csv";

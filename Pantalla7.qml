@@ -470,8 +470,7 @@ Item {
             anchors.fill: parent
             onClicked: {
                 if (root.phCalibrado && root.doCalibrado && root.nivelCalibrado) {
-                    appWindow.procesoListoParaIniciar = true
-                    appWindow.estadoActual = "pantalla_procesos"
+                    appWindow.estadoActual = "pantalla_preparacion"
                 } else {
                     root.mostrarAdvertencia = true
                 }
@@ -512,7 +511,7 @@ Item {
                 anchors.left: parent.left; anchors.leftMargin: parent.width * 0.10
                 color: maContinuar.pressed ? "#6b42b5" : "#8b5cf6"
                 Text { anchors.centerIn: parent; text: qsTranslate("Main", "Continuar"); font.pixelSize: parent.height * 0.38; font.bold: true; color: "black" }
-                MouseArea { id: maContinuar; anchors.fill: parent; onClicked: { root.mostrarAdvertencia = false; appWindow.procesoListoParaIniciar = true; appWindow.estadoActual = "pantalla_procesos" } }
+                MouseArea { id: maContinuar; anchors.fill: parent; onClicked: { root.mostrarAdvertencia = false; appWindow.estadoActual = "pantalla_preparacion" } }
             }
 
             Rectangle {

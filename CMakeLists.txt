@@ -14,7 +14,7 @@ if(SIMULACION)
 endif()
 
 # 1. Buscamos los paquetes requeridos
-find_package(Qt6 REQUIRED COMPONENTS Quick Charts LinguistTools SerialPort)
+find_package(Qt6 REQUIRED COMPONENTS Quick Charts LinguistTools SerialPort Multimedia)
 
 if(MINGW)
     add_compile_options("-Wa,-mbig-obj")
@@ -46,6 +46,7 @@ qt_add_qml_module(appPrototipo
         PantallaNuevoProyecto.qml
         Pantalla6.qml
         Pantalla7.qml
+        PantallaPreparacion.qml
         PantallaProcesos.qml
         GraficaChart.qml
         PantallaProyectosGuardados.qml
@@ -88,6 +89,7 @@ qt_add_qml_module(appPrototipo
                 driverpca9685.h driverpca9685.cpp
                 driverxm125.h driverxm125.cpp
                 raspberrypi_config.h
+                gestoraudio.h gestoraudio.cpp
 )
 
 # 3. AHORA SÍ, le agregamos las traducciones al ejecutable
@@ -111,7 +113,7 @@ set_target_properties(appPrototipo PROPERTIES
 )
 
 target_link_libraries(appPrototipo
-    PRIVATE Qt6::Quick Qt6::Charts Qt6::Core Qt6::SerialPort
+    PRIVATE Qt6::Quick Qt6::Charts Qt6::Core Qt6::SerialPort Qt6::Multimedia
 )
 
 # En Raspberry Pi: enlazar pigpio (GPIO) y pthread

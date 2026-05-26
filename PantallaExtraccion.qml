@@ -16,12 +16,16 @@ Item {
 
     onVisibleChanged: {
         if (visible) {
-            nivel1Completado = false;
+            nivel1Completado     = false;
             mostrarConfirmacion1 = false;
-            mostrarProceso1 = false;
+            mostrarProceso1      = false;
             mostrarConfirmacion2 = false;
-            mostrarProceso2 = false;
+            mostrarProceso2      = false;
             mostrarPopupFinalizado = false;
+        } else {
+            // Detener timers de vaciado si el usuario navega fuera a mitad del proceso
+            mostrarProceso1 = false;
+            mostrarProceso2 = false;
         }
     }
 

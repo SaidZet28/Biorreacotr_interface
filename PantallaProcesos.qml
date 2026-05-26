@@ -38,7 +38,7 @@ Item {
                 mostrarPopupConfirmarDetener = false;
                 chartLoader.resetear()
                 animacionProgreso.start();
-                backend.iniciarRegistro();
+                backend.iniciarRegistro(appWindow.var_nombre_proyecto, appWindow.var_nombre_experimento);
             }
         }
     }

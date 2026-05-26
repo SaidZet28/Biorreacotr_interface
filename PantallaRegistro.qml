@@ -15,6 +15,7 @@ Item {
     property string rutaUSBDetectada: ""
     property bool exportarExito: false
     property bool exportarError: false
+    property bool exportarFueLocal: false
 
     Rectangle {
         id: cabeceraRegistro
@@ -57,10 +58,22 @@ Item {
         }
     }
 
+    Text {
+        id: textoRutaBase
+        anchors.top: cabeceraRegistro.bottom
+        anchors.topMargin: appWindow.height * 0.008
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: qsTranslate("Main", "Carpeta de datos: ") + backend.rutaBaseData()
+        font.pixelSize: appWindow.height * 0.022
+        color: "#555555"
+        elide: Text.ElideMiddle
+        width: parent.width * 0.95
+    }
+
     ListView {
         id: listaRegistro
         width: parent.width * 0.95
-        anchors.top: cabeceraRegistro.bottom
+        anchors.top: textoRutaBase.bottom
         anchors.topMargin: appWindow.height * 0.02
         anchors.bottom: filaControlesInferiores.top
         anchors.bottomMargin: appWindow.height * 0.02
@@ -267,7 +280,9 @@ Item {
                     anchors.fill: parent
                     onClicked: {
                         for (let i = appWindow.registro_experimentos.count - 1; i >= 0; i--) {
-                            if (appWindow.registro_experimentos.get(i).seleccionado) {
+                            let item = appWindow.registro_experimentos.get(i);
+                            if (item.seleccionado) {
+                                backend.eliminarCarpetaExperimento(item.proyecto, item.experimento);
                                 appWindow.registro_experimentos.remove(i);
                             }
                         }
@@ -343,7 +358,9 @@ Item {
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: qsTranslate("Main", "Archivo guardado\nen la USB")
+                    text: root.exportarFueLocal
+                          ? qsTranslate("Main", "Archivo guardado\nlocalmente")
+                          : qsTranslate("Main", "Archivo guardado\nen la USB")
                     font.pixelSize: parent.parent.height * 0.09
                     font.bold: true
                     color: "black"
@@ -359,7 +376,7 @@ Item {
                     MouseArea {
                         id: areaOkExitoExportar
                         anchors.fill: parent
-                        onClicked: { root.mostrarPopupExportar = false; root.exportarExito = false }
+                        onClicked: { root.mostrarPopupExportar = false; root.exportarExito = false; root.exportarFueLocal = false }
                     }
                 }
             }
@@ -434,6 +451,7 @@ Item {
                         anchors.fill: parent
                         onClicked: {
                             let item = appWindow.registro_experimentos.get(root.itemExportarIndex)
+                            root.exportarFueLocal = false
                             let ok = backend.exportarRegistroCSV(root.rutaUSBDetectada, item.experimento, item.proyecto)
                             if (ok) { root.exportarExito = true }
                             else    { root.exportarError = true }
@@ -488,6 +506,7 @@ Item {
                         anchors.fill: parent
                         onClicked: {
                             let item = appWindow.registro_experimentos.get(root.itemExportarIndex)
+                            root.exportarFueLocal = true
                             let ok = backend.exportarRegistroCSV("", item.experimento, item.proyecto)
                             if (ok) { root.exportarExito = true }
                             else    { root.exportarError = true }

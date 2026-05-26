@@ -88,22 +88,25 @@ ApplicationWindow {
     // ── Persistencia JSON ─────────────────────────────────────────────────
     function salvarDatosGuardados() {
         let arr = []
-        for (let i = 0; i < datos_guardados.count; i++) {
-            let it = datos_guardados.get(i)
-            arr.push({ "nombre": it.nombre, "temp": it.temp, "ph": it.ph,
-                        "agua": it.agua, "luz": it.luz, "tiempo": it.tiempo })
-        }
+        for (let i = 0; i < datos_guardados.count; i++)
+            arr.push({ "nombre":  datos_guardados.get(i).nombre,
+                        "temp":   datos_guardados.get(i).temp,
+                        "ph":     datos_guardados.get(i).ph,
+                        "agua":   datos_guardados.get(i).agua,
+                        "luz":    datos_guardados.get(i).luz,
+                        "tiempo": datos_guardados.get(i).tiempo })
         backend.guardarModelo("datos_guardados", arr)
     }
 
     function salvarRegistroExperimentos() {
         let arr = []
-        for (let i = 0; i < registro_experimentos.count; i++) {
-            let it = registro_experimentos.get(i)
-            arr.push({ "proyecto": it.proyecto, "experimento": it.experimento,
-                        "fecha": it.fecha, "tiempo": it.tiempo,
-                        "peso": it.peso, "seleccionado": it.seleccionado })
-        }
+        for (let i = 0; i < registro_experimentos.count; i++)
+            arr.push({ "proyecto":    registro_experimentos.get(i).proyecto,
+                        "experimento": registro_experimentos.get(i).experimento,
+                        "fecha":       registro_experimentos.get(i).fecha,
+                        "tiempo":      registro_experimentos.get(i).tiempo,
+                        "peso":        registro_experimentos.get(i).peso,
+                        "seleccionado": false })
         backend.guardarModelo("registro_experimentos", arr)
     }
 
@@ -151,6 +154,7 @@ ApplicationWindow {
     PantallaNuevoProyecto { id: pantallaNuevoProyecto;  anchors.fill: parent; appWindow: mainWindow }
     Pantalla6             { id: pantalla6;              anchors.fill: parent; appWindow: mainWindow }
     Pantalla7             { id: pantalla7;              anchors.fill: parent; appWindow: mainWindow }
+    PantallaPreparacion   { id: pantallaPreparacion;    anchors.fill: parent; appWindow: mainWindow }
     PantallaProcesos      { id: pantallaProcesos;       anchors.fill: parent; appWindow: mainWindow }
     PantallaProyectosGuardados { id: pantallaProyectosGuardados; anchors.fill: parent; appWindow: mainWindow }
     PantallaConfigGraficas { id: pantallaConfigGraficas; anchors.fill: parent; appWindow: mainWindow }

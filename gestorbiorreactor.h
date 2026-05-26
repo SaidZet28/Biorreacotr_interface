@@ -51,6 +51,18 @@ class GestorBiorreactor : public QObject
     // ── Simulación ───────────────────────────────────────────────────────────
     Q_PROPERTY(bool modoSimulacion READ modoSimulacion CONSTANT)
 
+    // ── Habilitación individual de controladores ──────────────────────────────
+    Q_PROPERTY(bool fuzzyPHHabilitado         READ fuzzyPHHabilitado         NOTIFY fuzzyPHHabilitadoChanged         FINAL)
+    Q_PROPERTY(bool histeresisNivelHabilitado READ histeresisNivelHabilitado NOTIFY histeresisNivelHabilitadoChanged FINAL)
+
+    // ── Preparación del tanque ────────────────────────────────────────────────
+    Q_PROPERTY(int     estadoPreparacion       READ estadoPreparacion       NOTIFY estadoPreparacionChanged     FINAL)
+    Q_PROPERTY(double  progresoPreparacion     READ progresoPreparacion     NOTIFY progresoPreparacionChanged   FINAL)
+    Q_PROPERTY(bool    preparacionCompletada   READ preparacionCompletada   NOTIFY preparacionCompletadaChanged FINAL)
+    Q_PROPERTY(bool    alertaEscalacion        READ alertaEscalacion        NOTIFY alertaEscalacionChanged      FINAL)
+    Q_PROPERTY(QString textoTareaPreparacion   READ textoTareaPreparacion   NOTIFY estadoPreparacionChanged     FINAL)
+    Q_PROPERTY(QString textoDetallePreparacion READ textoDetallePreparacion NOTIFY estadoPreparacionChanged     FINAL)
+
 public:
     explicit GestorBiorreactor(QObject *parent = nullptr);
     ~GestorBiorreactor();
@@ -91,6 +103,22 @@ public:
 
     bool modoSimulacion() const;
 
+    bool fuzzyPHHabilitado()         const;
+    bool histeresisNivelHabilitado() const;
+
+    int     estadoPreparacion()       const;
+    double  progresoPreparacion()     const;
+    bool    preparacionCompletada()   const;
+    bool    alertaEscalacion()        const;
+    QString textoTareaPreparacion()   const;
+    QString textoDetallePreparacion() const;
+
+    Q_INVOKABLE void iniciarPreparacion();
+    Q_INVOKABLE void cancelarPreparacion();
+    Q_INVOKABLE void continuarDesdeEscalacion();
+    Q_INVOKABLE void habilitarFuzzyPH(bool v);
+    Q_INVOKABLE void habilitarHisteresisNivel(bool v);
+
     Q_INVOKABLE void cargarConfiguracion();
     Q_INVOKABLE void guardarConfiguracion();
     Q_INVOKABLE void resetearSetpoints();
@@ -103,8 +131,12 @@ public:
     Q_INVOKABLE QString detectarUSB();
     Q_INVOKABLE bool    exportarCSV(const QVariantList &datos, const QString &carpetaDestino);
 
+    Q_INVOKABLE QString rutaBaseData() const;
+    Q_INVOKABLE void    eliminarCarpetaExperimento(const QString &nombreProyecto,
+                                                    const QString &nombreExp);
+
     // ── Registro histórico de sensores ───────────────────────────────────────
-    Q_INVOKABLE void iniciarRegistro();
+    Q_INVOKABLE void iniciarRegistro(const QString &proyecto, const QString &experimento);
     Q_INVOKABLE void detenerRegistro();
     Q_INVOKABLE int  totalLecturas() const;
     Q_INVOKABLE bool exportarRegistroCSV(const QString &carpetaDestino,
@@ -141,6 +173,14 @@ signals:
     void puertoConectadoChanged();
     void nombrePuertoChanged();
 
+    void fuzzyPHHabilitadoChanged();
+    void histeresisNivelHabilitadoChanged();
+
+    void estadoPreparacionChanged();
+    void progresoPreparacionChanged();
+    void preparacionCompletadaChanged();
+    void alertaEscalacionChanged();
+
 private slots:
     void leerDatosSerial();
     void consultarSensoresRS485();
@@ -151,6 +191,7 @@ private slots:
     void leerSensorNivel();
     void tickSimulacion();
     void registrarLectura();
+    void tickPreparacion();
 
 private:
     void actualizarTemperaturaFusionada();
@@ -166,6 +207,11 @@ private:
     void setAlertaSerial(bool v);
     void setAlertaNivel (bool v);
     void resetWatchdogSerial();
+
+    void setEstadoPreparacion(int estado);
+    void setProgresoPreparacion(double v);
+    void setPreparacionCompletada(bool v);
+    void setAlertaEscalacion(bool v);
 
     // ── Valores de sensores ───────────────────────────────────────────────────
     double m_sensorTem   = 24.5;
@@ -194,7 +240,18 @@ private:
     bool m_alertaNivel           = false;
 
     // ── Proceso y salidas ─────────────────────────────────────────────────────
-    bool   m_procesoActivo     = false;
+    bool   m_procesoActivo              = false;
+    bool   m_fuzzyPHHabilitado          = false;
+    bool   m_histeresisNivelHabilitado  = false;
+
+    // ── Preparación del tanque ────────────────────────────────────────────────
+    int    m_estadoPreparacion     = -1;
+    double m_progresoPreparacion   = 0.0;
+    bool   m_preparacionCompletada = false;
+    bool   m_alertaEscalacion      = false;
+    int    m_ticksPrep             = 0;
+    int    m_contadorEstabPH       = 0;
+    int    m_contadorEstabFino     = 0;
     double m_salidaCalentador  = 0.0;
     double m_salidaBombaEtanol = 0.0;
     double m_salidaBombaAgua   = 0.0;
@@ -223,13 +280,17 @@ private:
     QTimer m_timerNivel;          // 500 ms  — lee XM125
     QTimer m_timerSimulacion;     // 1000 ms — genera datos sintéticos (solo SIMULACION_ACTIVA)
     QTimer m_timerRegistro;       // muestreo periódico de sensores durante el proceso
+    QTimer m_timerPreparacion;    // 1000 ms — máquina de estados de preparación del tanque
 
     QDateTime m_ultimaLecturaRS485;
     QDateTime m_ultimaLecturaI2C;
     QDateTime m_tiempoInicioRegistro;
 
     double m_tickSim  = 0.0;
-    int    m_nivelPaso = 0;   // 0 = iniciar medición XM125, 1 = leer resultado
+    int    m_nivelPaso  = 0;   // 0 = iniciar medición XM125, 1 = leer resultado
+    int    m_fallosNivel = 0;
 
+    QString m_nombreProyectoRegistro;
+    QString m_nombreExpRegistro;
     QVector<QVariantMap> m_lecturas;
 };

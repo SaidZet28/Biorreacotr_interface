@@ -4,19 +4,37 @@
 #include <QQuickWindow>
 #include "translationmanager.h"
 #include "gestorbiorreactor.h"
+#include "gestoraudio.h"
 
 int main(int argc, char *argv[])
 {
-    // En Linux (Raspberry Pi) forzamos OpenGL para que QtCharts funcione correctamente.
-    // En Windows el backend D3D11 por defecto causa crash con MinGW + QtCharts,
-    // por eso la gráfica queda desactivada en Windows (condición en PantallaProcesos.qml).
 #ifdef Q_OS_LINUX
     QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
 #endif
 
     QGuiApplication app(argc, argv);
 
-    GestorBiorreactor backend;  // outer scope → destroyed AFTER engine
+    GestorBiorreactor backend;
+    GestorAudio       audio;
+
+    // ── Conexiones de audio ───────────────────────────────────────────────────
+    // Alarmas críticas
+    QObject::connect(&backend, &GestorBiorreactor::alertaDivergenciaTempChanged, &audio,
+        [&]{ if (backend.alertaDivergenciaTemp()) audio.reproducirAlerta(); });
+    QObject::connect(&backend, &GestorBiorreactor::alertaNivelChanged, &audio,
+        [&]{ if (backend.alertaNivel()) audio.reproducirAlerta(); });
+    QObject::connect(&backend, &GestorBiorreactor::alertaSerialChanged, &audio,
+        [&]{ if (backend.alertaSerial()) audio.reproducirAdvertencia(); });
+
+    // Preparación del tanque
+    QObject::connect(&backend, &GestorBiorreactor::alertaEscalacionChanged, &audio,
+        [&]{ if (backend.alertaEscalacion()) audio.reproducirAdvertencia(); });
+    QObject::connect(&backend, &GestorBiorreactor::preparacionCompletadaChanged, &audio,
+        [&]{ if (backend.preparacionCompletada()) audio.reproducirExito(); });
+
+    // Inicio y fin de proceso (procesoActivo true→false = proceso detenido; false→true = iniciado)
+    QObject::connect(&backend, &GestorBiorreactor::procesoActivoChanged, &audio,
+        [&]{ if (backend.procesoActivo()) audio.reproducirInicio(); });
 
     {
         QQmlApplicationEngine engine;
@@ -34,6 +52,5 @@ int main(int argc, char *argv[])
         engine.loadFromModule("Prototipo", "Main");
 
         return QCoreApplication::exec();
-        // engine + traductorManager destroyed here (scope unwinds before return)
     }
 }

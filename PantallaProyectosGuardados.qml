@@ -210,7 +210,7 @@ Item {
                 "experimento":  appWindow.var_nombre_experimento,
                 "fecha":        cadenaFecha,
                 "tiempo":       "0.0 / " + appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " hrs",
-                "peso":         (Math.random() * 5 + 0.5).toFixed(1) + " MB",
+                "peso":         "0 lect.",
                 "seleccionado": false
             });
             appWindow.estadoActual = "pantalla_7"

@@ -137,6 +137,19 @@ ApplicationWindow {
         function onCountChanged() { if (!_cargandoModelos) salvarRegistroExperimentos() }
     }
 
+    // Respaldo periódico: persiste ediciones de ítem que no cambian el count
+    Timer {
+        interval: 30000
+        repeat: true
+        running: true
+        onTriggered: {
+            if (!_cargandoModelos) {
+                salvarDatosGuardados()
+                salvarRegistroExperimentos()
+            }
+        }
+    }
+
     // ==========================================
     // 4. COMPONENTES REUTILIZABLES (archivos externos)
     // ==========================================

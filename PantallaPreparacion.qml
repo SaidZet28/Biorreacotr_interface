@@ -136,6 +136,51 @@ Item {
             }
         }
 
+        // Tarjeta plan de llenado — solo visible en estado 0 (Verificación)
+        Rectangle {
+            visible: backend.estadoPreparacion === 0
+            width: parent.width
+            color: "#DFF0F8"
+            radius: 10
+            implicitHeight: colPlan.implicitHeight + appWindow.height * 0.028
+
+            Column {
+                id: colPlan
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.topMargin: appWindow.height * 0.014
+                anchors.leftMargin: appWindow.height * 0.016
+                anchors.rightMargin: appWindow.height * 0.016
+                spacing: appWindow.height * 0.010
+
+                Text {
+                    text: qsTranslate("Main", "Plan de llenado calculado")
+                    font.pixelSize: appWindow.height * 0.025
+                    font.bold: true
+                    color: "#1a5070"
+                }
+
+                Row {
+                    spacing: appWindow.width * 0.05
+
+                    Text {
+                        text: qsTranslate("Main", "Sustancia B:  %1 mL")
+                                  .arg(backend.mlSustanciaB.toFixed(1))
+                        font.pixelSize: appWindow.height * 0.025
+                        color: "#333333"
+                    }
+
+                    Text {
+                        text: qsTranslate("Main", "Agua:  %1 L")
+                                  .arg(backend.litrosAgua.toFixed(2))
+                        font.pixelSize: appWindow.height * 0.025
+                        color: "#333333"
+                    }
+                }
+            }
+        }
+
         // Tarjeta con tarea actual y descripción
         Rectangle {
             width: parent.width

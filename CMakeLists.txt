@@ -92,7 +92,18 @@ qt_add_qml_module(appPrototipo
                 gestoraudio.h gestoraudio.cpp
 )
 
-# 3. AHORA SÍ, le agregamos las traducciones al ejecutable
+# 3. Recursos de audio (WAV embebidos en el binario bajo el prefijo /audio)
+qt_add_resources(appPrototipo "audioRes"
+    PREFIX "/audio"
+    BASE "audio"
+    FILES
+        audio/alerta.wav
+        audio/advertencia.wav
+        audio/exito.wav
+        audio/inicio.wav
+)
+
+# 4. AHORA SÍ, le agregamos las traducciones al ejecutable
 qt_add_translations(appPrototipo
     TS_FILES
         appPrototipo_en.ts

@@ -63,6 +63,10 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(QString textoTareaPreparacion   READ textoTareaPreparacion   NOTIFY estadoPreparacionChanged     FINAL)
     Q_PROPERTY(QString textoDetallePreparacion READ textoDetallePreparacion NOTIFY estadoPreparacionChanged     FINAL)
 
+    // ── Llenado óptimo ────────────────────────────────────────────────────────
+    Q_PROPERTY(double litrosAgua   READ litrosAgua   NOTIFY mezclaCalculadaChanged FINAL)
+    Q_PROPERTY(double mlSustanciaB READ mlSustanciaB NOTIFY mezclaCalculadaChanged FINAL)
+
 public:
     explicit GestorBiorreactor(QObject *parent = nullptr);
     ~GestorBiorreactor();
@@ -112,6 +116,9 @@ public:
     bool    alertaEscalacion()        const;
     QString textoTareaPreparacion()   const;
     QString textoDetallePreparacion() const;
+
+    double litrosAgua()   const;
+    double mlSustanciaB() const;
 
     Q_INVOKABLE void iniciarPreparacion();
     Q_INVOKABLE void cancelarPreparacion();
@@ -180,6 +187,7 @@ signals:
     void progresoPreparacionChanged();
     void preparacionCompletadaChanged();
     void alertaEscalacionChanged();
+    void mezclaCalculadaChanged();
 
 private slots:
     void leerDatosSerial();
@@ -212,6 +220,7 @@ private:
     void setProgresoPreparacion(double v);
     void setPreparacionCompletada(bool v);
     void setAlertaEscalacion(bool v);
+    void calcularMezclaOptima();
 
     // ── Valores de sensores ───────────────────────────────────────────────────
     double m_sensorTem   = 24.5;
@@ -252,6 +261,11 @@ private:
     int    m_ticksPrep             = 0;
     int    m_contadorEstabPH       = 0;
     int    m_contadorEstabFino     = 0;
+
+    // Llenado óptimo
+    double m_litrosAgua        = 0.0;
+    double m_mlSustanciaB      = 0.0;
+    int    m_ticksDosificacionB = 0;
     double m_salidaCalentador  = 0.0;
     double m_salidaBombaEtanol = 0.0;
     double m_salidaBombaAgua   = 0.0;

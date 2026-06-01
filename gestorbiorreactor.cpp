@@ -7,6 +7,7 @@
 #include <QtMath>
 #include <QRandomGenerator>
 #include <algorithm>
+#include <cmath>
 #include <QFile>
 #include <QTextStream>
 #include <QDir>
@@ -128,14 +129,15 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
 
 GestorBiorreactor::~GestorBiorreactor()
 {
+#ifndef SIMULACION_ACTIVA
     if (m_procesoActivo) {
-        // Estado seguro: apagar todos los actuadores
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_CALENTADOR,   0.0);
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
         m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_NIVEL,  false);
     }
     if (m_puerto.isOpen()) m_puerto.close();
+#endif
     guardarConfiguracion();
 }
 
@@ -411,12 +413,14 @@ int     GestorBiorreactor::estadoPreparacion()     const { return m_estadoPrepar
 double  GestorBiorreactor::progresoPreparacion()   const { return m_progresoPreparacion; }
 bool    GestorBiorreactor::preparacionCompletada() const { return m_preparacionCompletada; }
 bool    GestorBiorreactor::alertaEscalacion()      const { return m_alertaEscalacion; }
+double  GestorBiorreactor::litrosAgua()            const { return m_litrosAgua; }
+double  GestorBiorreactor::mlSustanciaB()          const { return m_mlSustanciaB; }
 
 QString GestorBiorreactor::textoTareaPreparacion() const
 {
     switch (m_estadoPreparacion) {
     case 0:  return QString("Verificando el sistema...");
-    case 1:  return QString("Llenando el tanque...");
+    case 1:  return QString("Llenando el tanque con la mezcla calculada...");
     case 2:  return QString("Estabilizando el sensor de pH...");
     case 3:  return QString("Acondicionando el medio de cultivo...");
     case 4:  return QString("Completando el llenado...");
@@ -430,7 +434,7 @@ QString GestorBiorreactor::textoDetallePreparacion() const
 {
     switch (m_estadoPreparacion) {
     case 0:  return QString("Comprobando que las válvulas de drenaje estén cerradas y que todos los sensores estén disponibles.");
-    case 1:  return QString("Entrando el medio de cultivo. El sistema de temperatura está activo para precalentar mientras se llena.");
+    case 1:  return QString("Se añade primero la sustancia B para ajustar el pH base, luego el agua completa el volumen. La temperatura se precalienta al mismo tiempo.");
     case 2:  return QString("El sensor de pH acaba de hacer contacto con el líquido. Se espera a que la lectura se estabilice antes de realizar ajustes de pH.");
     case 3:  return QString("Dosificando reactivos para alcanzar el pH deseado. El sistema de temperatura trabaja al mismo tiempo. Corregir el pH en poco volumen requiere menos reactivo.");
     case 4:  return QString("pH y temperatura en sus valores objetivo. Completando el llenado hasta el volumen de trabajo.");
@@ -505,9 +509,43 @@ void GestorBiorreactor::setAlertaEscalacion(bool v)
     emit alertaEscalacionChanged();
 }
 
+void GestorBiorreactor::calcularMezclaOptima()
+{
+    const double vTotalL = VOLUMEN_TANQUE_L * (m_setpointNivel / 100.0);
+    if (vTotalL < 1e-6) {
+        m_mlSustanciaB       = 0.0;
+        m_litrosAgua         = 0.0;
+        m_ticksDosificacionB = 0;
+        emit mezclaCalculadaChanged();
+        return;
+    }
+
+    if (m_setpointPH >= PH_SUSTANCIA_B)
+        qWarning() << "[Mezcla] setpointPH" << m_setpointPH
+                   << ">= PH_SUSTANCIA_B" << PH_SUSTANCIA_B
+                   << "— pH objetivo inalcanzable con la sustancia configurada; se usará 100% sustancia B";
+
+    // Concentraciones molares de OH⁻ (solución diluida)
+    const double ohAgua = std::pow(10.0, PH_AGUA_DEFAULT - 14.0);
+    const double ohB    = std::pow(10.0, PH_SUSTANCIA_B  - 14.0);
+    const double ohObj  = std::pow(10.0, m_setpointPH    - 14.0);
+
+    double fracB = 0.0;
+    if (std::abs(ohB - ohAgua) > 1e-20)
+        fracB = qBound(0.0, (ohObj - ohAgua) / (ohB - ohAgua), 1.0);
+
+    m_mlSustanciaB       = vTotalL * fracB * 1000.0;
+    m_litrosAgua         = vTotalL - (m_mlSustanciaB / 1000.0);
+    m_ticksDosificacionB = static_cast<int>(std::ceil(m_mlSustanciaB / CAUDAL_BOMBA_B_ML_S));
+
+    emit mezclaCalculadaChanged();
+}
+
 void GestorBiorreactor::iniciarPreparacion()
 {
     if (m_timerPreparacion.isActive()) return;  // idempotente: no reinicia si ya corre
+
+    calcularMezclaOptima();
 
     m_estadoPreparacion     = 0;
     m_ticksPrep             = 0;
@@ -566,8 +604,40 @@ void GestorBiorreactor::tickPreparacion()
 #ifdef SIMULACION_ACTIVA
         if (m_ticksPrep >= 5) setEstadoPreparacion(2);
 #else
-        static constexpr double NIVEL_CONTACTO_PH = 20.0;
-        if (m_sensorNivel >= NIVEL_CONTACTO_PH) setEstadoPreparacion(2);
+        // Sub-fase A: dosificar sustancia B por tiempo calculado (primero)
+        // Sub-fase B: llenar con agua hasta contacto del sensor de pH
+        if (m_ticksDosificacionB > 0 && m_ticksPrep <= m_ticksDosificacionB) {
+            if (!qFuzzyCompare(m_salidaBombaEtanol, 100.0)) {
+                m_salidaBombaEtanol = 100.0;
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 100.0);
+                emit salidaBombaEtanolChanged();
+            }
+            if (!qFuzzyCompare(m_salidaBombaAgua, 0.0)) {
+                m_salidaBombaAgua = 0.0;
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 0.0);
+                emit salidaBombaAguaChanged();
+            }
+        } else {
+            if (!qFuzzyCompare(m_salidaBombaEtanol, 0.0)) {
+                m_salidaBombaEtanol = 0.0;
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
+                emit salidaBombaEtanolChanged();
+            }
+            if (!qFuzzyCompare(m_salidaBombaAgua, 100.0)) {
+                m_salidaBombaAgua = 100.0;
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 100.0);
+                emit salidaBombaAguaChanged();
+            }
+        }
+        if (m_sensorNivel >= NIVEL_CONTACTO_PH_PCT) {
+            m_salidaBombaEtanol = 0.0;
+            m_salidaBombaAgua   = 0.0;
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
+            emit salidaBombaEtanolChanged();
+            emit salidaBombaAguaChanged();
+            setEstadoPreparacion(2);
+        }
 #endif
         break;
     }
@@ -602,10 +672,21 @@ void GestorBiorreactor::tickPreparacion()
     }
 
     case 4: {
+        // Llenado final con agua hasta setpointNivel (sustancia B ya fue dosificada en estado 1)
 #ifdef SIMULACION_ACTIVA
         if (m_ticksPrep >= 8) setEstadoPreparacion(5);
 #else
-        if (m_sensorNivel >= m_setpointNivel) setEstadoPreparacion(5);
+        if (!qFuzzyCompare(m_salidaBombaAgua, 100.0)) {
+            m_salidaBombaAgua = 100.0;
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 100.0);
+            emit salidaBombaAguaChanged();
+        }
+        if (m_sensorNivel >= m_setpointNivel) {
+            m_salidaBombaAgua = 0.0;
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 0.0);
+            emit salidaBombaAguaChanged();
+            setEstadoPreparacion(5);
+        }
 #endif
         break;
     }
@@ -782,15 +863,25 @@ void GestorBiorreactor::parsearTrama(const QByteArray &linea)
         if (!ok) continue;
 
         if (esPH) {
-            if (clave == "T") { m_tempPH = valor; m_tempPHValida = true; actualizarTemperaturaFusionada(); }
-            else if (clave == "P" || clave == "PH") setSensorPH(valor);
+            if (clave == "T") {
+                if (valor >= -10.0 && valor <= 120.0) {
+                    m_tempPH = valor; m_tempPHValida = true; actualizarTemperaturaFusionada();
+                }
+            } else if (clave == "P" || clave == "PH") {
+                if (valor >= 0.0 && valor <= 14.0) setSensorPH(valor);
+            }
         } else if (esDO) {
-            if (clave == "T") { m_tempDO = valor; m_tempDOValida = true; actualizarTemperaturaFusionada(); }
-            else if (clave == "D" || clave == "DO") setSensorDO(valor);
+            if (clave == "T") {
+                if (valor >= -10.0 && valor <= 120.0) {
+                    m_tempDO = valor; m_tempDOValida = true; actualizarTemperaturaFusionada();
+                }
+            } else if (clave == "D" || clave == "DO") {
+                if (valor >= 0.0 && valor <= 20.0) setSensorDO(valor);
+            }
         } else {
             // Formato legacy: Luz, CO2 (temperatura ya no viene aquí)
-            if      (clave == "L" || clave == "LUZ") setSensorLuz(valor);
-            else if (clave == "C" || clave == "CO2") setSensorCO2(valor);
+            if      (clave == "L" || clave == "LUZ") { if (valor >= 0.0 && valor <= 100000.0) setSensorLuz(valor); }
+            else if (clave == "C" || clave == "CO2") { if (valor >= 0.0 && valor <= 10000.0)  setSensorCO2(valor); }
         }
     }
 }
@@ -852,6 +943,7 @@ void GestorBiorreactor::leerSensorNivel()
     m_fallosNivel = 0;
 
     m_ultimaLecturaI2C = QDateTime::currentDateTime();
+    m_timerWatchdogI2C.setInterval(2000);
     m_timerWatchdogI2C.start();
 
     double nivel = (DIST_VACIO_MM - distMm) / (DIST_VACIO_MM - DIST_LLENO_MM) * 100.0;
@@ -956,15 +1048,17 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
                                              const QString &nombreExp,
                                              const QString &nombreProyecto)
 {
-    // Si no hay lecturas en memoria, cargar del archivo específico del experimento
-    if (m_lecturas.isEmpty()) {
+    // Copia local para no mutar m_lecturas si se exporta un experimento diferente al activo
+    QVector<QVariantMap> lecturas = m_lecturas;
+
+    if (lecturas.isEmpty()) {
         QString clave = "lecturas_" + sanitizarNombre(nombreProyecto)
                       + "_" + sanitizarNombre(nombreExp);
         const QVariantList cargado = cargarModelo(clave);
         for (const QVariant &v : cargado)
-            m_lecturas.append(v.toMap());
+            lecturas.append(v.toMap());
     }
-    if (m_lecturas.isEmpty()) {
+    if (lecturas.isEmpty()) {
         qWarning() << "[CSV] Sin lecturas para exportar";
         return false;
     }
@@ -994,11 +1088,11 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
         << "# Experimento: " << nombreExp      << "\n"
         << "# Inicio: "      << m_tiempoInicioRegistro.toString("dd/MM/yyyy HH:mm:ss") << "\n"
         << "# Exportado: "   << QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss") << "\n"
-        << "# Lecturas: "    << m_lecturas.size() << "\n"
+        << "# Lecturas: "    << lecturas.size() << "\n"
         << "#\n"
         << "Fecha y Hora,Temperatura (°C),pH,Nivel (%),Luz (%),CO2 (ppm),DO (mg/L)\n";
 
-    for (const QVariantMap &lec : m_lecturas) {
+    for (const QVariantMap &lec : lecturas) {
         out << lec["hora"].toString() << ","
             << QString::number(lec["temp"].toDouble(),  'f', 2) << ","
             << QString::number(lec["ph"].toDouble(),    'f', 2) << ","
@@ -1009,7 +1103,7 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
     }
 
     qDebug() << "[CSV] Registro exportado a" << f.fileName()
-             << "(" << m_lecturas.size() << "lecturas)";
+             << "(" << lecturas.size() << "lecturas)";
     return true;
 }
 
@@ -1138,14 +1232,17 @@ void GestorBiorreactor::onWatchdogSerialTimeout()
 
 void GestorBiorreactor::onWatchdogI2CTimeout()
 {
-    qWarning() << "[WD-I2C] XM125 sin respuesta por 2 s, intentando reiniciar...";
+    qWarning() << "[WD-I2C] XM125 sin respuesta, intentando reiniciar...";
     setAlertaNivel(true);
     m_xm125.cerrar();
     m_xm125.inicializar(1);
     if (m_xm125.conectado()) {
         setAlertaNivel(false);
-        m_timerWatchdogI2C.start();
+        m_timerWatchdogI2C.setInterval(2000);
+    } else {
+        m_timerWatchdogI2C.setInterval(10000);  // backoff: reintentar en 10 s
     }
+    m_timerWatchdogI2C.start();
 }
 
 void GestorBiorreactor::verificarStaleness()

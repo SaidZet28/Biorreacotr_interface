@@ -54,3 +54,21 @@ static constexpr double DIST_LLENO_MM  =  50.0;
 // Adaptador: USB-RS485 → /dev/ttyUSB0  (detección automática en la app)
 // Alternativa nativa: GPIO14/GPIO15 → /dev/ttyAMA0 (requiere dtoverlay=disable-bt)
 static constexpr int SERIAL_BAUD = 115200;   // 8N1, sin control de flujo
+
+// ── Llenado óptimo — Mezcla inicial por pH ───────────────────────────────────
+// Volumen total del biorreactor
+static constexpr double VOLUMEN_TANQUE_L       = 35.85;
+
+// pH del agua de suministro (fuente A)
+static constexpr double PH_AGUA_DEFAULT        = 7.0;
+
+// pH de la sustancia B en el tanque de dosificación
+// CALIBRAR: medir con pHímetro la solución real y actualizar este valor
+static constexpr double PH_SUSTANCIA_B         = 12.0;
+
+// Caudal de Bomba Etanol al 100% PWM [mL/s]
+// CALIBRAR: activar bomba 10 s → medir mL → dividir entre 10
+static constexpr double CAUDAL_BOMBA_B_ML_S    = 5.0;
+
+// Nivel mínimo para que el sensor de pH haga contacto con el líquido [%]
+static constexpr double NIVEL_CONTACTO_PH_PCT  = 20.0;

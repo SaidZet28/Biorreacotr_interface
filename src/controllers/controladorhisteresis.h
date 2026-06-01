@@ -9,7 +9,8 @@ public:
     // delta: ancho de banda de histéresis (ej. 5.0 → activa bajo sp-2.5, desactiva sobre sp+2.5)
     void configurar(double delta);
 
-    // Devuelve true = bomba ON, false = bomba OFF
+    // Devuelve true = bomba ON (vaciar), false = bomba OFF
+    // Se activa cuando medicion > setpoint+delta/2, se desactiva cuando medicion < setpoint-delta/2
     // Conserva estado entre llamadas (histéresis real)
     bool calcular(double setpoint, double medicion);
 

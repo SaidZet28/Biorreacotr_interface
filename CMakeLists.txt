@@ -61,38 +61,50 @@ qt_add_qml_module(appPrototipo
         PantallaGuardarConfig.qml
         PantallaLimpieza.qml
         PantallaRegistro.qml
-    RESOURCES
-        Logo_IPN.png
-        Logo_UPIIZ.png
-        Logo_ENCB.png
-
-        Alerta.png
-        Engrane.png
-        Play_Pause.png
-        Lapiz.png
-        Basura.png
-
-        Hongo_1.png
-        Hongo_2.png
-        Hongo_3.png
-        Hongo_4.png
-        Hongo_5.png
-        Hongo_6.png
-        Hongo_7.png
-        Hongo_8.png
-        Hongo_9.png
-        SOURCES translationmanager.h translationmanager.cpp
-                gestorbiorreactor.h gestorbiorreactor.cpp
-                controladorpid.h controladorpid.cpp
-                controladorfuzzy.h controladorfuzzy.cpp
-                controladorhisteresis.h controladorhisteresis.cpp
-                driverpca9685.h driverpca9685.cpp
-                driverxm125.h driverxm125.cpp
-                raspberrypi_config.h
-                gestoraudio.h gestoraudio.cpp
+    SOURCES
+        src/backend/translationmanager.h    src/backend/translationmanager.cpp
+        src/backend/gestorbiorreactor.h     src/backend/gestorbiorreactor.cpp
+        src/backend/gestoraudio.h           src/backend/gestoraudio.cpp
+        src/controllers/controladorpid.h    src/controllers/controladorpid.cpp
+        src/controllers/controladorfuzzy.h  src/controllers/controladorfuzzy.cpp
+        src/controllers/controladorhisteresis.h src/controllers/controladorhisteresis.cpp
+        src/drivers/driverpca9685.h         src/drivers/driverpca9685.cpp
+        src/drivers/driverxm125.h           src/drivers/driverxm125.cpp
+        src/drivers/raspberrypi_config.h
 )
 
-# 3. Recursos de audio (WAV embebidos en el binario bajo el prefijo /audio)
+# 3. Rutas de include — permite que los #include usen solo el nombre de archivo
+target_include_directories(appPrototipo PRIVATE
+    src/backend
+    src/controllers
+    src/drivers
+)
+
+# 4. Recursos de imagen (mismo PREFIX que el módulo QML — los QML no necesitan cambiar)
+qt_add_resources(appPrototipo "imagesRes"
+    PREFIX "/qt/qml/Prototipo"
+    BASE "assets"
+    FILES
+        assets/Logo_IPN.png
+        assets/Logo_UPIIZ.png
+        assets/Logo_ENCB.png
+        assets/Alerta.png
+        assets/Engrane.png
+        assets/Play_Pause.png
+        assets/Lapiz.png
+        assets/Basura.png
+        assets/Hongo_1.png
+        assets/Hongo_2.png
+        assets/Hongo_3.png
+        assets/Hongo_4.png
+        assets/Hongo_5.png
+        assets/Hongo_6.png
+        assets/Hongo_7.png
+        assets/Hongo_8.png
+        assets/Hongo_9.png
+)
+
+# 5. Recursos de audio (WAV embebidos en el binario bajo el prefijo /audio)
 qt_add_resources(appPrototipo "audioRes"
     PREFIX "/audio"
     BASE "audio"
@@ -103,14 +115,14 @@ qt_add_resources(appPrototipo "audioRes"
         audio/inicio.wav
 )
 
-# 4. AHORA SÍ, le agregamos las traducciones al ejecutable
+# 6. Traducciones
 qt_add_translations(appPrototipo
     TS_FILES
-        appPrototipo_en.ts
-        appPrototipo_de.ts
-        appPrototipo_fr.ts
-        appPrototipo_zh.ts
-        appPrototipo_ja.ts
+        translations/appPrototipo_en.ts
+        translations/appPrototipo_de.ts
+        translations/appPrototipo_fr.ts
+        translations/appPrototipo_zh.ts
+        translations/appPrototipo_ja.ts
     RESOURCE_PREFIX "/i18n"
 )
 
@@ -140,6 +152,6 @@ endif()
 
 install(TARGETS appPrototipo
     BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_BINDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

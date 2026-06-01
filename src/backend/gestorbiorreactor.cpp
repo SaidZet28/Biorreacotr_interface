@@ -575,6 +575,7 @@ void GestorBiorreactor::cancelarPreparacion()
     emit progresoPreparacionChanged();
     emit preparacionCompletadaChanged();
     emit alertaEscalacionChanged();
+    emit preparacionCancelada();
 }
 
 void GestorBiorreactor::continuarDesdeEscalacion()
@@ -724,7 +725,8 @@ void GestorBiorreactor::tickSimulacion()
     setSensorTem  (24.5  + 1.5  * qSin(m_tickSim * 0.05) + noise(0.10));
     setSensorPH   ( 7.2  + 0.3  * qCos(m_tickSim * 0.03) + noise(0.02));
     setSensorNivel(85.0  + 5.0  * qSin(m_tickSim * 0.02) + noise(0.50));
-    setSensorLuz  (60.0  + 8.0  * qCos(m_tickSim * 0.04) + noise(0.30));
+    // Luz: oscila alrededor del setpoint si está configurado, si no alrededor de 60 %
+    setSensorLuz  ((m_setpointLuz > 1e-9 ? m_setpointLuz : 60.0) + 4.0 * qCos(m_tickSim * 0.04) + noise(0.30));
     setSensorCO2  (400.0 + 30.0 * qSin(m_tickSim * 0.06) + noise(2.00));
     setSensorDO   ( 8.2  + 0.5  * qCos(m_tickSim * 0.07) + noise(0.05));
 
@@ -992,6 +994,11 @@ void GestorBiorreactor::ejecutarControlLoop()
             emit salidaBombaNivelChanged();
         }
     }
+
+#ifndef SIMULACION_ACTIVA
+    // Luz — PWM proporcional directo al setpoint (sin controlador, respuesta inmediata)
+    m_pca9685.escribirPorcentaje(DriverPCA9685::CH_LUZ, qBound(0.0, m_setpointLuz, 100.0));
+#endif
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1173,43 +1180,6 @@ QString GestorBiorreactor::detectarUSB()
 #else
     return QString();
 #endif
-}
-
-bool GestorBiorreactor::exportarCSV(const QVariantList &datos, const QString &carpetaDestino)
-{
-    QString carpeta = carpetaDestino.isEmpty() ? basePathStr() : carpetaDestino;
-
-    QString nombreArchivo = "reporte_" +
-        QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + ".csv";
-    QString rutaCompleta = carpeta + "/" + nombreArchivo;
-
-    QFile f(rutaCompleta);
-    if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "[CSV] No se pudo crear" << rutaCompleta;
-        return false;
-    }
-
-    QTextStream out(&f);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "Proyecto,Experimento,Fecha,Tiempo,Tamaño\n";
-
-    for (const QVariant &v : datos) {
-        const QVariantMap m = v.toMap();
-        auto esc = [](QString s) {
-            s.replace('"', "\"\"");
-            if (s.contains(',') || s.contains('"') || s.contains('\n'))
-                s = '"' + s + '"';
-            return s;
-        };
-        out << esc(m.value("proyecto").toString())    << ","
-            << esc(m.value("experimento").toString()) << ","
-            << esc(m.value("fecha").toString())       << ","
-            << esc(m.value("tiempo").toString())      << ","
-            << esc(m.value("peso").toString())        << "\n";
-    }
-
-    qDebug() << "[CSV] Exportado a" << rutaCompleta;
-    return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

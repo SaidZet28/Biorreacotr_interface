@@ -10,6 +10,11 @@ Item {
         if (visible) backend.iniciarPreparacion()
     }
 
+    Connections {
+        target: backend
+        function onPreparacionCancelada() { appWindow.procesoListoParaIniciar = false }
+    }
+
     // ── 4 fases visibles que agrupan los 7 estados internos ──────────────────
     readonly property int faseVisual: {
         let s = backend.estadoPreparacion

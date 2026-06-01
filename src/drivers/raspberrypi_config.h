@@ -35,7 +35,7 @@ static constexpr int    PCA9685_FREQ_HZ  = 50;
 //  Canal 0 → Calentador (PWM analógico, 0–100 %)
 //  Canal 1 → Bomba Etanol (PWM analógico, 0–100 %)
 //  Canal 2 → Bomba Agua   (PWM analógico, 0–100 %)
-//  Canal 3 → Recirculación (no conectado en esta versión)
+//  Canal 3 → Iluminación   (PWM analógico, 0–100 %)
 //  Canal 4 → Airlift       (no conectado en esta versión)
 //  Canal 5 → Bomba Nivel   (digital: ON / OFF)
 

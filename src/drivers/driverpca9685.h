@@ -6,12 +6,12 @@ class DriverPCA9685 : public QObject {
     Q_OBJECT
 public:
     // Asignación de canales (ajustar si cambia el cableado)
-    static constexpr int CH_CALENTADOR    = 0;
-    static constexpr int CH_BOMBA_ETANOL  = 1;
-    static constexpr int CH_BOMBA_AGUA    = 2;
-    static constexpr int CH_RECIRCULACION = 3;
-    static constexpr int CH_AIRLIFT       = 4;
-    static constexpr int CH_BOMBA_NIVEL   = 5;
+    static constexpr int CH_CALENTADOR   = 0;
+    static constexpr int CH_BOMBA_ETANOL = 1;
+    static constexpr int CH_BOMBA_AGUA   = 2;
+    static constexpr int CH_LUZ          = 3;
+    static constexpr int CH_AIRLIFT      = 4;
+    static constexpr int CH_BOMBA_NIVEL  = 5;
 
     explicit DriverPCA9685(QObject *parent = nullptr);
     ~DriverPCA9685();

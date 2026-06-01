@@ -136,7 +136,6 @@ public:
     Q_INVOKABLE QVariantList  cargarModelo (const QString &nombre);
 
     Q_INVOKABLE QString detectarUSB();
-    Q_INVOKABLE bool    exportarCSV(const QVariantList &datos, const QString &carpetaDestino);
 
     Q_INVOKABLE QString rutaBaseData() const;
     Q_INVOKABLE void    eliminarCarpetaExperimento(const QString &nombreProyecto,
@@ -188,6 +187,7 @@ signals:
     void preparacionCompletadaChanged();
     void alertaEscalacionChanged();
     void mezclaCalculadaChanged();
+    void preparacionCancelada();
 
 private slots:
     void leerDatosSerial();

@@ -295,7 +295,20 @@ Item {
                                 color: root.puntos_pH >= 1 ? (maOkPH.pressed ? "#6b42b5" : "#8b5cf6") : "#cccccc"
                                 opacity: root.puntos_pH >= 1 ? 1.0 : 0.5
                                 Text { anchors.centerIn: parent; text: qsTranslate("Main", "OK"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                                MouseArea { id: maOkPH; anchors.fill: parent; enabled: root.puntos_pH >= 1; onClicked: { root.phCalibrado = true; root.expandidoPH = false } }
+                                MouseArea {
+                                    id: maOkPH
+                                    anchors.fill: parent
+                                    enabled: root.puntos_pH >= 1
+                                    onClicked: {
+                                        backend.enviarCalibracionPH(
+                                            root.stPH4  === 2 ? 4.0  : 0.0,
+                                            root.stPH7  === 2 ? 7.0  : 0.0,
+                                            root.stPH10 === 2 ? 10.0 : 0.0
+                                        )
+                                        root.phCalibrado = true
+                                        root.expandidoPH = false
+                                    }
+                                }
                             }
                         }
 
@@ -364,7 +377,16 @@ Item {
                                 color: root.stDO === 2 ? (maOkDO.pressed ? "#6b42b5" : "#8b5cf6") : "#cccccc"
                                 opacity: root.stDO === 2 ? 1.0 : 0.5
                                 Text { anchors.centerIn: parent; text: qsTranslate("Main", "OK"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-                                MouseArea { id: maOkDO; anchors.fill: parent; enabled: root.stDO === 2; onClicked: { root.doCalibrado = true; root.expandidoDO = false } }
+                                MouseArea {
+                                    id: maOkDO
+                                    anchors.fill: parent
+                                    enabled: root.stDO === 2
+                                    onClicked: {
+                                        backend.enviarCalibracionDO()
+                                        root.doCalibrado = true
+                                        root.expandidoDO = false
+                                    }
+                                }
                             }
                         }
 

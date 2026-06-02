@@ -83,7 +83,7 @@ Item {
         model: appWindow.registro_experimentos
 
         delegate: Rectangle {
-            width: parent.width
+            width: listaRegistro.width
             height: appWindow.height * 0.08
             color: "#8DBB5A"
             radius: height / 2

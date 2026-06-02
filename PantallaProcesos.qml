@@ -129,9 +129,9 @@ Item {
             radius: height / 2
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. CO2: %1 ppm").arg(backend.sensorCO2.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "OD: %1 mg/L").arg(backend.sensorDO.toFixed(2)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. CO2: %1 ppm").arg(backend.setpointCO2.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "DO Sat: %1 %").arg(backend.sensorDO.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
     }
 

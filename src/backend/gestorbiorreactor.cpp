@@ -8,6 +8,7 @@
 #include <QRandomGenerator>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <QFile>
 #include <QTextStream>
 #include <QDir>
@@ -149,7 +150,6 @@ double GestorBiorreactor::sensorTem()   const { return m_sensorTem;   }
 double GestorBiorreactor::sensorPH()    const { return m_sensorPH;    }
 double GestorBiorreactor::sensorNivel() const { return m_sensorNivel; }
 double GestorBiorreactor::sensorLuz()   const { return m_sensorLuz;   }
-double GestorBiorreactor::sensorCO2()   const { return m_sensorCO2;   }
 double GestorBiorreactor::sensorDO()    const { return m_sensorDO;    }
 
 void GestorBiorreactor::setSensorTem(double v) {
@@ -168,10 +168,6 @@ void GestorBiorreactor::setSensorLuz(double v) {
     if (qAbs(m_sensorLuz - v) < 1e-9) return;
     m_sensorLuz = v; emit sensorLuzChanged();
 }
-void GestorBiorreactor::setSensorCO2(double v) {
-    if (qAbs(m_sensorCO2 - v) < 1e-9) return;
-    m_sensorCO2 = v; emit sensorCO2Changed();
-}
 void GestorBiorreactor::setSensorDO(double v) {
     if (qAbs(m_sensorDO - v) < 1e-9) return;
     m_sensorDO = v; emit sensorDOChanged();
@@ -185,7 +181,6 @@ double GestorBiorreactor::setpointTem()   const { return m_setpointTem;   }
 double GestorBiorreactor::setpointPH()    const { return m_setpointPH;    }
 double GestorBiorreactor::setpointNivel() const { return m_setpointNivel; }
 double GestorBiorreactor::setpointLuz()   const { return m_setpointLuz;   }
-double GestorBiorreactor::setpointCO2()   const { return m_setpointCO2;   }
 
 void GestorBiorreactor::setSetpointTem(double v) {
     if (qAbs(m_setpointTem - v) < 1e-9) return;
@@ -202,10 +197,6 @@ void GestorBiorreactor::setSetpointNivel(double v) {
 void GestorBiorreactor::setSetpointLuz(double v) {
     if (qAbs(m_setpointLuz - v) < 1e-9) return;
     m_setpointLuz = v; emit setpointLuzChanged(); guardarConfiguracion();
-}
-void GestorBiorreactor::setSetpointCO2(double v) {
-    if (qAbs(m_setpointCO2 - v) < 1e-9) return;
-    m_setpointCO2 = v; emit setpointCO2Changed(); guardarConfiguracion();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -300,13 +291,11 @@ void GestorBiorreactor::cargarConfiguracion()
     m_setpointPH    = s.value("pH",          0.0).toDouble();
     m_setpointNivel = s.value("nivel",       0.0).toDouble();
     m_setpointLuz   = s.value("luz",         0.0).toDouble();
-    m_setpointCO2   = s.value("CO2",         0.0).toDouble();
     s.endGroup();
     emit setpointTemChanged();
     emit setpointPHChanged();
     emit setpointNivelChanged();
     emit setpointLuzChanged();
-    emit setpointCO2Changed();
 }
 
 void GestorBiorreactor::guardarConfiguracion()
@@ -317,7 +306,6 @@ void GestorBiorreactor::guardarConfiguracion()
     s.setValue("pH",          m_setpointPH);
     s.setValue("nivel",       m_setpointNivel);
     s.setValue("luz",         m_setpointLuz);
-    s.setValue("CO2",         m_setpointCO2);
     s.endGroup();
 }
 
@@ -328,7 +316,6 @@ void GestorBiorreactor::resetearSetpoints()
     if (qAbs(m_setpointPH)    > 1e-9) { m_setpointPH    = 0.0; emit setpointPHChanged();    changed = true; }
     if (qAbs(m_setpointNivel) > 1e-9) { m_setpointNivel = 0.0; emit setpointNivelChanged(); changed = true; }
     if (qAbs(m_setpointLuz)   > 1e-9) { m_setpointLuz   = 0.0; emit setpointLuzChanged();   changed = true; }
-    if (qAbs(m_setpointCO2)   > 1e-9) { m_setpointCO2   = 0.0; emit setpointCO2Changed();   changed = true; }
     if (changed) guardarConfiguracion();
 }
 
@@ -727,7 +714,6 @@ void GestorBiorreactor::tickSimulacion()
     setSensorNivel(85.0  + 5.0  * qSin(m_tickSim * 0.02) + noise(0.50));
     // Luz: oscila alrededor del setpoint si está configurado, si no alrededor de 60 %
     setSensorLuz  ((m_setpointLuz > 1e-9 ? m_setpointLuz : 60.0) + 4.0 * qCos(m_tickSim * 0.04) + noise(0.30));
-    setSensorCO2  (400.0 + 30.0 * qSin(m_tickSim * 0.06) + noise(2.00));
     setSensorDO   ( 8.2  + 0.5  * qCos(m_tickSim * 0.07) + noise(0.05));
 
     // Evitar alertas de staleness — marcar como datos recibidos ahora
@@ -777,7 +763,7 @@ bool GestorBiorreactor::buscarYConectar(const QString &nombreForzado)
     }
 
     m_puerto.setPortName(portName);
-    m_puerto.setBaudRate(QSerialPort::Baud115200);
+    m_puerto.setBaudRate(QSerialPort::Baud9600);
     m_puerto.setDataBits(QSerialPort::Data8);
     m_puerto.setParity(QSerialPort::NoParity);
     m_puerto.setStopBits(QSerialPort::OneStop);
@@ -817,74 +803,122 @@ void GestorBiorreactor::leerDatosSerial()
     m_buffer += m_puerto.readAll();
     if (m_buffer.size() > 4096) m_buffer.clear();
     resetWatchdogSerial();
+    procesarBufferModbus();
+}
 
-    int idx;
-    while ((idx = m_buffer.indexOf('\n')) != -1) {
-        QByteArray linea = m_buffer.left(idx).trimmed();
-        m_buffer.remove(0, idx + 1);
-        if (!linea.isEmpty())
-            parsearTrama(linea);
+// ─────────────────────────────────────────────────────────────────────────────
+// Modbus RTU helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+static quint16 modbusRtuCrc(const QByteArray &data)
+{
+    quint16 crc = 0xFFFF;
+    for (quint8 byte : data) {
+        crc ^= byte;
+        for (int i = 0; i < 8; ++i) {
+            if (crc & 0x0001) crc = (crc >> 1) ^ 0xA001;
+            else              crc >>= 1;
+        }
+    }
+    return crc;
+}
+
+static float bytesToFloat(const QByteArray &data, int offset)
+{
+    quint32 raw = (static_cast<quint32>((quint8)data[offset])   << 24) |
+                  (static_cast<quint32>((quint8)data[offset+1]) << 16) |
+                  (static_cast<quint32>((quint8)data[offset+2]) <<  8) |
+                   static_cast<quint32>((quint8)data[offset+3]);
+    float result;
+    memcpy(&result, &raw, sizeof(result));
+    return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modbus RTU buffer processor
+// Detecta frames completos en m_buffer y los pasa a parsearTrama().
+// Protocolo esperado:
+//   Lectura (func 0x03): slave(1)+func(1)+byteCount(1)+data(byteCount)+CRC(2)
+//   Escritura (func 0x06): 8 bytes fijos (eco de calibración)
+// Si el primer byte no corresponde a un frame válido se descarta para re-sincronizar.
+// ─────────────────────────────────────────────────────────────────────────────
+
+void GestorBiorreactor::procesarBufferModbus()
+{
+    while (m_buffer.size() >= 5) {
+        quint8 funcCode = static_cast<quint8>(m_buffer[1]);
+        int expectedLen = 0;
+
+        if (funcCode == 0x03) {
+            if (m_buffer.size() < 3) break;
+            int byteCount = static_cast<quint8>(m_buffer[2]);
+            expectedLen = 3 + byteCount + 2;
+        } else if (funcCode == 0x06) {
+            expectedLen = 8;
+        } else {
+            m_buffer.remove(0, 1);  // re-sincronizar
+            continue;
+        }
+
+        if (m_buffer.size() < expectedLen) break;
+
+        QByteArray frame = m_buffer.left(expectedLen);
+        m_buffer.remove(0, expectedLen);
+
+        // Verificar CRC antes de parsear
+        quint16 calcCrc = modbusRtuCrc(frame.left(expectedLen - 2));
+        quint16 recvCrc = static_cast<quint16>((quint8)frame[expectedLen - 2]) |
+                          static_cast<quint16>((quint8)frame[expectedLen - 1] << 8);
+        if (calcCrc != recvCrc) {
+            qWarning() << "[Modbus] CRC error en frame:" << frame.toHex(' ');
+            continue;
+        }
+
+        parsearTrama(frame);
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parser — soporta:
-//   Formato antiguo:  T:24.5,P:7.2,L:60,C:400  (sin prefijo)
-//   Sensor pH RS-485: PH:T:24.5,P:7.2           (prefijo PH:)
-//   Sensor DO RS-485: DO:T:24.8,D:8.5           (prefijo DO:)
+// Parser Modbus RTU
+// Soporta:
+//   Lectura (func 0x03) de sensor pH  (slave 0x03): extrae pH + temperatura
+//   Lectura (func 0x03) de sensor DO  (slave 0x0A): extrae DO + temperatura
+//   Escritura (func 0x06): eco de confirmación de calibración
 // ─────────────────────────────────────────────────────────────────────────────
 
-void GestorBiorreactor::parsearTrama(const QByteArray &linea)
+void GestorBiorreactor::parsearTrama(const QByteArray &frame)
 {
-    if (linea.size() > 256) return;  // rechazar tramas anormalmente largas
-    const QByteArray upper = linea.toUpper();
+    if (frame.size() < 5) return;
 
-    // Determinar fuente
-    QByteArray payload = linea;
-    bool esPH = false, esDO = false;
+    quint8 slaveId  = static_cast<quint8>(frame[0]);
+    quint8 funcCode = static_cast<quint8>(frame[1]);
 
-    if (upper.startsWith("PH:")) {
-        payload = linea.mid(3);
-        esPH = true;
-        m_ultimaLecturaRS485 = QDateTime::currentDateTime();
-    } else if (upper.startsWith("DO:")) {
-        payload = linea.mid(3);
-        esDO = true;
-        m_ultimaLecturaRS485 = QDateTime::currentDateTime();
-    } else {
-        m_ultimaLecturaRS485 = QDateTime::currentDateTime();
-    }
+    m_ultimaLecturaRS485 = QDateTime::currentDateTime();
 
-    for (const QByteArray &campo : payload.split(',')) {
-        const int sep = campo.indexOf(':');
-        if (sep == -1) continue;
+    if (funcCode == 0x03) {
+        quint8 byteCount = static_cast<quint8>(frame[2]);
+        if (frame.size() < 3 + byteCount + 2 || byteCount < 12) return;
 
-        const QByteArray clave = campo.left(sep).trimmed().toUpper();
-        bool ok = false;
-        const double valor = campo.mid(sep + 1).trimmed().toDouble(&ok);
-        if (!ok) continue;
+        float val1 = bytesToFloat(frame, 3);   // pH o DO
+        float temp = bytesToFloat(frame, 11);  // temperatura (offset 3+4+4)
 
-        if (esPH) {
-            if (clave == "T") {
-                if (valor >= -10.0 && valor <= 120.0) {
-                    m_tempPH = valor; m_tempPHValida = true; actualizarTemperaturaFusionada();
-                }
-            } else if (clave == "P" || clave == "PH") {
-                if (valor >= 0.0 && valor <= 14.0) setSensorPH(valor);
+        if (slaveId == 0x03) {
+            // RK500-12 pH sensor: val1=pH, val2=internal(skip), val3=temp
+            if (val1 >= 0.0f && val1 <= 14.0f)    setSensorPH(static_cast<double>(val1));
+            if (temp >= -10.0f && temp <= 120.0f) {
+                m_tempPH = temp; m_tempPHValida = true;
+                actualizarTemperaturaFusionada();
             }
-        } else if (esDO) {
-            if (clave == "T") {
-                if (valor >= -10.0 && valor <= 120.0) {
-                    m_tempDO = valor; m_tempDOValida = true; actualizarTemperaturaFusionada();
-                }
-            } else if (clave == "D" || clave == "DO") {
-                if (valor >= 0.0 && valor <= 20.0) setSensorDO(valor);
+        } else if (slaveId == 0x0A) {
+            // RK500-04 DO sensor: val1=DO, val2=saturation(skip), val3=temp
+            if (val1 >= 0.0f && val1 <= 20.0f)    setSensorDO(static_cast<double>(val1));
+            if (temp >= -10.0f && temp <= 120.0f) {
+                m_tempDO = temp; m_tempDOValida = true;
+                actualizarTemperaturaFusionada();
             }
-        } else {
-            // Formato legacy: Luz, CO2 (temperatura ya no viene aquí)
-            if      (clave == "L" || clave == "LUZ") { if (valor >= 0.0 && valor <= 100000.0) setSensorLuz(valor); }
-            else if (clave == "C" || clave == "CO2") { if (valor >= 0.0 && valor <= 10000.0)  setSensorCO2(valor); }
         }
+    } else if (funcCode == 0x06) {
+        qDebug() << "[CAL] Sensor 0x" << Qt::hex << slaveId << "confirmó calibración";
     }
 }
 
@@ -906,18 +940,62 @@ void GestorBiorreactor::actualizarTemperaturaFusionada()
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Timer: consultar sensores RS-485 alternando pH / DO
+// Protocolo: Modbus RTU, función 0x03 (read holding registers), 6 registros.
+//   pH sensor  slave 0x03 — RK500-12 manual sección 7.1
+//   DO sensor  slave 0x0A — RK500-04 manual sección 7.1
 // ─────────────────────────────────────────────────────────────────────────────
 
 void GestorBiorreactor::consultarSensoresRS485()
 {
     if (!m_puerto.isOpen()) return;
 
-    if (m_turnoRS485 == 0)
-        m_puerto.write("PH:?\n");
-    else
-        m_puerto.write("DO:?\n");
+    // Frames precalculados con CRC-16/Modbus incluido
+    static const QByteArray queryPH = QByteArray::fromHex("030300000006C42A");
+    static const QByteArray queryDO = QByteArray::fromHex("0A0300000006C4B3");
 
+    m_puerto.write(m_turnoRS485 == 0 ? queryPH : queryDO);
     m_turnoRS485 = (m_turnoRS485 + 1) % 2;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Calibración pH via RS-485
+// Frames exactos del manual RK500-12 (sección 8.2).
+// Función 0x06 — registro 0x0055.
+// Un valor 0.0 indica que ese punto no fue medido y se omite.
+// En modo simulación el puerto está cerrado → retorna sin hacer nada (no-op).
+// ─────────────────────────────────────────────────────────────────────────────
+
+void GestorBiorreactor::enviarCalibracionPH(double ph4, double ph7, double ph10)
+{
+    if (!m_puerto.isOpen()) return;
+
+    static const QByteArray cmdPH4  = QByteArray::fromHex("03060055000499FB");
+    static const QByteArray cmdPH7  = QByteArray::fromHex("030600550007D9FA");
+    static const QByteArray cmdPH10 = QByteArray::fromHex("03060055000A183F");
+
+    if (ph4  > 0.0) m_puerto.write(cmdPH4);
+    if (ph7  > 0.0) m_puerto.write(cmdPH7);
+    if (ph10 > 0.0) m_puerto.write(cmdPH10);
+
+    qDebug() << "[CAL] Calibración pH enviada — LOW:" << ph4 << "MID:" << ph7 << "HIGH:" << ph10;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Calibración DO via RS-485 (air calibration)
+// Frame exacto del manual RK500-04 (sección 7.5).
+// Función 0x06 — registro 0x001A.
+// Procedimiento: sensor en aire, esperar ~180 s a que estabilice, luego llamar.
+// En modo simulación es no-op (puerto cerrado).
+// ─────────────────────────────────────────────────────────────────────────────
+
+void GestorBiorreactor::enviarCalibracionDO()
+{
+    if (!m_puerto.isOpen()) return;
+
+    static const QByteArray cmdAir = QByteArray::fromHex("0A06001A000168B6");
+    m_puerto.write(cmdAir);
+
+    qDebug() << "[CAL] Calibración DO (aire) enviada";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1046,7 +1124,6 @@ void GestorBiorreactor::registrarLectura()
     lec["ph"]    = m_sensorPH;
     lec["nivel"] = m_sensorNivel;
     lec["luz"]   = m_sensorLuz;
-    lec["co2"]   = m_sensorCO2;
     lec["do"]    = m_sensorDO;
     m_lecturas.append(lec);
 }
@@ -1097,7 +1174,7 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
         << "# Exportado: "   << QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss") << "\n"
         << "# Lecturas: "    << lecturas.size() << "\n"
         << "#\n"
-        << "Fecha y Hora,Temperatura (°C),pH,Nivel (%),Luz (%),CO2 (ppm),DO (mg/L)\n";
+        << "Fecha y Hora,Temperatura (°C),pH,Nivel (%),Luz (%),DO (mg/L)\n";
 
     for (const QVariantMap &lec : lecturas) {
         out << lec["hora"].toString() << ","
@@ -1105,7 +1182,6 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
             << QString::number(lec["ph"].toDouble(),    'f', 2) << ","
             << QString::number(lec["nivel"].toDouble(), 'f', 1) << ","
             << QString::number(lec["luz"].toDouble(),   'f', 1) << ","
-            << QString::number(lec["co2"].toDouble(),   'f', 0) << ","
             << QString::number(lec["do"].toDouble(),    'f', 2) << "\n";
     }
 

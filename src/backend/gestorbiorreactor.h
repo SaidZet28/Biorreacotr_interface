@@ -20,7 +20,6 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(double sensorPH    READ sensorPH    NOTIFY sensorPHChanged    FINAL)
     Q_PROPERTY(double sensorNivel READ sensorNivel NOTIFY sensorNivelChanged FINAL)
     Q_PROPERTY(double sensorLuz   READ sensorLuz   NOTIFY sensorLuzChanged   FINAL)
-    Q_PROPERTY(double sensorCO2   READ sensorCO2   NOTIFY sensorCO2Changed   FINAL)
     Q_PROPERTY(double sensorDO    READ sensorDO    NOTIFY sensorDOChanged    FINAL)
 
     // ── Setpoints ─────────────────────────────────────────────────────────────
@@ -28,7 +27,6 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(double setpointPH    READ setpointPH    WRITE setSetpointPH    NOTIFY setpointPHChanged    FINAL)
     Q_PROPERTY(double setpointNivel READ setpointNivel WRITE setSetpointNivel NOTIFY setpointNivelChanged FINAL)
     Q_PROPERTY(double setpointLuz   READ setpointLuz   WRITE setSetpointLuz   NOTIFY setpointLuzChanged   FINAL)
-    Q_PROPERTY(double setpointCO2   READ setpointCO2   WRITE setSetpointCO2   NOTIFY setpointCO2Changed   FINAL)
 
     // ── Alertas watchdog ──────────────────────────────────────────────────────
     Q_PROPERTY(bool alertaDivergenciaTemp READ alertaDivergenciaTemp NOTIFY alertaDivergenciaTempChanged FINAL)
@@ -75,20 +73,17 @@ public:
     double sensorPH()    const;
     double sensorNivel() const;
     double sensorLuz()   const;
-    double sensorCO2()   const;
     double sensorDO()    const;
 
     double setpointTem()   const;
     double setpointPH()    const;
     double setpointNivel() const;
     double setpointLuz()   const;
-    double setpointCO2()   const;
 
     void setSetpointTem  (double v);
     void setSetpointPH   (double v);
     void setSetpointNivel(double v);
     void setSetpointLuz  (double v);
-    void setSetpointCO2  (double v);
 
     bool alertaDivergenciaTemp() const;
     bool alertaSerial()          const;
@@ -120,6 +115,11 @@ public:
     double litrosAgua()   const;
     double mlSustanciaB() const;
 
+    Q_INVOKABLE void enviarCalibracionPH(double ph4, double ph7, double ph10);
+    Q_INVOKABLE void enviarCalibracionDO();
+
+    void parsearTrama(const QByteArray &frame);
+
     Q_INVOKABLE void iniciarPreparacion();
     Q_INVOKABLE void cancelarPreparacion();
     Q_INVOKABLE void continuarDesdeEscalacion();
@@ -149,21 +149,17 @@ public:
                                          const QString &nombreExp,
                                          const QString &nombreProyecto);
 
-    void parsearTrama(const QByteArray &linea);
-
 signals:
     void sensorTemChanged();
     void sensorPHChanged();
     void sensorNivelChanged();
     void sensorLuzChanged();
-    void sensorCO2Changed();
     void sensorDOChanged();
 
     void setpointTemChanged();
     void setpointPHChanged();
     void setpointNivelChanged();
     void setpointLuzChanged();
-    void setpointCO2Changed();
 
     void alertaDivergenciaTempChanged();
     void alertaSerialChanged();
@@ -203,12 +199,12 @@ private slots:
 
 private:
     void actualizarTemperaturaFusionada();
+    void procesarBufferModbus();
 
     void setSensorTem  (double v);
     void setSensorPH   (double v);
     void setSensorNivel(double v);
     void setSensorLuz  (double v);
-    void setSensorCO2  (double v);
     void setSensorDO   (double v);
 
     void setAlertaDivergenciaTemp(bool v);
@@ -227,7 +223,6 @@ private:
     double m_sensorPH    = 7.2;
     double m_sensorNivel = 85.0;
     double m_sensorLuz   = 60.0;
-    double m_sensorCO2   = 400.0;
     double m_sensorDO    = 8.2;
 
     // Temperaturas internas para fusión (una por cada sensor RS-485)
@@ -241,7 +236,6 @@ private:
     double m_setpointPH    = 0.0;
     double m_setpointNivel = 0.0;
     double m_setpointLuz   = 0.0;
-    double m_setpointCO2   = 0.0;
 
     // ── Alertas ───────────────────────────────────────────────────────────────
     bool m_alertaDivergenciaTemp = false;

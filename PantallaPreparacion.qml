@@ -69,9 +69,9 @@ Item {
                     // Línea conectora entre fases
                     Rectangle {
                         visible: index < 3
-                        anchors.left: bola.horizontalCenter
+                        anchors.left: parent.horizontalCenter
                         anchors.right: parent.right
-                        anchors.verticalCenter: bola.verticalCenter
+                        anchors.verticalCenter: parent.verticalCenter
                         height: 3
                         color: index < root.faseVisual ? "#4CAF50" : "#CCCCCC"
                         Behavior on color { ColorAnimation { duration: 300 } }

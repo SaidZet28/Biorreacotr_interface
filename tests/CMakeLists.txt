@@ -52,5 +52,6 @@ qt_add_executable(tst_parseartrama
     ${DRIVERS}/driverpca9685.h          ${DRIVERS}/driverpca9685.cpp
     ${DRIVERS}/driverxm125.h            ${DRIVERS}/driverxm125.cpp)
 target_include_directories(tst_parseartrama PRIVATE ${BACKEND} ${CTRL} ${DRIVERS})
+target_compile_definitions(tst_parseartrama PRIVATE SIMULACION_ACTIVA)
 target_link_libraries(tst_parseartrama PRIVATE Qt6::Test Qt6::Core Qt6::SerialPort)
 add_test(NAME tst_parseartrama COMMAND tst_parseartrama)

@@ -1,0 +1,179 @@
+<mxfile host="app.diagrams.net" version="21.0">
+  <diagram id="arch" name="Arquitectura de Módulos">
+    <mxGraphModel dx="1500" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ══════════════════════════════════════════
+             CAPA 1 — QML / Vista
+             ══════════════════════════════════════════ -->
+        <mxCell id="10" value="QML — Vista" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="10" width="880" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="Main.qml&#xa;ApplicationWindow&#xa;estadoActual (string)&#xa;ListModels" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="50" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="16 Pantallas&#xa;Pantalla*.qml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="60" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="13" value="Componentes&#xa;Barra* · Boton*&#xa;Teclado* · Tarjeta*&#xa;GraficaChart" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="45" width="155" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="14" value="Popups&#xa;Popup*.qml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="535" y="60" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="15" value="CabeceraPersistente&#xa;ListModel datos_guardados&#xa;ListModel registro_exp&#xa;Timer respaldo 30 s" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="685" y="45" width="185" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Flecha bidireccional QML ↔ Backend -->
+        <mxCell id="20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;startArrow=block;startFill=1;endFill=1;strokeWidth=2;strokeColor=#555555;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="445" y="167" as="sourcePoint" />
+            <mxPoint x="445" y="215" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="21" value="Q_PROPERTY · Q_INVOKABLE · signals / slots" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="265" y="170" width="360" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════
+             CAPA 2 — C++ Backend
+             ══════════════════════════════════════════ -->
+        <mxCell id="30" value="C++ Backend" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="215" width="880" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="31" value="GestorBiorreactor&#xa;gestorbiorreactor.h / .cpp&#xa;Máq. estados preparación&#xa;Timers · Registro · Watchdogs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="258" width="230" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="32" value="GestorAudio&#xa;gestoraudio.h / .cpp&#xa;QSoundEffect (Qt Multimedia)&#xa;4 WAV embebidos en qrc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="280" y="258" width="210" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="33" value="TranslationManager&#xa;translationmanager.h / .cpp&#xa;Qt Linguist (.ts / .qm)&#xa;Español · EN · DE · FR · ZH · JA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="258" width="230" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Flecha Backend → Controllers -->
+        <mxCell id="40" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#555555;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="445" y="352" as="sourcePoint" />
+            <mxPoint x="445" y="398" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="41" value="referencias internas (composición)" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="265" y="355" width="360" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════
+             CAPA 3 — Controladores
+             ══════════════════════════════════════════ -->
+        <mxCell id="50" value="Controladores de lazo cerrado" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="398" width="880" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="51" value="ControladorPID&#xa;controladorpid.h / .cpp&#xa;Temperatura → Calentador&#xa;Kp=2.0  Ki=0.5  Kd=0.1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="440" width="220" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="52" value="ControladorFuzzy&#xa;controladorfuzzy.h / .cpp&#xa;pH → Bomba Etanol&#xa;Mamdani · 3 MF · 9 reglas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="270" y="440" width="220" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="53" value="ControladorHisteresis&#xa;controladorhisteresis.h / .cpp&#xa;Nivel → Bomba Nivel&#xa;banda = 5 %" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="440" width="220" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Flecha Controllers → Drivers -->
+        <mxCell id="60" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#555555;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="445" y="520" as="sourcePoint" />
+            <mxPoint x="445" y="568" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="61" value="salidas PWM / digital (0–100 %)" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="265" y="523" width="360" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════
+             CAPA 4 — Drivers
+             ══════════════════════════════════════════ -->
+        <mxCell id="70" value="Drivers de hardware  (solo Linux / Raspberry Pi 4)" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="568" width="880" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="71" value="DriverPCA9685&#xa;driverpca9685.h / .cpp&#xa;I2C bus 1 · addr 0x40&#xa;PWM 50 Hz · 6 canales" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="608" width="215" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="72" value="DriverXM125&#xa;driverxm125.h / .cpp&#xa;I2C bus 1 · radar&#xa;DIST_VACIO / DIST_LLENO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="265" y="608" width="215" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="73" value="QSerialPort&#xa;/dev/ttyUSB0 · 9600 baud&#xa;Modbus RTU binario&#xa;RK500-12 (0x03) + RK500-04 (0x0A)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="608" width="250" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Flecha Drivers → Hardware -->
+        <mxCell id="80" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#555555;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="445" y="690" as="sourcePoint" />
+            <mxPoint x="445" y="738" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="81" value="señales físicas I²C / RS-485 / HDMI" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="265" y="693" width="360" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════
+             CAPA 5 — Hardware
+             ══════════════════════════════════════════ -->
+        <mxCell id="90" value="Hardware  (Raspberry Pi 4  ·  Biorreactor airlift)" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="738" width="880" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="91" value="PCA9685  (I²C 0x40)&#xa;CH0 → Calentador&#xa;CH1 → Bomba Etanol&#xa;CH2 → Bomba Agua&#xa;CH3 → Iluminación&#xa;CH5 → Bomba Nivel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="778" width="165" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="92" value="XM125&#xa;Sensor nivel&#xa;radar I²C&#xa;Tanque airlift" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="215" y="778" width="145" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="93" value="DS3231 RTC&#xa;I²C 0x68&#xa;Timestamps CSV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="215" y="868" width="145" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="94" value="RK500-12&#xa;Sensor pH&#xa;Slave 0x03&#xa;RS-485" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="778" width="135" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="95" value="RK500-04&#xa;Sensor DO&#xa;Slave 0x0A&#xa;RS-485" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="778" width="135" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="96" value="Amplificador 12 V&#xa;Jack 3.5 mm&#xa;amixer cset numid=3 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="685" y="778" width="175" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="97" value="Pantalla táctil 7&quot;&#xa;HDMI + USB HID&#xa;800 × 480 px" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="685" y="855" width="175" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════
+             CAPA PERSISTENCIA (panel lateral derecho)
+             ══════════════════════════════════════════ -->
+        <mxCell id="100" value="Persistencia" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="910" y="215" width="220" height="365" as="geometry" />
+        </mxCell>
+        <mxCell id="101" value="biorreactor.ini&#xa;QSettings&#xa;Setpoints actuales" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="925" y="255" width="190" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="102" value="datos_guardados.json&#xa;registro_experimentos.json&#xa;lecturas_Proy_Exp.json&#xa;Documentos/Biorreactor/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="925" y="330" width="190" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="103" value="CSV exportados&#xa;Proy/Exp/sensores_*.csv&#xa;+ copia en USB&#xa;Temp · pH · Nivel · Luz · DO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="925" y="425" width="190" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Flecha Backend ↔ Persistencia -->
+        <mxCell id="110" value="guardar / cargar" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=9;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="31" target="101" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Flecha GestorAudio → Amplificador -->
+        <mxCell id="111" value="QSoundEffect" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=9;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="32" target="96" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

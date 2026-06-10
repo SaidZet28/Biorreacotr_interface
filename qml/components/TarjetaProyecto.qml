@@ -19,7 +19,7 @@ Rectangle {
     radius: 20
 
     Image {
-        source: "../Engrane.png"
+        source: "../../Engrane.png"
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: parent.width * 0.05

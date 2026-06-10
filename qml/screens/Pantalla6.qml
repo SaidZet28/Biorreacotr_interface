@@ -198,7 +198,7 @@ Item {
     }
 
     Image {
-        source: "../Hongo_4.png"
+        source: "../../Hongo_4.png"
         anchors.right: parent.right
         anchors.rightMargin: parent.width * 0.08
         anchors.verticalCenter: parent.verticalCenter
@@ -411,7 +411,7 @@ Item {
                 color: "black"
             }
             Image {
-                source: "../Alerta.png"
+                source: "../../Alerta.png"
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: -parent.height * 0.03
                 height: parent.height * 0.35

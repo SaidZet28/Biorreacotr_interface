@@ -41,7 +41,7 @@ Item {
                 height: width
                 radius: 20
                 color: areaLapiz.pressed ? "#d1d5db" : "#F3F4F6"
-                Image { source: "../Lapiz.png"; anchors.centerIn: parent; width: parent.width * 0.6; fillMode: Image.PreserveAspectFit }
+                Image { source: "../../Lapiz.png"; anchors.centerIn: parent; width: parent.width * 0.6; fillMode: Image.PreserveAspectFit }
                 MouseArea { id: areaLapiz; anchors.fill: parent; onClicked: editarSolicitado() }
             }
 
@@ -50,7 +50,7 @@ Item {
                 height: width
                 radius: 20
                 color: areaPapelera.pressed ? "#d1d5db" : "#F3F4F6"
-                Image { source: "../Basura.png"; anchors.centerIn: parent; width: parent.width * 0.6; fillMode: Image.PreserveAspectFit }
+                Image { source: "../../Basura.png"; anchors.centerIn: parent; width: parent.width * 0.6; fillMode: Image.PreserveAspectFit }
                 MouseArea { id: areaPapelera; anchors.fill: parent; onClicked: borrarSolicitado() }
             }
         }

@@ -227,7 +227,7 @@ Item {
                                 }
                                 Image {
                                     visible: root.stPH4 === 1
-                                    source: "../Hongo_5.png"
+                                    source: "../../Hongo_5.png"
                                     anchors.centerIn: parent
                                     width: parent.height * 0.60; height: width
                                     fillMode: Image.PreserveAspectFit
@@ -253,7 +253,7 @@ Item {
                                 color: stPH7 === 0 ? (maPH7.pressed ? "#2d6a9a" : "#3B82C4") : stPH7 === 1 ? "#999999" : stPH7 === 2 ? "#4CAF50" : "#FF5252"
                                 Text { anchors.centerIn: parent; visible: root.stPH7 === 0; text: "pH 7"; font.pixelSize: parent.height * 0.35; font.bold: true; color: "white" }
                                 Image {
-                                    visible: root.stPH7 === 1; source: "../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
+                                    visible: root.stPH7 === 1; source: "../../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
                                     SequentialAnimation on rotation {
                                         loops: Animation.Infinite; running: root.stPH7 === 1
                                         NumberAnimation { from: 0; to: 360; duration: 600 }
@@ -271,7 +271,7 @@ Item {
                                 color: stPH10 === 0 ? (maPH10.pressed ? "#2d6a9a" : "#3B82C4") : stPH10 === 1 ? "#999999" : stPH10 === 2 ? "#4CAF50" : "#FF5252"
                                 Text { anchors.centerIn: parent; visible: root.stPH10 === 0; text: "pH 10"; font.pixelSize: parent.height * 0.35; font.bold: true; color: "white" }
                                 Image {
-                                    visible: root.stPH10 === 1; source: "../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
+                                    visible: root.stPH10 === 1; source: "../../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
                                     SequentialAnimation on rotation {
                                         loops: Animation.Infinite; running: root.stPH10 === 1
                                         NumberAnimation { from: 0; to: 360; duration: 600 }
@@ -371,7 +371,7 @@ Item {
                                 color: stDO === 0 ? (maCalDO.pressed ? "#2d6a9a" : "#3B82C4") : stDO === 1 ? "#999999" : stDO === 2 ? "#4CAF50" : "#FF5252"
                                 Text { anchors.centerIn: parent; visible: root.stDO === 0; width: parent.width * 0.90; text: qsTranslate("Main", "Calibrar"); font.pixelSize: parent.height * 0.33; fontSizeMode: Text.Fit; minimumPixelSize: parent.height * 0.17; font.bold: true; color: "white"; horizontalAlignment: Text.AlignHCenter }
                                 Image {
-                                    visible: root.stDO === 1; source: "../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
+                                    visible: root.stDO === 1; source: "../../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
                                     SequentialAnimation on rotation {
                                         loops: Animation.Infinite; running: root.stDO === 1
                                         NumberAnimation { from: 0; to: 360; duration: 600 }
@@ -434,7 +434,7 @@ Item {
                             color: stNivel === 0 ? (maCalNivel.pressed ? "#2d6a9a" : "#3B82C4") : stNivel === 1 ? "#999999" : stNivel === 2 ? "#4CAF50" : "#FF5252"
                             Text { anchors.centerIn: parent; visible: root.stNivel === 0; width: parent.width * 0.90; text: qsTranslate("Main", "Calibrar"); font.pixelSize: parent.height * 0.33; fontSizeMode: Text.Fit; minimumPixelSize: parent.height * 0.17; font.bold: true; color: "white"; horizontalAlignment: Text.AlignHCenter }
                             Image {
-                                visible: root.stNivel === 1; source: "../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
+                                visible: root.stNivel === 1; source: "../../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
                                 SequentialAnimation on rotation {
                                         loops: Animation.Infinite; running: root.stNivel === 1
                                         NumberAnimation { from: 0; to: 360; duration: 600 }

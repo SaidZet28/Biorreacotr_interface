@@ -153,7 +153,7 @@ Item {
             radius: width * 0.35
             color: areaMouseEngrane8.pressed ? "#9ca3af" : "#B3B3B3"
             Image {
-                source: "../Engrane.png"
+                source: "../../Engrane.png"
                 anchors.centerIn: parent
                 width: parent.width * 0.65
                 height: parent.height * 0.65
@@ -229,7 +229,7 @@ Item {
 
         Image {
             id: btnPlayPausa
-            source: "../Play_Pause.png"
+            source: "../../Play_Pause.png"
             anchors.right: imgHongoOculto.left
             anchors.rightMargin: appWindow.width * 0.02
             anchors.verticalCenter: parent.verticalCenter
@@ -246,7 +246,7 @@ Item {
 
         Image {
             id: imgHongoOculto
-            source: "../Hongo_6.png"
+            source: "../../Hongo_6.png"
             anchors.right: parent.right
             anchors.rightMargin: appWindow.width * 0.03
             anchors.bottom: parent.bottom

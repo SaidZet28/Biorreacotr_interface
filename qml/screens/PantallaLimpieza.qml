@@ -20,7 +20,7 @@ Item {
     }
 
     Image {
-        source: "../Hongo_8.png"
+        source: "../../Hongo_8.png"
         anchors.left: parent.left
         anchors.leftMargin: appWindow.width * 0.05
         anchors.bottom: parent.bottom
@@ -30,7 +30,7 @@ Item {
     }
 
     Image {
-        source: "../Hongo_9.png"
+        source: "../../Hongo_9.png"
         anchors.right: parent.right
         anchors.rightMargin: appWindow.width * 0.05
         anchors.bottom: parent.bottom

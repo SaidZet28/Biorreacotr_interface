@@ -198,7 +198,7 @@ Item {
             border.color: "black"
             border.width: 1
             Image {
-                source: "../Basura.png"
+                source: "../../Basura.png"
                 anchors.centerIn: parent
                 width: parent.width * 0.6
                 height: parent.height * 0.6
@@ -480,7 +480,7 @@ Item {
                 visible: !root.exportarExito && !root.exportarError && root.rutaUSBDetectada === ""
 
                 Image {
-                    source: "../Alerta.png"
+                    source: "../../Alerta.png"
                     height: parent.parent.height * 0.22
                     fillMode: Image.PreserveAspectFit
                     anchors.verticalCenter: parent.verticalCenter
@@ -533,7 +533,7 @@ Item {
                 }
 
                 Image {
-                    source: "../Alerta.png"
+                    source: "../../Alerta.png"
                     height: parent.parent.height * 0.22
                     fillMode: Image.PreserveAspectFit
                     anchors.verticalCenter: parent.verticalCenter

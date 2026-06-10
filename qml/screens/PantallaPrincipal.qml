@@ -9,7 +9,7 @@ Item {
     visible: appWindow.estadoActual === "pantalla_principal"
 
     Image {
-        source: "../Hongo_3.png"
+        source: "../../Hongo_3.png"
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.margins: parent.width * 0.02
@@ -68,7 +68,7 @@ Item {
         color: areaMouseEngrane.pressed ? "#9ca3af" : "#B3B3B3"
 
         Image {
-            source: "../Engrane.png"
+            source: "../../Engrane.png"
             anchors.centerIn: parent
             width: parent.width * 0.65
             height: parent.height * 0.65

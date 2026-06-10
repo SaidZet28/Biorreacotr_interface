@@ -83,7 +83,7 @@ Item {
     }
 
     Image {
-        source: "../Hongo_7.png"
+        source: "../../Hongo_7.png"
         anchors.right: parent.right
         anchors.rightMargin: appWindow.width * 0.05
         anchors.verticalCenter: parent.verticalCenter

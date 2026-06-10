@@ -14,7 +14,7 @@ Item {
         spacing: appWindow.height * 0.04
 
         Image {
-            source: "../Alerta.png"
+            source: "../../Alerta.png"
             height: appWindow.height * 0.35
             fillMode: Image.PreserveAspectFit
             anchors.horizontalCenter: parent.horizontalCenter

@@ -3,6 +3,7 @@
 #include <QQmlContext>
 #include <QQuickWindow>
 #include <QFont>
+#include <QFontDatabase>
 #include "translationmanager.h"
 #include "gestorbiorreactor.h"
 #include "gestoraudio.h"
@@ -16,12 +17,10 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
 #ifdef Q_OS_LINUX
-    QFont defaultFont;
-    const QStringList candidates = {"Noto Sans", "DejaVu Sans", "Liberation Sans", "FreeSans"};
-    for (const QString &family : candidates) {
-        defaultFont.setFamily(family);
-        if (defaultFont.exactMatch()) { QGuiApplication::setFont(defaultFont); break; }
-    }
+    QFontDatabase::addApplicationFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
+    QFontDatabase::addApplicationFont("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf");
+    QFont defaultFont("DejaVu Sans");
+    QGuiApplication::setFont(defaultFont);
 #endif
 
     GestorBiorreactor backend;

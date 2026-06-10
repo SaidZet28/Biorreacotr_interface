@@ -14,7 +14,8 @@ if(SIMULACION)
 endif()
 
 # 1. Buscamos los paquetes requeridos
-find_package(Qt6 REQUIRED COMPONENTS Quick Charts LinguistTools SerialPort Multimedia)
+find_package(Qt6 REQUIRED COMPONENTS Quick Charts SerialPort Multimedia)
+find_package(Qt6 OPTIONAL_COMPONENTS LinguistTools)
 
 if(MINGW)
     add_compile_options("-Wa,-mbig-obj")
@@ -119,15 +120,29 @@ qt_add_resources(appPrototipo "audioRes"
 )
 
 # 6. Traducciones
-qt_add_translations(appPrototipo
-    TS_FILES
-        translations/appPrototipo_en.ts
-        translations/appPrototipo_de.ts
-        translations/appPrototipo_fr.ts
-        translations/appPrototipo_zh.ts
-        translations/appPrototipo_ja.ts
-    RESOURCE_PREFIX "/i18n"
-)
+if(Qt6LinguistTools_FOUND)
+    qt_add_translations(appPrototipo
+        TS_FILES
+            translations/appPrototipo_en.ts
+            translations/appPrototipo_de.ts
+            translations/appPrototipo_fr.ts
+            translations/appPrototipo_zh.ts
+            translations/appPrototipo_ja.ts
+        RESOURCE_PREFIX "/i18n"
+    )
+else()
+    message(STATUS "LinguistTools no encontrado — usando .qm precompilados")
+    qt_add_resources(appPrototipo "i18nRes"
+        PREFIX "/i18n"
+        BASE "translations"
+        FILES
+            translations/appPrototipo_en.qm
+            translations/appPrototipo_de.qm
+            translations/appPrototipo_fr.qm
+            translations/appPrototipo_zh.qm
+            translations/appPrototipo_ja.qm
+    )
+endif()
 
 # Configuraciones extra
 set_target_properties(appPrototipo PROPERTIES

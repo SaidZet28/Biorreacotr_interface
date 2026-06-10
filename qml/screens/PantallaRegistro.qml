@@ -1,4 +1,5 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
+import Prototipo
 import QtQuick.Controls 2.15
 
 Item {
@@ -137,11 +138,22 @@ Item {
                 }
                 Item {
                     width: parent.width * 0.18; height: parent.height
-                    Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: model.tiempo; font.pixelSize: parent.height * 0.35; font.bold: true; color: "black"; horizontalAlignment: Text.AlignLeft }
+                    Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; width: parent.width - 10; text: model.tiempo; font.pixelSize: parent.height * 0.35; font.bold: true; color: "black"; elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft }
                 }
                 Item {
                     width: parent.width * 0.12; height: parent.height
-                    Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: model.peso; font.pixelSize: parent.height * 0.35; font.bold: true; color: "black"; horizontalAlignment: Text.AlignLeft }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left; anchors.leftMargin: 10
+                        width: parent.width - 10
+                        text: model.peso
+                        font.pixelSize: parent.height * 0.35
+                        font.bold: true
+                        color: "black"
+                        fontSizeMode: Text.HorizontalFit
+                        minimumPixelSize: 8
+                        elide: Text.ElideRight
+                    }
                 }
 
                 Item {
@@ -321,6 +333,29 @@ Item {
             color: Qt.rgba(0.8, 0.8, 0.8, 0.95)
             radius: 20
 
+            // Botón regresar (esquina superior derecha)
+            Rectangle {
+                width: appWindow.width * 0.07
+                height: appWindow.height * 0.07
+                radius: height / 2
+                anchors.top: parent.top
+                anchors.topMargin: parent.height * 0.04
+                anchors.right: parent.right
+                anchors.rightMargin: parent.width * 0.03
+                color: areaCerrarExportar.pressed ? "#cc1e1e" : "#FF2D2D"
+                Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.65; font.bold: true; color: "black" }
+                MouseArea {
+                    id: areaCerrarExportar
+                    anchors.fill: parent
+                    onClicked: {
+                        root.mostrarPopupExportar = false
+                        root.exportarExito = false
+                        root.exportarError = false
+                        root.rutaUSBDetectada = ""
+                    }
+                }
+            }
+
             // ── Estado: éxito ──────────────────────────────────────────────
             Column {
                 anchors.centerIn: parent
@@ -446,7 +481,7 @@ Item {
 
                 Image {
                     source: "Alerta.png"
-                    height: parent.parent.height * 0.40
+                    height: parent.parent.height * 0.22
                     fillMode: Image.PreserveAspectFit
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -499,7 +534,7 @@ Item {
 
                 Image {
                     source: "Alerta.png"
-                    height: parent.parent.height * 0.40
+                    height: parent.parent.height * 0.22
                     fillMode: Image.PreserveAspectFit
                     anchors.verticalCenter: parent.verticalCenter
                 }

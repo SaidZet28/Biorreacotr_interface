@@ -499,12 +499,12 @@ finalizado</source>
     <message>
         <location filename="GraficaChart.qml" line="44"/>
         <source>Temperatura °</source>
-        <translation type="unfinished"></translation>
+        <translation>温度 °</translation>
     </message>
     <message>
         <location filename="GraficaChart.qml" line="45"/>
         <source>Nivel de Agua</source>
-        <translation type="unfinished"></translation>
+        <translation>水位</translation>
     </message>
     <message>
         <location filename="GraficaChart.qml" line="46"/>
@@ -521,12 +521,12 @@ finalizado</source>
     <message>
         <location filename="GraficaChart.qml" line="79"/>
         <source>Sensor</source>
-        <translation type="unfinished"></translation>
+        <translation>传感器</translation>
     </message>
     <message>
         <location filename="GraficaChart.qml" line="86"/>
         <source>Setpoint</source>
-        <translation type="unfinished"></translation>
+        <translation>设定值</translation>
     </message>
     <message>
         <location filename="PantallaPostProceso.qml" line="22"/>
@@ -663,66 +663,67 @@ biorreactor ;)</source>
     <message>
         <location filename="Pantalla7.qml" line="101"/>
         <source>CALIBRACIÓN</source>
-        <translation type="unfinished"></translation>
+        <translation>校准</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="125"/>
         <source>Nivel</source>
-        <translation type="unfinished"></translation>
+        <translation>液位</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="146"/>
         <source>Calibrar Sensor pH</source>
-        <translation type="unfinished"></translation>
+        <translation>校准pH传感器</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="156"/>
         <location filename="Pantalla7.qml" line="304"/>
         <location filename="Pantalla7.qml" line="373"/>
         <source>Calibrado</source>
-        <translation type="unfinished"></translation>
+        <translation>已校准</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="277"/>
         <source>Puntos medidos: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>测量点数：%1</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="303"/>
         <source>Calibrar Sensor DO</source>
-        <translation type="unfinished"></translation>
+        <translation>校准DO传感器</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="324"/>
         <source>Asegúrate de que el sensor se encuentre seco</source>
-        <translation type="unfinished"></translation>
+        <translation>确保传感器干燥</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="337"/>
         <location filename="Pantalla7.qml" line="391"/>
         <source>Calibrar</source>
-        <translation type="unfinished"></translation>
+        <translation>校准</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="372"/>
         <source>Calibrar Sensor Nivel</source>
-        <translation type="unfinished"></translation>
+        <translation>校准液位传感器</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="464"/>
         <source>Hay sensores sin calibrar.
 ¿Desea continuar de todas formas?</source>
-        <translation type="unfinished"></translation>
+        <translation>有未校准的传感器。
+您确定要继续吗？</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="477"/>
         <source>Continuar</source>
-        <translation type="unfinished"></translation>
+        <translation>继续</translation>
     </message>
     <message>
         <location filename="Pantalla7.qml" line="486"/>
         <source>Regresar</source>
-        <translation type="unfinished"></translation>
+        <translation>返回</translation>
     </message>
 </context>
 </TS>

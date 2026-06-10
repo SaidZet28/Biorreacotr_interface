@@ -30,37 +30,40 @@ qt_add_executable(appPrototipo
 qt_add_qml_module(appPrototipo
     URI Prototipo
     QML_FILES
-        Main.qml
-        BotonAccionVerde.qml
-        BarraDisplaySensor.qml
-        BarraInputConfig.qml
-        CabeceraPersistente.qml
-        PopupIngresoNombre.qml
-        PopupConfirmarProceso.qml
-        TecladoQwerty.qml
-        TecladoNumerico.qml
-        PantallaCarga.qml
-        PantallaError.qml
-        PantallaPrincipal.qml
-        PantallaAjustes.qml
-        PantallaNuevoProyecto.qml
-        Pantalla6.qml
-        Pantalla7.qml
-        PantallaPreparacion.qml
-        PantallaProcesos.qml
-        GraficaChart.qml
-        PantallaProyectosGuardados.qml
-        TarjetaProyecto.qml
-        PopupOpcionesProyecto.qml
-        PopupBorrarProyecto.qml
-        PopupEdicionProyecto.qml
-        PopupConfirmarEdicion.qml
-        PantallaConfigGraficas.qml
-        PantallaPostProceso.qml
-        PantallaExtraccion.qml
-        PantallaGuardarConfig.qml
-        PantallaLimpieza.qml
-        PantallaRegistro.qml
+        # ── Pantallas ──────────────────────────────────────────────────────────
+        qml/screens/Main.qml
+        qml/screens/PantallaCarga.qml
+        qml/screens/PantallaError.qml
+        qml/screens/PantallaPrincipal.qml
+        qml/screens/PantallaAjustes.qml
+        qml/screens/PantallaNuevoProyecto.qml
+        qml/screens/Pantalla6.qml
+        qml/screens/Pantalla7.qml
+        qml/screens/PantallaPreparacion.qml
+        qml/screens/PantallaProcesos.qml
+        qml/screens/PantallaProyectosGuardados.qml
+        qml/screens/PantallaConfigGraficas.qml
+        qml/screens/PantallaPostProceso.qml
+        qml/screens/PantallaExtraccion.qml
+        qml/screens/PantallaGuardarConfig.qml
+        qml/screens/PantallaLimpieza.qml
+        qml/screens/PantallaRegistro.qml
+        # ── Componentes reutilizables ──────────────────────────────────────────
+        qml/components/BotonAccionVerde.qml
+        qml/components/BarraDisplaySensor.qml
+        qml/components/BarraInputConfig.qml
+        qml/components/CabeceraPersistente.qml
+        qml/components/TecladoQwerty.qml
+        qml/components/TecladoNumerico.qml
+        qml/components/GraficaChart.qml
+        qml/components/TarjetaProyecto.qml
+        # ── Popups ─────────────────────────────────────────────────────────────
+        qml/popups/PopupIngresoNombre.qml
+        qml/popups/PopupConfirmarProceso.qml
+        qml/popups/PopupOpcionesProyecto.qml
+        qml/popups/PopupBorrarProyecto.qml
+        qml/popups/PopupEdicionProyecto.qml
+        qml/popups/PopupConfirmarEdicion.qml
     SOURCES
         src/backend/translationmanager.h    src/backend/translationmanager.cpp
         src/backend/gestorbiorreactor.h     src/backend/gestorbiorreactor.cpp

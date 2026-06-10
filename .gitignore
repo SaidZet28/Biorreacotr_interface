@@ -1,14 +1,94 @@
-# Ignorar directorios de compilacion
+# ============================================================
+# .gitignore — Biorreactor Qt6/C++ + Python
+# ============================================================
+
+# ------------------------------------
+# Artefactos de compilacion (Qt/CMake)
+# ------------------------------------
 build/
-build-*/
-*/build/*
-# Ignorar archivos temporales de CMake
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.exe
+*.out
+*.app
+*.pdb
+*.ilk
+
+# Archivos generados por moc/uic/rcc de Qt
+*_autogen/
+moc_*.cpp
+moc_predefs.h
+qrc_*.cpp
+ui_*.h
+
+# Cache de QML compilado
+.rcc/
+*.qmlc
+*.jsc
+
+# ------------------------------------
+# Archivos de Qt Creator / CMake
+# ------------------------------------
 CMakeCache.txt
 CMakeFiles/
-Makefile
-*.cmake
 cmake_install.cmake
-# Ignorar configuraciones locales de Qt Creator
+install_manifest.txt
+CTestTestfile.cmake
 *.user
 *.user.*
-.qtcreator/
+*.pro.user
+.qmake.stash
+.qmake.cache
+
+# ------------------------------------
+# Python
+# ------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.env
+venv/
+.venv/
+*.egg-info/
+
+# ------------------------------------
+# Audio generado (se regenera con generar_sonidos.py)
+# ------------------------------------
+audio/*.wav
+audio/*.mp3
+audio/*.ogg
+
+# ------------------------------------
+# Archivos de sistema operativo
+# ------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ------------------------------------
+# IDEs y editores
+# ------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ------------------------------------
+# Archivos internos de Claude Code
+# ------------------------------------
+.claude/
+
+# ------------------------------------
+# Bases de datos y datos de usuario en runtime
+# ------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+proyectos/
+registros/
+logs/

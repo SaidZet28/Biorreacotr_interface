@@ -9,6 +9,7 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include <cmath>
+#include <pigpio.h>
 #ifndef I2C_SLAVE
 #define I2C_SLAVE 0x0703
 #endif
@@ -38,6 +39,14 @@ bool DriverPCA9685::inicializar(int bus, int frecuenciaHz)
         return false;
     }
 
+    // Inicializar pigpio y configurar OE (GPIO17)
+    if (gpioInitialise() < 0)
+        qWarning() << "[PCA9685] pigpio init falló — OE sin control";
+    else {
+        gpioSetMode(GPIO_OE_PCA9685, PI_OUTPUT);
+        gpioWrite(GPIO_OE_PCA9685, 1);   // HIGH mientras se configura el chip
+    }
+
     // Sleep para configurar prescaler (datasheet: esperar ≥500 µs antes de escribir PRESCALE)
     escribirRegistro(REG_MODE1, 0x10);
     usleep(500);
@@ -51,6 +60,7 @@ bool DriverPCA9685::inicializar(int bus, int frecuenciaHz)
     usleep(500);
     escribirRegistro(REG_MODE1, 0xA0);
 
+    gpioWrite(GPIO_OE_PCA9685, 0);   // LOW: habilitar salidas PWM
     qDebug() << "[PCA9685] Inicializado en" << dev << "— I2C bus" << PCA9685_I2C_BUS << "@" << frecuenciaHz << "Hz";
     return true;
 #else
@@ -64,11 +74,22 @@ void DriverPCA9685::cerrar()
 {
 #ifdef Q_OS_LINUX
     if (m_fd >= 0) {
+        gpioWrite(GPIO_OE_PCA9685, 1);       // deshabilitar salidas antes de cerrar
         for (int i = 0; i < 16; ++i) escribirCanal(i, 0);
         ::close(m_fd);
         m_fd = -1;
+        gpioTerminate();
         qDebug() << "[PCA9685] Cerrado";
     }
+#endif
+}
+
+void DriverPCA9685::habilitarSalidas(bool activo)
+{
+#ifdef Q_OS_LINUX
+    gpioWrite(GPIO_OE_PCA9685, activo ? 0 : 1);
+#else
+    Q_UNUSED(activo)
 #endif
 }
 

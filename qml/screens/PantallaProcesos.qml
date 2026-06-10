@@ -1,4 +1,5 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
+import Prototipo
 import QtQuick.Controls 2.15
 
 Item {
@@ -107,9 +108,9 @@ Item {
             radius: height / 2
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Agua: %1%").arg(backend.sensorNivel.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Nivel: %1%").arg(backend.sensorNivel.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Nivel: %1%").arg(backend.sensorNivel.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Objetivo: %1%").arg(backend.nivelLlenadoPct.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
             width: parent.width

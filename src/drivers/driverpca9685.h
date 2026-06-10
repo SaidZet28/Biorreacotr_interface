@@ -29,6 +29,9 @@ public:
     // Digital: 0 o 4095
     void escribirDigital(int canal, bool activo);
 
+    // OE pin (GPIO17): LOW = salidas activas, HIGH = todos los canales deshabilitados
+    void habilitarSalidas(bool activo);
+
     bool conectado() const { return m_fd >= 0; }
 
 private:

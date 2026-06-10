@@ -4,6 +4,7 @@
 #include <QSerialPort>
 #include <QTimer>
 #include <QDateTime>
+#include <QMetaObject>
 
 #include "controladorpid.h"
 #include "controladorfuzzy.h"
@@ -25,7 +26,7 @@ class GestorBiorreactor : public QObject
     // ── Setpoints ─────────────────────────────────────────────────────────────
     Q_PROPERTY(double setpointTem   READ setpointTem   WRITE setSetpointTem   NOTIFY setpointTemChanged   FINAL)
     Q_PROPERTY(double setpointPH    READ setpointPH    WRITE setSetpointPH    NOTIFY setpointPHChanged    FINAL)
-    Q_PROPERTY(double setpointNivel READ setpointNivel WRITE setSetpointNivel NOTIFY setpointNivelChanged FINAL)
+    Q_PROPERTY(double nivelLlenadoPct READ nivelLlenadoPct CONSTANT)
     Q_PROPERTY(double setpointLuz   READ setpointLuz   WRITE setSetpointLuz   NOTIFY setpointLuzChanged   FINAL)
 
     // ── Alertas watchdog ──────────────────────────────────────────────────────
@@ -77,12 +78,11 @@ public:
 
     double setpointTem()   const;
     double setpointPH()    const;
-    double setpointNivel() const;
+    double nivelLlenadoPct() const;
     double setpointLuz()   const;
 
     void setSetpointTem  (double v);
     void setSetpointPH   (double v);
-    void setSetpointNivel(double v);
     void setSetpointLuz  (double v);
 
     bool alertaDivergenciaTemp() const;
@@ -158,7 +158,6 @@ signals:
 
     void setpointTemChanged();
     void setpointPHChanged();
-    void setpointNivelChanged();
     void setpointLuzChanged();
 
     void alertaDivergenciaTempChanged();
@@ -196,6 +195,7 @@ private slots:
     void tickSimulacion();
     void registrarLectura();
     void tickPreparacion();
+    void onCrucePorCero();
 
 private:
     void actualizarTemperaturaFusionada();
@@ -204,6 +204,7 @@ private:
     void setSensorTem  (double v);
     void setSensorPH   (double v);
     void setSensorNivel(double v);
+    void setSetpointNivel(double) {} // stub vacío — nivel ya no es configurable por usuario
     void setSensorLuz  (double v);
     void setSensorDO   (double v);
 
@@ -234,7 +235,6 @@ private:
     // ── Setpoints ─────────────────────────────────────────────────────────────
     double m_setpointTem   = 0.0;
     double m_setpointPH    = 0.0;
-    double m_setpointNivel = 0.0;
     double m_setpointLuz   = 0.0;
 
     // ── Alertas ───────────────────────────────────────────────────────────────
@@ -293,6 +293,14 @@ private:
     QDateTime m_ultimaLecturaRS485;
     QDateTime m_ultimaLecturaI2C;
     QDateTime m_tiempoInicioRegistro;
+
+    // ── Cruce por cero — burst firing para calentador ────────────────────────────
+    // El callback (GPIO27) cuenta semiciclos AC; onCrucePorCero() dispara CH_CALENTADOR
+    // según la potencia calculada por el PID (0-100 en ventana de 100 semiciclos).
+    int  m_zcContador   = 0;
+    int  m_zcTotal      = 0;
+    bool m_zcDisparando = false;
+    static void callbackZC(int gpio, int level, uint32_t tick, void *userdata);
 
     double m_tickSim  = 0.0;
     int    m_nivelPaso  = 0;   // 0 = iniciar medición XM125, 1 = leer resultado

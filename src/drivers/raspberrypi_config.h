@@ -9,17 +9,29 @@
 //  ┌──────────────────────────────────────────────┐
 //  │  Pin 1  → 3.3 V (alimentación sensores)      │
 //  │  Pin 2  → 5 V   (alimentación PCA9685)       │
-//  │  Pin 3  → GPIO2 / SDA  ← I2C Bus 1 (datos)  │
-//  │  Pin 5  → GPIO3 / SCL  ← I2C Bus 1 (reloj)  │
+//  │  Pin 3  → GPIO2 / SDA  ← I2C Bus 1 (datos)   │
+//  │  Pin 5  → GPIO3 / SCL  ← I2C Bus 1 (reloj)   │
 //  │  Pin 6  → GND          ← masa común          │
-//  │  Pin 8  → GPIO14/ TXD  ← UART (RS-485 TX)   │  ← opcional si se usa
-//  │  Pin 10 → GPIO15/ RXD  ← UART (RS-485 RX)   │    ttyAMA0 en lugar de
-//  │                                               │    adaptador USB
+//  │  Pin 8  → GPIO14/ TXD  ← UART (RS-485 TX)    │
+//  │  Pin 10 → GPIO15/ RXD  ← UART (RS-485 RX)    │
+//  │                                              │
+//  │  Pin 11 → GPIO17       ← OE PCA9685          │
+//  │  Pin 13 → GPIO27       ← Cruce por cero AC   │
 //  └──────────────────────────────────────────────┘
 //
 //  Para habilitar I2C: agregar  dtparam=i2c_arm=on  en /boot/firmware/config.txt
 //  Para habilitar UART nativo: dtoverlay=disable-bt (libera ttyAMA0 del Bluetooth)
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ── GPIO ─────────────────────────────────────────────────────────────────────
+// Pin físico 11 → BCM 17: Output Enable del PCA9685 (activo LOW)
+//   LOW  → PWM activos  |  HIGH → todos los canales deshabilitados (parada segura)
+// Requiere pigpio. Salida digital.
+static constexpr int GPIO_OE_PCA9685 = 17;
+
+// Pin físico 13 → BCM 27: detección de cruce por cero AC del calentador
+// Requiere pigpio (pigpiod corriendo). Entrada — interrupción en flanco de subida.
+static constexpr int GPIO_ZERO_CROSS = 27;
 
 // ── I2C ─────────────────────────────────────────────────────────────────────
 // Bus I2C-1: GPIO2 (SDA, pin físico 3) + GPIO3 (SCL, pin físico 5)
@@ -51,9 +63,9 @@ static constexpr double DIST_VACIO_MM   = 400.0;
 static constexpr double DIST_LLENO_MM  =  50.0;
 
 // ── RS-485 — Sensores pH (RK50012) y DO (RK50004) ───────────────────────────
-// Adaptador: USB-RS485 → /dev/ttyUSB0  (detección automática en la app)
-// Alternativa nativa: GPIO14/GPIO15 → /dev/ttyAMA0 (requiere dtoverlay=disable-bt)
-static constexpr int SERIAL_BAUD = 115200;   // 8N1, sin control de flujo
+// Puerto: GPIO14 (TXD, pin 8) + GPIO15 (RXD, pin 10) → /dev/ttyAMA0
+// Requiere dtoverlay=disable-bt en /boot/firmware/config.txt (libera ttyAMA0 del BT)
+static constexpr int    SERIAL_BAUD       = 9600;    // 8N1, sin control de flujo — Modbus RTU
 
 // ── Llenado óptimo — Mezcla inicial por pH ───────────────────────────────────
 // Volumen total del biorreactor
@@ -72,3 +84,7 @@ static constexpr double CAUDAL_BOMBA_B_ML_S    = 5.0;
 
 // Nivel mínimo para que el sensor de pH haga contacto con el líquido [%]
 static constexpr double NIVEL_CONTACTO_PH_PCT  = 20.0;
+
+// Nivel de llenado objetivo del biorreactor [%]
+// CALIBRAR: medir DIST_VACIO_MM y DIST_LLENO_MM en campo y ajustar este porcentaje
+static constexpr double NIVEL_LLENADO_PCT      = 85.0;

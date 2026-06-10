@@ -20,6 +20,9 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
+#if defined(Q_OS_LINUX) && !defined(SIMULACION_ACTIVA)
+#include <pigpio.h>
+#endif
 
 // Carpeta raíz donde se almacenan todos los datos de la aplicación.
 // Linux (Raspberry Pi): ~/Documents/Biorreactor
@@ -115,6 +118,16 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
     m_pca9685.inicializar(1, 50);
     m_xm125.inicializar(1);
 
+#ifdef Q_OS_LINUX
+    // Cruce por cero — pigpio ya inicializado por DriverPCA9685::inicializar()
+    gpioSetMode(GPIO_ZERO_CROSS, PI_INPUT);
+    gpioSetPullUpDown(GPIO_ZERO_CROSS, PI_PUD_DOWN);
+    if (gpioSetAlertFuncEx(GPIO_ZERO_CROSS, &GestorBiorreactor::callbackZC, this) != 0)
+        qWarning() << "[ZC] No se pudo registrar callback en GPIO" << GPIO_ZERO_CROSS;
+    else
+        qDebug() << "[ZC] Burst firing activo en GPIO" << GPIO_ZERO_CROSS;
+#endif
+
     buscarYConectar();
 #else
     // Modo simulación: generar datos sintéticos cada segundo
@@ -131,12 +144,10 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
 GestorBiorreactor::~GestorBiorreactor()
 {
 #ifndef SIMULACION_ACTIVA
-    if (m_procesoActivo) {
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_CALENTADOR,   0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
-        m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_NIVEL,  false);
-    }
+#ifdef Q_OS_LINUX
+    gpioSetAlertFuncEx(GPIO_ZERO_CROSS, nullptr, nullptr);  // desregistrar callback ZC
+#endif
+    m_pca9685.habilitarSalidas(false);   // OE HIGH — corte inmediato de todos los actuadores
     if (m_puerto.isOpen()) m_puerto.close();
 #endif
     guardarConfiguracion();
@@ -179,7 +190,7 @@ void GestorBiorreactor::setSensorDO(double v) {
 
 double GestorBiorreactor::setpointTem()   const { return m_setpointTem;   }
 double GestorBiorreactor::setpointPH()    const { return m_setpointPH;    }
-double GestorBiorreactor::setpointNivel() const { return m_setpointNivel; }
+double GestorBiorreactor::nivelLlenadoPct() const { return NIVEL_LLENADO_PCT; }
 double GestorBiorreactor::setpointLuz()   const { return m_setpointLuz;   }
 
 void GestorBiorreactor::setSetpointTem(double v) {
@@ -189,10 +200,6 @@ void GestorBiorreactor::setSetpointTem(double v) {
 void GestorBiorreactor::setSetpointPH(double v) {
     if (qAbs(m_setpointPH - v) < 1e-9) return;
     m_setpointPH = v; emit setpointPHChanged(); guardarConfiguracion();
-}
-void GestorBiorreactor::setSetpointNivel(double v) {
-    if (qAbs(m_setpointNivel - v) < 1e-9) return;
-    m_setpointNivel = v; emit setpointNivelChanged(); guardarConfiguracion();
 }
 void GestorBiorreactor::setSetpointLuz(double v) {
     if (qAbs(m_setpointLuz - v) < 1e-9) return;
@@ -233,6 +240,7 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
     m_procesoActivo = activo;
 
     if (activo) {
+        m_pca9685.habilitarSalidas(true);   // OE LOW — activar salidas PWM
         // Al activar el proceso completo, ambos controladores quedan habilitados
         if (!m_fuzzyPHHabilitado) {
             m_fuzzyPHHabilitado = true;
@@ -246,18 +254,23 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
         // Detener registro si estaba activo (evita pérdida silenciosa de datos)
         if (m_timerRegistro.isActive()) detenerRegistro();
 
-        // Estado seguro al detener: apagar actuadores, reiniciar controladores y flags
+        // Estado seguro: corte atómico de hardware, luego cero en todos los canales
+        m_pca9685.habilitarSalidas(false);   // OE HIGH — todos los actuadores off en hardware
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
+        m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_NIVEL,  false);
+        m_pca9685.escribirDigital   (DriverPCA9685::CH_CALENTADOR,   false);
+
         m_fuzzyPHHabilitado         = false;
         m_histeresisNivelHabilitado = false;
+        m_zcDisparando              = false;
+        m_zcContador                = 0;
+        m_zcTotal                   = 0;
         emit fuzzyPHHabilitadoChanged();
         emit histeresisNivelHabilitadoChanged();
 
         m_pidTemp.reiniciar();
         m_histeresisNivel.reiniciar();
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_CALENTADOR,   0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
-        m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_NIVEL,  false);
         m_salidaCalentador  = 0.0;
         m_salidaBombaEtanol = 0.0;
         m_salidaBombaAgua   = 0.0;
@@ -289,12 +302,10 @@ void GestorBiorreactor::cargarConfiguracion()
     s.beginGroup("Setpoints");
     m_setpointTem   = s.value("temperatura", 0.0).toDouble();
     m_setpointPH    = s.value("pH",          0.0).toDouble();
-    m_setpointNivel = s.value("nivel",       0.0).toDouble();
     m_setpointLuz   = s.value("luz",         0.0).toDouble();
     s.endGroup();
     emit setpointTemChanged();
     emit setpointPHChanged();
-    emit setpointNivelChanged();
     emit setpointLuzChanged();
 }
 
@@ -304,7 +315,6 @@ void GestorBiorreactor::guardarConfiguracion()
     s.beginGroup("Setpoints");
     s.setValue("temperatura", m_setpointTem);
     s.setValue("pH",          m_setpointPH);
-    s.setValue("nivel",       m_setpointNivel);
     s.setValue("luz",         m_setpointLuz);
     s.endGroup();
 }
@@ -314,7 +324,6 @@ void GestorBiorreactor::resetearSetpoints()
     bool changed = false;
     if (qAbs(m_setpointTem)   > 1e-9) { m_setpointTem   = 0.0; emit setpointTemChanged();   changed = true; }
     if (qAbs(m_setpointPH)    > 1e-9) { m_setpointPH    = 0.0; emit setpointPHChanged();    changed = true; }
-    if (qAbs(m_setpointNivel) > 1e-9) { m_setpointNivel = 0.0; emit setpointNivelChanged(); changed = true; }
     if (qAbs(m_setpointLuz)   > 1e-9) { m_setpointLuz   = 0.0; emit setpointLuzChanged();   changed = true; }
     if (changed) guardarConfiguracion();
 }
@@ -406,27 +415,27 @@ double  GestorBiorreactor::mlSustanciaB()          const { return m_mlSustanciaB
 QString GestorBiorreactor::textoTareaPreparacion() const
 {
     switch (m_estadoPreparacion) {
-    case 0:  return QString("Verificando el sistema...");
-    case 1:  return QString("Llenando el tanque con la mezcla calculada...");
-    case 2:  return QString("Estabilizando el sensor de pH...");
-    case 3:  return QString("Acondicionando el medio de cultivo...");
-    case 4:  return QString("Completando el llenado...");
-    case 5:  return QString("Verificando estabilidad final...");
-    case 6:  return QString("Tanque preparado");
-    default: return QString("Iniciando...");
+    case 0:  return QCoreApplication::translate("Main", "Verificando el sistema...");
+    case 1:  return QCoreApplication::translate("Main", "Llenando el tanque con la mezcla calculada...");
+    case 2:  return QCoreApplication::translate("Main", "Estabilizando el sensor de pH...");
+    case 3:  return QCoreApplication::translate("Main", "Acondicionando el medio de cultivo...");
+    case 4:  return QCoreApplication::translate("Main", "Completando el llenado...");
+    case 5:  return QCoreApplication::translate("Main", "Verificando estabilidad final...");
+    case 6:  return QCoreApplication::translate("Main", "Tanque preparado");
+    default: return QCoreApplication::translate("Main", "Iniciando...");
     }
 }
 
 QString GestorBiorreactor::textoDetallePreparacion() const
 {
     switch (m_estadoPreparacion) {
-    case 0:  return QString("Comprobando que las válvulas de drenaje estén cerradas y que todos los sensores estén disponibles.");
-    case 1:  return QString("Se añade primero la sustancia B para ajustar el pH base, luego el agua completa el volumen. La temperatura se precalienta al mismo tiempo.");
-    case 2:  return QString("El sensor de pH acaba de hacer contacto con el líquido. Se espera a que la lectura se estabilice antes de realizar ajustes de pH.");
-    case 3:  return QString("Dosificando reactivos para alcanzar el pH deseado. El sistema de temperatura trabaja al mismo tiempo. Corregir el pH en poco volumen requiere menos reactivo.");
-    case 4:  return QString("pH y temperatura en sus valores objetivo. Completando el llenado hasta el volumen de trabajo.");
-    case 5:  return QString("Se confirma que las condiciones se mantienen estables antes de introducir el organismo.");
-    case 6:  return QString("pH, temperatura y nivel en sus valores objetivo. El tanque está listo para recibir el organismo.");
+    case 0:  return QCoreApplication::translate("Main", "Comprobando que las válvulas de drenaje estén cerradas y que todos los sensores estén disponibles.");
+    case 1:  return QCoreApplication::translate("Main", "Se añade primero la sustancia B para ajustar el pH base, luego el agua completa el volumen. La temperatura se precalienta al mismo tiempo.");
+    case 2:  return QCoreApplication::translate("Main", "El sensor de pH acaba de hacer contacto con el líquido. Se espera a que la lectura se estabilice antes de realizar ajustes de pH.");
+    case 3:  return QCoreApplication::translate("Main", "Dosificando reactivos para alcanzar el pH deseado. El sistema de temperatura trabaja al mismo tiempo. Corregir el pH en poco volumen requiere menos reactivo.");
+    case 4:  return QCoreApplication::translate("Main", "pH y temperatura en sus valores objetivo. Completando el llenado hasta el volumen de trabajo.");
+    case 5:  return QCoreApplication::translate("Main", "Se confirma que las condiciones se mantienen estables antes de introducir el organismo.");
+    case 6:  return QCoreApplication::translate("Main", "pH, temperatura y nivel en sus valores objetivo. El tanque está listo para recibir el organismo.");
     default: return QString();
     }
 }
@@ -498,7 +507,7 @@ void GestorBiorreactor::setAlertaEscalacion(bool v)
 
 void GestorBiorreactor::calcularMezclaOptima()
 {
-    const double vTotalL = VOLUMEN_TANQUE_L * (m_setpointNivel / 100.0);
+    const double vTotalL = VOLUMEN_TANQUE_L * (NIVEL_LLENADO_PCT / 100.0);
     if (vTotalL < 1e-6) {
         m_mlSustanciaB       = 0.0;
         m_litrosAgua         = 0.0;
@@ -530,8 +539,11 @@ void GestorBiorreactor::calcularMezclaOptima()
 
 void GestorBiorreactor::iniciarPreparacion()
 {
-    if (m_timerPreparacion.isActive()) return;  // idempotente: no reinicia si ya corre
+    // Bloquear solo si hay preparación activa en curso (estados 1-5).
+    // Permite reiniciar desde -1 (nuevo experimento) o 6 (ciclo anterior completado).
+    if (m_timerPreparacion.isActive() && m_estadoPreparacion > 0 && m_estadoPreparacion < 6) return;
 
+    m_timerPreparacion.stop();
     calcularMezclaOptima();
 
     m_estadoPreparacion     = 0;
@@ -669,7 +681,7 @@ void GestorBiorreactor::tickPreparacion()
             m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 100.0);
             emit salidaBombaAguaChanged();
         }
-        if (m_sensorNivel >= m_setpointNivel) {
+        if (m_sensorNivel >= NIVEL_LLENADO_PCT) {
             m_salidaBombaAgua = 0.0;
             m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 0.0);
             emit salidaBombaAguaChanged();
@@ -739,14 +751,23 @@ bool GestorBiorreactor::buscarYConectar(const QString &nombreForzado)
 
     QString portName = nombreForzado;
     if (portName.isEmpty()) {
-        // 1ª pasada: preferir adaptadores USB-RS485 (ttyUSB en Linux)
+        // 1ª pasada: puerto UART nativo (GPIO14/GPIO15 → ttyAMA0)
         for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
-            if (info.portName().startsWith("ttyUSB")) {
+            if (info.portName() == "ttyAMA0") {
                 portName = info.portName();
                 break;
             }
         }
-        // 2ª pasada: cualquier puerto no-Bluetooth si no hay ttyUSB
+        // 2ª pasada: adaptador USB-RS485 como alternativa
+        if (portName.isEmpty()) {
+            for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
+                if (info.portName().startsWith("ttyUSB")) {
+                    portName = info.portName();
+                    break;
+                }
+            }
+        }
+        // 3ª pasada: cualquier puerto no-Bluetooth
         if (portName.isEmpty()) {
             for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
                 if (!info.portName().contains("Bluetooth", Qt::CaseInsensitive)) {
@@ -1040,11 +1061,15 @@ void GestorBiorreactor::ejecutarControlLoop()
 {
     if (!m_procesoActivo) return;
 
-    // PID — Temperatura → calentador (siempre activo cuando procesoActivo)
+    // PID — Temperatura → m_salidaCalentador (0-100 %)
+    // La escritura al PCA9685 CH_CALENTADOR la gestiona onCrucePorCero() via burst firing.
+    // En modo simulación (sin ZC), se escribe directamente al no haber callback.
     double nuevoCalentador = m_pidTemp.calcular(m_setpointTem, m_sensorTem);
     if (!qFuzzyCompare(m_salidaCalentador, nuevoCalentador)) {
         m_salidaCalentador = nuevoCalentador;
+#ifdef SIMULACION_ACTIVA
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_CALENTADOR, m_salidaCalentador);
+#endif
         emit salidaCalentadorChanged();
     }
 
@@ -1065,7 +1090,7 @@ void GestorBiorreactor::ejecutarControlLoop()
 
     // Histéresis — Nivel → bomba de nivel (solo si habilitado)
     if (m_histeresisNivelHabilitado) {
-        bool nuevoNivel = m_histeresisNivel.calcular(m_setpointNivel, m_sensorNivel);
+        bool nuevoNivel = m_histeresisNivel.calcular(NIVEL_LLENADO_PCT, m_sensorNivel);
         if (m_salidaBombaNivel != nuevoNivel) {
             m_salidaBombaNivel = nuevoNivel;
             m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_NIVEL, nuevoNivel);
@@ -1289,6 +1314,53 @@ void GestorBiorreactor::onWatchdogI2CTimeout()
         m_timerWatchdogI2C.setInterval(10000);  // backoff: reintentar en 10 s
     }
     m_timerWatchdogI2C.start();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cruce por cero — burst firing para el calentador
+//
+// callbackZC() corre en el hilo de pigpio. Solo encola el evento al hilo Qt.
+// onCrucePorCero() corre en el hilo Qt y accede al PCA9685 de forma segura.
+//
+// Algoritmo (ventana de 100 semiciclos):
+//   - Si salidaCalentador = 60 % → dispara los primeros 60 semiciclos, corta los 40 restantes
+//   - Al llegar a 100, la ventana se reinicia
+//   - Solo se escribe al PCA9685 cuando el estado (ON/OFF) cambia → mínimo tráfico I2C
+// ─────────────────────────────────────────────────────────────────────────────
+
+void GestorBiorreactor::callbackZC(int gpio, int level, uint32_t tick, void *userdata)
+{
+    Q_UNUSED(gpio) Q_UNUSED(tick)
+    if (level != 1) return;   // solo flanco de subida
+    QMetaObject::invokeMethod(
+        static_cast<GestorBiorreactor *>(userdata),
+        "onCrucePorCero",
+        Qt::QueuedConnection);
+}
+
+void GestorBiorreactor::onCrucePorCero()
+{
+    if (!m_procesoActivo) {
+        if (m_zcDisparando) {
+            m_zcDisparando = false;
+            m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR, false);
+        }
+        m_zcContador = 0;
+        m_zcTotal    = 0;
+        return;
+    }
+
+    if (++m_zcTotal >= 100) {
+        m_zcTotal    = 0;
+        m_zcContador = 0;
+    }
+
+    bool disparar = (m_zcContador++ < static_cast<int>(m_salidaCalentador));
+
+    if (disparar != m_zcDisparando) {
+        m_zcDisparando = disparar;
+        m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR, disparar);
+    }
 }
 
 void GestorBiorreactor::verificarStaleness()

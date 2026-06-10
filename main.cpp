@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
         TranslationManager traductorManager(&app, &engine);
         engine.rootContext()->setContextProperty("TraductorC", &traductorManager);
         engine.rootContext()->setContextProperty("backend", &backend);
+        engine.rootContext()->setContextProperty("audio", &audio);
 
         QObject::connect(
             &engine,

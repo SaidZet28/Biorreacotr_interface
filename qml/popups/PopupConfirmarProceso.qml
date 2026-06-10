@@ -1,4 +1,5 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
+import Prototipo
 import QtQuick.Window 2.15
 
 Item {
@@ -83,25 +84,13 @@ Item {
                 }
             }
 
-            Row {
+            Text {
+                textFormat: Text.RichText
+                text: qsTranslate("Main", "Nivel de luz: <b>%1 %</b>").arg(raizConfirmacion.luz)
+                font.pixelSize: cajaConfirmacion.height * 0.055
+                color: "black"
+                wrapMode: Text.WordWrap
                 width: parent.width
-                spacing: parent.width * 0.02
-                Text {
-                    width: (parent.width / 2) - (parent.width * 0.01)
-                    textFormat: Text.RichText
-                    text: qsTranslate("Main", "Nivel de llenado: <b>fijo por hardware</b>")
-                    font.pixelSize: cajaConfirmacion.height * 0.055
-                    color: "black"
-                    wrapMode: Text.WordWrap
-                }
-                Text {
-                    width: (parent.width / 2) - (parent.width * 0.01)
-                    textFormat: Text.RichText
-                    text: qsTranslate("Main", "Nivel de luz: <b>%1 %</b>").arg(raizConfirmacion.luz)
-                    font.pixelSize: cajaConfirmacion.height * 0.055
-                    color: "black"
-                    wrapMode: Text.WordWrap
-                }
             }
 
             Text {

@@ -1,4 +1,5 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
+import Prototipo
 import QtQuick.Controls 2.15
 
 Item {
@@ -7,12 +8,23 @@ Item {
     visible: appWindow.estadoActual === "pantalla_preparacion"
 
     onVisibleChanged: {
-        if (visible) backend.iniciarPreparacion()
+        if (visible) {
+            root._estadoPrevio = -1
+            backend.iniciarPreparacion()
+        }
     }
+
+    property int _estadoPrevio: -1
 
     Connections {
         target: backend
         function onPreparacionCancelada() { appWindow.procesoListoParaIniciar = false }
+        function onEstadoPreparacionChanged() {
+            let s = backend.estadoPreparacion
+            // Sonido de éxito cada vez que la preparación avanza a un estado nuevo (0→1, 1→2 … 5→6)
+            if (s > 0 && s > root._estadoPrevio) audio.reproducirExito()
+            root._estadoPrevio = s
+        }
     }
 
     // ── 4 fases visibles que agrupan los 7 estados internos ──────────────────
@@ -212,11 +224,15 @@ Item {
 
                 Text {
                     width: parent.width
+                    height: parent.height - parent.spacing - parent.children[0].implicitHeight - parent.children[1].height - parent.spacing
                     text: backend.textoDetallePreparacion
                     font.pixelSize: appWindow.height * 0.029
+                    minimumPixelSize: appWindow.height * 0.018
+                    fontSizeMode: Text.Fit
                     color: "#1a1a1a"
                     wrapMode: Text.WordWrap
-                    lineHeight: 1.28
+                    lineHeight: 1.20
+                    clip: true
                 }
             }
         }

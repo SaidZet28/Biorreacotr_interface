@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import Prototipo
 import QtQuick.Controls 2.15
 
@@ -14,13 +14,13 @@ Item {
         spacing: appWindow.height * 0.04
 
         Image {
-            source: "Alerta.png"
+            source: "../Alerta.png"
             height: appWindow.height * 0.35
             fillMode: Image.PreserveAspectFit
             anchors.horizontalCenter: parent.horizontalCenter
         }
         Text {
-            text: qsTranslate("Main", "Se detectó un error :(")
+            text: qsTranslate("Main", "Se detect� un error :(")
             font.pixelSize: appWindow.height * 0.08
             font.bold: true
             color: "black"

@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import Prototipo
 import QtQuick.Controls 2.15
 
@@ -7,10 +7,10 @@ Item {
     property ApplicationWindow appWindow
     visible: appWindow.estadoActual === "pantalla_7"
 
-    // Duración del ciclo de calibración en ms. Cambiar a 182000 para producción.
+    // Duraci�n del ciclo de calibraci�n en ms. Cambiar a 182000 para producci�n.
     readonly property int duracionCal: 182000
 
-    // ── Estado pH (3 puntos) ───────────────────
+    // -- Estado pH (3 puntos) -------------------
     property bool expandidoPH:  false
     property bool phCalibrado:  false
     property int  puntos_pH:    0
@@ -18,20 +18,20 @@ Item {
     property int  stPH7:  0
     property int  stPH10: 0
 
-    // ── Estado DO ─────────────────────────────
+    // -- Estado DO -----------------------------
     property bool expandidoDO: false
     property bool doCalibrado:  false
     property int  stDO: 0
 
-    // ── Estado Nivel ──────────────────────────
+    // -- Estado Nivel --------------------------
     property bool expandidoNivel: false
     property bool nivelCalibrado:  false
     property int  stNivel: 0
 
-    // true mientras cualquier temporizador de calibración esté activo
+    // true mientras cualquier temporizador de calibraci�n est� activo
     readonly property bool calibracionEnCurso: stPH4 === 1 || stPH7 === 1 || stPH10 === 1 || stDO === 1 || stNivel === 1
 
-    // ── Popup advertencia ─────────────────────
+    // -- Popup advertencia ---------------------
     property bool mostrarAdvertencia: false
 
     onVisibleChanged: {
@@ -43,7 +43,7 @@ Item {
         mostrarAdvertencia = false
 
         if (backend.modoSimulacion) {
-            // Sin hardware real: calibración instantánea para no bloquear el flujo
+            // Sin hardware real: calibraci�n instant�nea para no bloquear el flujo
             phCalibrado = true; doCalibrado = true; nivelCalibrado = true
             puntos_pH = 3
             stPH4 = 2; stPH7 = 2; stPH10 = 2
@@ -56,7 +56,7 @@ Item {
         }
     }
 
-    // ── Timers ────────────────────────────────
+    // -- Timers --------------------------------
     Timer {
         id: tPH4; interval: root.duracionCal
         onTriggered: {
@@ -87,9 +87,9 @@ Item {
         onTriggered: { root.stNivel = (appWindow.sensor_estado_calibracion === 1) ? 2 : 3 }
     }
 
-    // ════════════════════════════════════════════
+    // --------------------------------------------
     // LAYOUT PRINCIPAL
-    // ════════════════════════════════════════════
+    // --------------------------------------------
 
     Flickable {
         id: flickArea
@@ -109,9 +109,9 @@ Item {
             width: flickArea.width
             spacing: appWindow.height * 0.018
 
-            // Título
+            // T�tulo
             Text {
-                text: qsTranslate("Main", "CALIBRACIÓN")
+                text: qsTranslate("Main", "CALIBRACI�N")
                 font.pixelSize: appWindow.height * 0.065
                 font.bold: true
                 color: "black"
@@ -140,7 +140,7 @@ Item {
                 }
             }
 
-            // ─── ACCORDION pH ─────────────────────────────
+            // --- ACCORDION pH -----------------------------
             Column {
                 width: parent.width
                 spacing: 0
@@ -170,7 +170,7 @@ Item {
                         anchors.right: flechaPH.left
                         anchors.rightMargin: appWindow.width * 0.015
                         visible: root.phCalibrado
-                        text: "✓ " + qsTranslate("Main", "Calibrado")
+                        text: "? " + qsTranslate("Main", "Calibrado")
                         font.pixelSize: parent.height * 0.38
                         font.bold: true
                         color: "#1a8a1a"
@@ -180,7 +180,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.right: parent.right
                         anchors.rightMargin: appWindow.width * 0.025
-                        text: root.expandidoPH ? "▲" : "▼"
+                        text: root.expandidoPH ? "?" : "?"
                         font.pixelSize: parent.height * 0.40
                         color: "black"
                     }
@@ -202,12 +202,12 @@ Item {
                         anchors.topMargin: appWindow.height * 0.025
                         spacing: appWindow.height * 0.02
 
-                        // 3 botones de punto de calibración
+                        // 3 botones de punto de calibraci�n
                         Row {
                             anchors.horizontalCenter: parent.horizontalCenter
                             spacing: appWindow.width * 0.04
 
-                            // ── pH 4 ──
+                            // -- pH 4 --
                             Rectangle {
                                 id: btnPH4
                                 width: appWindow.width * 0.19
@@ -227,7 +227,7 @@ Item {
                                 }
                                 Image {
                                     visible: root.stPH4 === 1
-                                    source: "Hongo_5.png"
+                                    source: "../Hongo_5.png"
                                     anchors.centerIn: parent
                                     width: parent.height * 0.60; height: width
                                     fillMode: Image.PreserveAspectFit
@@ -238,8 +238,8 @@ Item {
                                         PauseAnimation { duration: 200 }
                                     }
                                 }
-                                Text { anchors.centerIn: parent; visible: root.stPH4 === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                Text { anchors.centerIn: parent; visible: root.stPH4 === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH4 === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH4 === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 MouseArea {
                                     id: maPH4; anchors.fill: parent
                                     enabled: (root.stPH4 === 0 || root.stPH4 === 3) && !root.calibracionEnCurso
@@ -247,44 +247,44 @@ Item {
                                 }
                             }
 
-                            // ── pH 7 ──
+                            // -- pH 7 --
                             Rectangle {
                                 width: appWindow.width * 0.19; height: appWindow.height * 0.10; radius: height / 2
                                 color: stPH7 === 0 ? (maPH7.pressed ? "#2d6a9a" : "#3B82C4") : stPH7 === 1 ? "#999999" : stPH7 === 2 ? "#4CAF50" : "#FF5252"
                                 Text { anchors.centerIn: parent; visible: root.stPH7 === 0; text: "pH 7"; font.pixelSize: parent.height * 0.35; font.bold: true; color: "white" }
                                 Image {
-                                    visible: root.stPH7 === 1; source: "Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
+                                    visible: root.stPH7 === 1; source: "../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
                                     SequentialAnimation on rotation {
                                         loops: Animation.Infinite; running: root.stPH7 === 1
                                         NumberAnimation { from: 0; to: 360; duration: 600 }
                                         PauseAnimation { duration: 200 }
                                     }
                                 }
-                                Text { anchors.centerIn: parent; visible: root.stPH7 === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                Text { anchors.centerIn: parent; visible: root.stPH7 === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH7 === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH7 === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 MouseArea { id: maPH7; anchors.fill: parent; enabled: (root.stPH7 === 0 || root.stPH7 === 3) && !root.calibracionEnCurso; onClicked: { root.stPH7 = 1; tPH7.restart() } }
                             }
 
-                            // ── pH 10 ──
+                            // -- pH 10 --
                             Rectangle {
                                 width: appWindow.width * 0.19; height: appWindow.height * 0.10; radius: height / 2
                                 color: stPH10 === 0 ? (maPH10.pressed ? "#2d6a9a" : "#3B82C4") : stPH10 === 1 ? "#999999" : stPH10 === 2 ? "#4CAF50" : "#FF5252"
                                 Text { anchors.centerIn: parent; visible: root.stPH10 === 0; text: "pH 10"; font.pixelSize: parent.height * 0.35; font.bold: true; color: "white" }
                                 Image {
-                                    visible: root.stPH10 === 1; source: "Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
+                                    visible: root.stPH10 === 1; source: "../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
                                     SequentialAnimation on rotation {
                                         loops: Animation.Infinite; running: root.stPH10 === 1
                                         NumberAnimation { from: 0; to: 360; duration: 600 }
                                         PauseAnimation { duration: 200 }
                                     }
                                 }
-                                Text { anchors.centerIn: parent; visible: root.stPH10 === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                Text { anchors.centerIn: parent; visible: root.stPH10 === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH10 === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH10 === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 MouseArea { id: maPH10; anchors.fill: parent; enabled: (root.stPH10 === 0 || root.stPH10 === 3) && !root.calibracionEnCurso; onClicked: { root.stPH10 = 1; tPH10.restart() } }
                             }
                         }
 
-                        // Puntos medidos + botón OK pestaña
+                        // Puntos medidos + bot�n OK pesta�a
                         Row {
                             anchors.horizontalCenter: parent.horizontalCenter
                             spacing: appWindow.width * 0.03
@@ -322,7 +322,7 @@ Item {
                 }
             }
 
-            // ─── ACCORDION DO ─────────────────────────────
+            // --- ACCORDION DO -----------------------------
             Column {
                 width: parent.width
                 spacing: 0
@@ -331,8 +331,8 @@ Item {
                     id: headerDO
                     width: parent.width; height: appWindow.height * 0.075; radius: height / 2; color: "#6E9C9C"
                     Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: appWindow.width * 0.025; anchors.right: parent.right; anchors.rightMargin: root.doCalibrado ? appWindow.width * 0.30 : appWindow.width * 0.08; text: qsTranslate("Main", "Calibrar Sensor DO"); font.pixelSize: parent.height * 0.40; fontSizeMode: Text.Fit; minimumPixelSize: parent.height * 0.20; font.bold: true; color: "black" }
-                    Text { anchors.verticalCenter: parent.verticalCenter; anchors.right: flechaDO.left; anchors.rightMargin: appWindow.width * 0.015; visible: root.doCalibrado; text: "✓ " + qsTranslate("Main", "Calibrado"); font.pixelSize: parent.height * 0.38; font.bold: true; color: "#1a8a1a" }
-                    Text { id: flechaDO; anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; anchors.rightMargin: appWindow.width * 0.025; text: root.expandidoDO ? "▲" : "▼"; font.pixelSize: parent.height * 0.40; color: "black" }
+                    Text { anchors.verticalCenter: parent.verticalCenter; anchors.right: flechaDO.left; anchors.rightMargin: appWindow.width * 0.015; visible: root.doCalibrado; text: "? " + qsTranslate("Main", "Calibrado"); font.pixelSize: parent.height * 0.38; font.bold: true; color: "#1a8a1a" }
+                    Text { id: flechaDO; anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; anchors.rightMargin: appWindow.width * 0.025; text: root.expandidoDO ? "?" : "?"; font.pixelSize: parent.height * 0.40; color: "black" }
                     MouseArea { anchors.fill: parent; onClicked: root.expandidoDO = !root.expandidoDO }
                 }
 
@@ -352,7 +352,7 @@ Item {
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width * 0.90
-                            text: qsTranslate("Main", "Asegúrate de que el sensor se encuentre seco")
+                            text: qsTranslate("Main", "Aseg�rate de que el sensor se encuentre seco")
                             font.pixelSize: appWindow.height * 0.032
                             fontSizeMode: Text.Fit
                             minimumPixelSize: appWindow.height * 0.018
@@ -371,15 +371,15 @@ Item {
                                 color: stDO === 0 ? (maCalDO.pressed ? "#2d6a9a" : "#3B82C4") : stDO === 1 ? "#999999" : stDO === 2 ? "#4CAF50" : "#FF5252"
                                 Text { anchors.centerIn: parent; visible: root.stDO === 0; width: parent.width * 0.90; text: qsTranslate("Main", "Calibrar"); font.pixelSize: parent.height * 0.33; fontSizeMode: Text.Fit; minimumPixelSize: parent.height * 0.17; font.bold: true; color: "white"; horizontalAlignment: Text.AlignHCenter }
                                 Image {
-                                    visible: root.stDO === 1; source: "Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
+                                    visible: root.stDO === 1; source: "../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
                                     SequentialAnimation on rotation {
                                         loops: Animation.Infinite; running: root.stDO === 1
                                         NumberAnimation { from: 0; to: 360; duration: 600 }
                                         PauseAnimation { duration: 200 }
                                     }
                                 }
-                                Text { anchors.centerIn: parent; visible: root.stDO === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                Text { anchors.centerIn: parent; visible: root.stDO === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stDO === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stDO === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 MouseArea { id: maCalDO; anchors.fill: parent; enabled: (root.stDO === 0 || root.stDO === 3) && !root.calibracionEnCurso; onClicked: { root.stDO = 1; tDO.restart() } }
                             }
                             Rectangle {
@@ -405,7 +405,7 @@ Item {
                 }
             }
 
-            // ─── ACCORDION NIVEL ───────────────────────────
+            // --- ACCORDION NIVEL ---------------------------
             Column {
                 width: parent.width
                 spacing: 0
@@ -414,8 +414,8 @@ Item {
                     id: headerNivel
                     width: parent.width; height: appWindow.height * 0.075; radius: height / 2; color: "#6E9C9C"
                     Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: appWindow.width * 0.025; anchors.right: parent.right; anchors.rightMargin: root.nivelCalibrado ? appWindow.width * 0.30 : appWindow.width * 0.08; text: qsTranslate("Main", "Calibrar Sensor Nivel"); font.pixelSize: parent.height * 0.40; fontSizeMode: Text.Fit; minimumPixelSize: parent.height * 0.20; font.bold: true; color: "black" }
-                    Text { anchors.verticalCenter: parent.verticalCenter; anchors.right: flechaNivel.left; anchors.rightMargin: appWindow.width * 0.015; visible: root.nivelCalibrado; text: "✓ " + qsTranslate("Main", "Calibrado"); font.pixelSize: parent.height * 0.38; font.bold: true; color: "#1a8a1a" }
-                    Text { id: flechaNivel; anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; anchors.rightMargin: appWindow.width * 0.025; text: root.expandidoNivel ? "▲" : "▼"; font.pixelSize: parent.height * 0.40; color: "black" }
+                    Text { anchors.verticalCenter: parent.verticalCenter; anchors.right: flechaNivel.left; anchors.rightMargin: appWindow.width * 0.015; visible: root.nivelCalibrado; text: "? " + qsTranslate("Main", "Calibrado"); font.pixelSize: parent.height * 0.38; font.bold: true; color: "#1a8a1a" }
+                    Text { id: flechaNivel; anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; anchors.rightMargin: appWindow.width * 0.025; text: root.expandidoNivel ? "?" : "?"; font.pixelSize: parent.height * 0.40; color: "black" }
                     MouseArea { anchors.fill: parent; onClicked: root.expandidoNivel = !root.expandidoNivel }
                 }
 
@@ -434,15 +434,15 @@ Item {
                             color: stNivel === 0 ? (maCalNivel.pressed ? "#2d6a9a" : "#3B82C4") : stNivel === 1 ? "#999999" : stNivel === 2 ? "#4CAF50" : "#FF5252"
                             Text { anchors.centerIn: parent; visible: root.stNivel === 0; width: parent.width * 0.90; text: qsTranslate("Main", "Calibrar"); font.pixelSize: parent.height * 0.33; fontSizeMode: Text.Fit; minimumPixelSize: parent.height * 0.17; font.bold: true; color: "white"; horizontalAlignment: Text.AlignHCenter }
                             Image {
-                                visible: root.stNivel === 1; source: "Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
+                                visible: root.stNivel === 1; source: "../Hongo_5.png"; anchors.centerIn: parent; width: parent.height * 0.60; height: width; fillMode: Image.PreserveAspectFit
                                 SequentialAnimation on rotation {
                                         loops: Animation.Infinite; running: root.stNivel === 1
                                         NumberAnimation { from: 0; to: 360; duration: 600 }
                                         PauseAnimation { duration: 200 }
                                     }
                             }
-                            Text { anchors.centerIn: parent; visible: root.stNivel === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                            Text { anchors.centerIn: parent; visible: root.stNivel === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                            Text { anchors.centerIn: parent; visible: root.stNivel === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                            Text { anchors.centerIn: parent; visible: root.stNivel === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                             MouseArea { id: maCalNivel; anchors.fill: parent; enabled: (root.stNivel === 0 || root.stNivel === 3) && !root.calibracionEnCurso; onClicked: { root.stNivel = 1; tNivel.restart() } }
                         }
                         Rectangle {
@@ -456,12 +456,12 @@ Item {
                 }
             }
 
-            // Espacio para que el botón OK no tape el contenido
+            // Espacio para que el bot�n OK no tape el contenido
             Item { width: 1; height: appWindow.height * 0.02 }
         }
     }
 
-    // ── Botón Atrás ───────────────────────────
+    // -- Bot�n Atr�s ---------------------------
     Rectangle {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
@@ -472,7 +472,7 @@ Item {
         radius: height / 2
         color: maAtrasPantalla7.pressed ? "#cc1e1e" : "#FF2D2D"
 
-        Text { anchors.centerIn: parent; text: "↶"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
+        Text { anchors.centerIn: parent; text: "?"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
         MouseArea {
             id: maAtrasPantalla7
             anchors.fill: parent
@@ -484,7 +484,7 @@ Item {
         }
     }
 
-    // ── Botón OK Principal ────────────────────
+    // -- Bot�n OK Principal --------------------
     Rectangle {
         id: botonOkPrincipal
         anchors.bottom: parent.bottom
@@ -510,7 +510,7 @@ Item {
         }
     }
 
-    // ── Popup Advertencia ─────────────────────
+    // -- Popup Advertencia ---------------------
     Item {
         anchors.fill: parent
         z: 200
@@ -529,7 +529,7 @@ Item {
                 anchors.topMargin: parent.height * 0.12
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width * 0.80
-                text: qsTranslate("Main", "Hay sensores sin calibrar.\n¿Desea continuar de todas formas?")
+                text: qsTranslate("Main", "Hay sensores sin calibrar.\n�Desea continuar de todas formas?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"

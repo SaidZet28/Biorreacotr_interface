@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import Prototipo
 import QtQuick.Controls 2.15
 
@@ -19,7 +19,7 @@ Rectangle {
     radius: 20
 
     Image {
-        source: "Engrane.png"
+        source: "../Engrane.png"
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: parent.width * 0.05
@@ -42,7 +42,7 @@ Rectangle {
         Text { text: root.nombre; font.pixelSize: parent.height * 0.07; font.bold: true; color: "black"; width: parent.width; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
         Item { height: parent.height * 0.01; width: 1 }
         Text {
-            text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.unidadTemperatura === "C" ? root.temp : (root.temp * 9/5 + 32).toFixed(1))
+            text: qsTranslate("Main", "Temp �%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.unidadTemperatura === "C" ? root.temp : (root.temp * 9/5 + 32).toFixed(1))
             font.pixelSize: parent.height * 0.06; font.bold: true; color: "black"
         }
         Text { text: qsTranslate("Main", "Nivel pH: %1").arg(root.ph);        font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }

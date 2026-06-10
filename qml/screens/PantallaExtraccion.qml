@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import Prototipo
 import QtQuick.Controls 2.15
 
@@ -83,7 +83,7 @@ Item {
     }
 
     Image {
-        source: "Hongo_7.png"
+        source: "../Hongo_7.png"
         anchors.right: parent.right
         anchors.rightMargin: appWindow.width * 0.05
         anchors.verticalCenter: parent.verticalCenter
@@ -107,7 +107,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTranslate("Main", "¿Iniciar vaciado de nivel 1?")
+                text: qsTranslate("Main", "�Iniciar vaciado de nivel 1?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -138,7 +138,7 @@ Item {
                 anchors.rightMargin: parent.width * 0.10
                 color: areaAtrasConfirmar1.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea { id: areaAtrasConfirmar1; anchors.fill: parent; onClicked: root.mostrarConfirmacion1 = false }
             }
         }
@@ -188,7 +188,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTranslate("Main", "¿Iniciar vaciado de nivel 2?")
+                text: qsTranslate("Main", "�Iniciar vaciado de nivel 2?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -219,7 +219,7 @@ Item {
                 anchors.rightMargin: parent.width * 0.10
                 color: areaAtrasConfirmar2.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea { id: areaAtrasConfirmar2; anchors.fill: parent; onClicked: root.mostrarConfirmacion2 = false }
             }
         }

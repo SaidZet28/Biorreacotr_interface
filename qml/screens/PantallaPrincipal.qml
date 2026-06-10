@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import Prototipo
 import QtQuick.Controls 2.15
 
@@ -9,7 +9,7 @@ Item {
     visible: appWindow.estadoActual === "pantalla_principal"
 
     Image {
-        source: "Hongo_3.png"
+        source: "../Hongo_3.png"
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.margins: parent.width * 0.02
@@ -25,7 +25,7 @@ Item {
         anchors.verticalCenterOffset: appWindow.height * 0.03
         spacing: parent.height * 0.03
 
-        BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Temperatura:"); textoValor: qsTranslate("Main", "%1 °%2").arg((appWindow.unidadTemperatura === "F" ? (backend.sensorTem * 9/5 + 32) : backend.sensorTem).toFixed(1)).arg(appWindow.unidadTemperatura) }
+        BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Temperatura:"); textoValor: qsTranslate("Main", "%1 �%2").arg((appWindow.unidadTemperatura === "F" ? (backend.sensorTem * 9/5 + 32) : backend.sensorTem).toFixed(1)).arg(appWindow.unidadTemperatura) }
         BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Nivel de pH:"); textoValor: qsTranslate("Main", "%1").arg(backend.sensorPH.toFixed(1)) }
         BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Nivel de agua:"); textoValor: qsTranslate("Main", "%1 %").arg(backend.sensorNivel.toFixed(0)) }
         BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Nivel de luz:"); textoValor: qsTranslate("Main", "%1 %").arg(backend.sensorLuz.toFixed(0)) }
@@ -68,7 +68,7 @@ Item {
         color: areaMouseEngrane.pressed ? "#9ca3af" : "#B3B3B3"
 
         Image {
-            source: "Engrane.png"
+            source: "../Engrane.png"
             anchors.centerIn: parent
             width: parent.width * 0.65
             height: parent.height * 0.65

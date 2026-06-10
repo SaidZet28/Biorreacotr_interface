@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import Prototipo
 import QtQuick.Controls 2.15
 
@@ -41,7 +41,7 @@ Item {
                 height: width
                 radius: 20
                 color: areaLapiz.pressed ? "#d1d5db" : "#F3F4F6"
-                Image { source: "Lapiz.png"; anchors.centerIn: parent; width: parent.width * 0.6; fillMode: Image.PreserveAspectFit }
+                Image { source: "../Lapiz.png"; anchors.centerIn: parent; width: parent.width * 0.6; fillMode: Image.PreserveAspectFit }
                 MouseArea { id: areaLapiz; anchors.fill: parent; onClicked: editarSolicitado() }
             }
 
@@ -50,7 +50,7 @@ Item {
                 height: width
                 radius: 20
                 color: areaPapelera.pressed ? "#d1d5db" : "#F3F4F6"
-                Image { source: "Basura.png"; anchors.centerIn: parent; width: parent.width * 0.6; fillMode: Image.PreserveAspectFit }
+                Image { source: "../Basura.png"; anchors.centerIn: parent; width: parent.width * 0.6; fillMode: Image.PreserveAspectFit }
                 MouseArea { id: areaPapelera; anchors.fill: parent; onClicked: borrarSolicitado() }
             }
         }
@@ -63,7 +63,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             color: areaAtras.pressed ? "#cc1e1e" : "#FF2D2D"
             radius: height / 2
-            Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
             MouseArea { id: areaAtras; anchors.fill: parent; onClicked: cerrado() }
         }
     }

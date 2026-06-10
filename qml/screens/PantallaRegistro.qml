@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import Prototipo
 import QtQuick.Controls 2.15
 
@@ -53,7 +53,7 @@ Item {
             }
             Item {
                 width: parent.width * 0.12; height: parent.height
-                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTranslate("Main", "Tamaño"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
+                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTranslate("Main", "Tama�o"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
             }
             Item { width: parent.width * 0.10; height: parent.height }
         }
@@ -198,7 +198,7 @@ Item {
             border.color: "black"
             border.width: 1
             Image {
-                source: "Basura.png"
+                source: "../Basura.png"
                 anchors.centerIn: parent
                 width: parent.width * 0.6
                 height: parent.height * 0.6
@@ -243,7 +243,7 @@ Item {
         height: parent.height * 0.10
         color: areaMouseAtras15.pressed ? "#cc1e1e" : "#FF2D2D"
         radius: height / 2
-        Text { anchors.centerIn: parent; text: "↶"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
+        Text { anchors.centerIn: parent; text: "?"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
         MouseArea {
             id: areaMouseAtras15
             anchors.fill: parent
@@ -268,7 +268,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTranslate("Main", "¿Seguro que deseas borrar los documentos seleccionados?")
+                text: qsTranslate("Main", "�Seguro que deseas borrar los documentos seleccionados?")
                 font.pixelSize: parent.height * 0.08
                 font.bold: true
                 color: "black"
@@ -314,7 +314,7 @@ Item {
                 anchors.rightMargin: parent.width * 0.10
                 color: areaAtrasConfirmarBorrado.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea { id: areaAtrasConfirmarBorrado; anchors.fill: parent; onClicked: root.mostrarPopupConfirmarBorrado = false }
             }
         }
@@ -333,7 +333,7 @@ Item {
             color: Qt.rgba(0.8, 0.8, 0.8, 0.95)
             radius: 20
 
-            // Botón regresar (esquina superior derecha)
+            // Bot�n regresar (esquina superior derecha)
             Rectangle {
                 width: appWindow.width * 0.07
                 height: appWindow.height * 0.07
@@ -343,7 +343,7 @@ Item {
                 anchors.right: parent.right
                 anchors.rightMargin: parent.width * 0.03
                 color: areaCerrarExportar.pressed ? "#cc1e1e" : "#FF2D2D"
-                Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.65; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.65; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaCerrarExportar
                     anchors.fill: parent
@@ -356,7 +356,7 @@ Item {
                 }
             }
 
-            // ── Estado: éxito ──────────────────────────────────────────────
+            // -- Estado: �xito ----------------------------------------------
             Column {
                 anchors.centerIn: parent
                 spacing: parent.height * 0.06
@@ -364,7 +364,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "✓"
+                    text: "?"
                     font.pixelSize: parent.parent.height * 0.18
                     color: "#2e7d32"
                     font.bold: true
@@ -394,7 +394,7 @@ Item {
                 }
             }
 
-            // ── Estado: error al escribir ──────────────────────────────────
+            // -- Estado: error al escribir ----------------------------------
             Column {
                 anchors.centerIn: parent
                 spacing: parent.height * 0.06
@@ -402,7 +402,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "✕"
+                    text: "?"
                     font.pixelSize: parent.parent.height * 0.18
                     color: "#c62828"
                     font.bold: true
@@ -430,7 +430,7 @@ Item {
                 }
             }
 
-            // ── Estado: USB detectada, listo para guardar ──────────────────
+            // -- Estado: USB detectada, listo para guardar ------------------
             Column {
                 anchors.centerIn: parent
                 spacing: parent.height * 0.05
@@ -473,14 +473,14 @@ Item {
                 }
             }
 
-            // ── Estado: sin USB conectada ──────────────────────────────────
+            // -- Estado: sin USB conectada ----------------------------------
             Row {
                 anchors.centerIn: parent
                 spacing: parent.width * 0.04
                 visible: !root.exportarExito && !root.exportarError && root.rutaUSBDetectada === ""
 
                 Image {
-                    source: "Alerta.png"
+                    source: "../Alerta.png"
                     height: parent.parent.height * 0.22
                     fillMode: Image.PreserveAspectFit
                     anchors.verticalCenter: parent.verticalCenter
@@ -533,7 +533,7 @@ Item {
                 }
 
                 Image {
-                    source: "Alerta.png"
+                    source: "../Alerta.png"
                     height: parent.parent.height * 0.22
                     fillMode: Image.PreserveAspectFit
                     anchors.verticalCenter: parent.verticalCenter

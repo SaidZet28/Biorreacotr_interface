@@ -1,4 +1,4 @@
-ï»¿import QtQuick 2.15
+import QtQuick 2.15
 import Prototipo
 import QtQuick.Window 2.15
 
@@ -15,11 +15,11 @@ Item {
         anchors.left: parent.left
         anchors.margins: parent.width * 0.02
         spacing: parent.width * 0.02
-        Image { source: "Logo_UPIIZ.png"; height: logoH; fillMode: Image.PreserveAspectFit }
-        Image { source: "Logo_ENCB.png";  height: logoH; fillMode: Image.PreserveAspectFit }
+        Image { source: "../Logo_UPIIZ.png"; height: logoH; fillMode: Image.PreserveAspectFit }
+        Image { source: "../Logo_ENCB.png";  height: logoH; fillMode: Image.PreserveAspectFit }
     }
     Image {
-        source: "Logo_IPN.png"
+        source: "../Logo_IPN.png"
         height: logoH
         anchors.top: parent.top
         anchors.right: parent.right
@@ -27,7 +27,7 @@ Item {
         fillMode: Image.PreserveAspectFit
     }
 
-    // Banner de simulaciÃ³n â€” visible solo cuando SIMULACION_ACTIVA estÃ¡ definido
+    // Banner de simulación — visible solo cuando SIMULACION_ACTIVA está definido
     Rectangle {
         visible: backend.modoSimulacion
         anchors.centerIn: parent
@@ -46,7 +46,7 @@ Item {
         Text {
             id: labelSim
             anchors.centerIn: parent
-            text: "âš   MODO SIMULACIÃ“N â€” SIN HARDWARE REAL"
+            text: "?  MODO SIMULACIÓN — SIN HARDWARE REAL"
             font.pixelSize: parent.parent.height * 0.11
             font.bold: true
             color: "#1C1917"

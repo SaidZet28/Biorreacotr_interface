@@ -1,4 +1,4 @@
-ï»¿import QtQuick 2.15
+import QtQuick 2.15
 import Prototipo
 import QtQuick.Controls 2.15
 
@@ -72,7 +72,7 @@ Item {
             idCampo: "Tem"
             campoActivo: root.campoActivo
             textoEtiqueta: qsTranslate("Main", "Temperatura:")
-            valorMostrado: (root.campoActivo === "Tem" ? root.entradaTemporal + "|" : backend.setpointTem) + " Â°" + appWindow.unidadTemperatura
+            valorMostrado: (root.campoActivo === "Tem" ? root.entradaTemporal + "|" : backend.setpointTem) + " °" + appWindow.unidadTemperatura
             onBarraClicada: { root.campoActivo = "Tem"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
@@ -90,7 +90,7 @@ Item {
             onBarraClicada: { root.campoActivo = "Luz"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
 
-        // Tiempos (Semanas/DÃ­as)
+        // Tiempos (Semanas/Días)
         Rectangle {
             width: appWindow.width * 0.45
             height: appWindow.height * 0.08
@@ -131,7 +131,7 @@ Item {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: qsTranslate("Main", "DÃ­as: ") + (root.campoActivo === "Dias" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_dias)
+                        text: qsTranslate("Main", "Días: ") + (root.campoActivo === "Dias" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_dias)
                         font.pixelSize: parent.height * 0.35
                         font.bold: true
                     }
@@ -198,7 +198,7 @@ Item {
     }
 
     Image {
-        source: "Hongo_4.png"
+        source: "../Hongo_4.png"
         anchors.right: parent.right
         anchors.rightMargin: parent.width * 0.08
         anchors.verticalCenter: parent.verticalCenter
@@ -208,7 +208,7 @@ Item {
         z: 1
     }
 
-    // --- TECLADO NUMÃ‰RICO 4x4 ---
+    // --- TECLADO NUMÉRICO 4x4 ---
     TecladoNumerico {
         id: tecladoNumerico
         z: 10
@@ -312,7 +312,7 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            text: "â†¶"
+            text: "?"
             color: "black"
             font.pixelSize: parent.height * 0.70
             font.bold: true
@@ -405,13 +405,13 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTranslate("Main", "Por favor, ingrese todos los parÃ¡metros")
+                text: qsTranslate("Main", "Por favor, ingrese todos los parámetros")
                 font.pixelSize: parent.height * 0.08
                 font.bold: true
                 color: "black"
             }
             Image {
-                source: "Alerta.png"
+                source: "../Alerta.png"
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: -parent.height * 0.03
                 height: parent.height * 0.35

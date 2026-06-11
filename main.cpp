@@ -17,10 +17,9 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
 #ifdef Q_OS_LINUX
-    QFontDatabase::addApplicationFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
-    QFontDatabase::addApplicationFont("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf");
-    QFont defaultFont("DejaVu Sans");
-    QGuiApplication::setFont(defaultFont);
+    QFontDatabase::addApplicationFont(":/fonts/DejaVuSans.ttf");
+    QFontDatabase::addApplicationFont(":/fonts/DejaVuSans-Bold.ttf");
+    QGuiApplication::setFont(QFont("DejaVu Sans"));
 #endif
 
     GestorBiorreactor backend;

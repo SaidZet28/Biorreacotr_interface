@@ -8,7 +8,7 @@ public:
     explicit DriverXM125(QObject *parent = nullptr);
     ~DriverXM125();
 
-    // Abre /dev/i2c-{bus}, inicializa el XM125 en modo distancia
+    // Abre /dev/i2c-{bus}, calibra el detector (bloqueante ~1-2 s al inicio)
     bool inicializar(int bus = 1);
     void cerrar();
 
@@ -23,15 +23,23 @@ public:
 private:
     int m_fd = -1;
 
-    // Protocolo SparkFun XM125 (Qwiic Pulsed Radar):
-    // write: 2 bytes addr (big-endian) + 4 bytes value (big-endian)
-    // read:  2 bytes addr (big-endian), luego lectura de 4 bytes value
+    // Protocolo XM125 (SparkFun/Acconeer Qwiic I2C, dir 0x52):
+    //   write: [addr_hi, addr_lo, val_b3, val_b2, val_b1, val_b0]  big-endian
+    //   read : write [addr_hi, addr_lo], luego read 4 bytes big-endian
     bool escribirRegistro(uint16_t reg, uint32_t valor);
     bool leerRegistro(uint16_t reg, uint32_t &valor);
 
-    // Mapa de registros (SparkFun XM125 I2C, dirección 0x52)
-    static constexpr uint16_t REG_PRODUCT_ID    = 0x0000; // Product ID (32-bit, solo lectura)
-    static constexpr uint16_t REG_MEASURE_START = 0x000A; // Escribe 0x01 para iniciar medición
-    static constexpr uint16_t REG_STATUS        = 0x000B; // bit 0 = listo (medición completa)
-    static constexpr uint16_t REG_DISTANCE      = 0x0010; // Distancia en mm (32-bit, big-endian)
+    // Mapa de registros validado con sfDevXM125Distance.h de SparkFun
+    static constexpr uint16_t REG_PRODUCT_ID       = 0x0000;
+    static constexpr uint16_t REG_DETECTOR_STATUS  = 0x0003; // bit31=BUSY, bits[9:0]=OK flags
+    static constexpr uint16_t REG_DISTANCE_RESULT  = 0x0010; // bits[3:0]=num_distances, bits[31:16]=temp
+    static constexpr uint16_t REG_PEAK_DIST_BASE   = 0x0011; // 0x0011..0x001A: distancia pico 0..9 en mm
+    static constexpr uint16_t REG_PEAK_STR_BASE    = 0x001B; // 0x001B..0x0024: fuerza pico 0..9 (int32)
+    static constexpr uint16_t REG_RANGE_START      = 0x0040; // default 250 mm
+    static constexpr uint16_t REG_RANGE_END        = 0x0041; // default 3000 mm
+    static constexpr uint16_t REG_COMMAND          = 0x0100;
+
+    // Comandos para REG_COMMAND
+    static constexpr uint32_t CMD_APPLY_CONFIG_AND_CALIBRATE = 1;
+    static constexpr uint32_t CMD_MEASURE_DISTANCE           = 2;
 };

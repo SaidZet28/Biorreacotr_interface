@@ -39,9 +39,9 @@ static constexpr int RPI_I2C_BUS = 1;        // /dev/i2c-1
 
 // ── PCA9685 — Driver PWM 16 canales ─────────────────────────────────────────
 // Dirección I2C: 0x40 (AD0–AD5 = GND)
-// Frecuencia PWM: 50 Hz (período 20 ms, compatible con servos y SSR)
+// Frecuencia PWM: 60 Hz (red eléctrica México) — sincronizada con cruce por cero
 static constexpr int    PCA9685_I2C_BUS  = RPI_I2C_BUS;
-static constexpr int    PCA9685_FREQ_HZ  = 50;
+static constexpr int    PCA9685_FREQ_HZ  = 60;
 
 // Asignación de canales (debe coincidir con el cableado físico al PCA9685)
 //  Canal 0 → Calentador (PWM analógico, 0–100 %)

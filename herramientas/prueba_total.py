@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # prueba_total.py — Herramienta de prueba completa del biorreactor
+# GPIO vía lgpio (compatible Debian 13 / Pi 4B)
+# Lógica PWM idéntica a RPWM2: PCA9685 a 50 Hz, valor 0-4095, OE reset en ZC
 #
 # Requisitos en la RPi:
+#   sudo apt install python3-lgpio
 #   sudo pip3 install smbus2 pyserial
-#   sudo pigpiod   (antes de correr)
 #
 # Comandos interactivos:
 #   pH              → Lee sensor de pH (RK500-12, slave 0x03)
@@ -13,7 +15,12 @@
 #   EXIT            → Salir
 
 import os, fcntl, struct, time, threading, sys
-import pigpio
+
+try:
+    import lgpio
+except ImportError:
+    print("Falta lgpio. Instala con:  sudo apt install python3-lgpio")
+    sys.exit(1)
 
 try:
     import serial
@@ -32,8 +39,6 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 GPIO_OE      = 17
 GPIO_ZC      = 27
-RET_MIN_US   = 1000      # µs → 100% potencia
-RET_MAX_US   = 7500      # µs → mínima potencia
 
 SERIAL_PORT  = '/dev/ttyAMA0'
 SERIAL_BAUD  = 9600
@@ -48,7 +53,7 @@ QUERY_PH = bytes.fromhex('030300000006C42A')
 QUERY_DO = bytes.fromhex('0A0300000006C4B3')
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  PCA9685 — I2C directo
+#  PCA9685 — I2C directo (inicialización completa, lógica RPWM2)
 # ═══════════════════════════════════════════════════════════════════════════════
 fd_pca = os.open('/dev/i2c-1', os.O_RDWR)
 fcntl.ioctl(fd_pca, 0x0703, PCA_ADDR)
@@ -58,55 +63,45 @@ os.write(fd_pca, bytes([0x00, 0x20])); time.sleep(0.001)   # Wake + AUTO-INCREME
 time.sleep(0.001)                                           # Espera oscilador (>500 µs)
 os.write(fd_pca, bytes([0x00, 0xA0])); time.sleep(0.001)   # RESTART + AUTO-INCREMENT
 
-def pca_full_on(canal):
+def pca_pwm(canal, valor):
+    """Escribe valor PWM (0–4095) en un canal del PCA9685 — lógica RPWM2.
+    LED_ON=0, LED_OFF=valor → el PCA genera pulso de disparo a 50 Hz."""
     reg = 0x06 + canal * 4
-    os.write(fd_pca, bytes([reg, 0x00, 0x10, 0x00, 0x00]))
+    valor = max(0, min(4095, valor))
+    os.write(fd_pca, bytes([reg, 0x00, 0x00, valor & 0xFF, valor >> 8]))
 
 def pca_apagar(canal):
     reg = 0x06 + canal * 4
     os.write(fd_pca, bytes([reg, 0x00, 0x00, 0x00, 0x10]))  # FULL OFF
 
-print("[PCA9685] Inicializado en 0x40")
+print("[PCA9685] Inicializado en 0x40 (50 Hz)")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  pigpio — OE y ZC
+#  lgpio — OE y ZC  (lógica idéntica a RPWM2)
 # ═══════════════════════════════════════════════════════════════════════════════
-pi = pigpio.pi()
-if not pi.connected:
-    print("Error: pigpiod no corre. Ejecuta:  sudo pigpiod")
+h = lgpio.gpiochip_open(0)
+if h < 0:
+    print("Error: no se pudo abrir gpiochip0")
     sys.exit(1)
 
-pi.set_mode(GPIO_OE, pigpio.OUTPUT)
-pi.write(GPIO_OE, 1)          # salidas bloqueadas al inicio
-pi.set_pull_up_down(GPIO_ZC, pigpio.PUD_UP)
+lgpio.gpio_claim_output(h, GPIO_OE, 0, 0)          # OE=0 → PCA activo al inicio
+lgpio.gpio_claim_input(h, GPIO_ZC, lgpio.SET_PULL_UP)
 
-# ─── Hilo de control de fase ───────────────────────────────────────────────────
-canales_activos = {}   # {canal: porcentaje}
+# ─── Hilo de cruce por cero (lógica RPWM2) ────────────────────────────────────
+canales_activos = {}   # {canal: valor 0-4095}
 fase_viva = [True]
-zc_event  = threading.Event()
-
-def _zc_cb(gpio, level, tick):
-    zc_event.set()
 
 def _worker():
+    prev = 0
     while fase_viva[0]:
-        if not zc_event.wait(timeout=0.15):
-            continue
-        zc_event.clear()
-        if not canales_activos:
-            continue
-        # Todos los canales comparten OE → se disparan al mismo tiempo.
-        # Se usa el porcentaje del canal activo (para prueba de un canal a la vez).
-        pct = next(iter(canales_activos.values()))
-        if pct <= 0:
-            continue
-        ret_us = RET_MAX_US - (RET_MAX_US - RET_MIN_US) * pct // 100
-        time.sleep(ret_us / 1e6)
-        pi.write(GPIO_OE, 0)
-        time.sleep(500e-6)
-        pi.write(GPIO_OE, 1)
+        curr = lgpio.gpio_read(h, GPIO_ZC)
+        if curr == 1 and prev == 0:   # flanco de subida (0→1)
+            lgpio.gpio_write(h, GPIO_OE, 1)
+            time.sleep(50e-6)         # 50 µs blanking — reset del ciclo PWM
+            lgpio.gpio_write(h, GPIO_OE, 0)
+        prev = curr
+        time.sleep(10e-6)
 
-_cb  = pi.callback(GPIO_ZC, pigpio.RISING_EDGE, _zc_cb)
 threading.Thread(target=_worker, daemon=True).start()
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -162,9 +157,7 @@ def cmd_nivel():
         if num_dist == 0:
             print("  Sin objeto en rango")
             return
-        picos = [xm125_read(0x0011 + j) for j in range(num_dist)]
-        print(f"  [DEBUG] num_dist={num_dist}  picos={picos} mm")
-        min_d = min(picos)
+        min_d = min(xm125_read(0x0011 + j) for j in range(num_dist))
         nivel = (DIST_VACIO - min_d) / (DIST_VACIO - DIST_LLENO) * 100.0
         nivel = max(0.0, min(100.0, nivel))
         print(f"  Nivel = {nivel:.1f}%   Distancia = {min_d} mm")
@@ -277,26 +270,24 @@ while True:
         if pct == 0:
             pca_apagar(canal)
             canales_activos.pop(canal, None)
-            if not canales_activos:
-                pi.write(GPIO_OE, 1)
             print(f"  Canal {canal}: APAGADO")
         else:
-            pca_full_on(canal)
-            canales_activos[canal] = pct
-            print(f"  Canal {canal}: {pct}%")
+            valor = int(pct * 4095 / 100)   # % → 0-4095 (lógica RPWM2)
+            pca_pwm(canal, valor)
+            canales_activos[canal] = valor
+            print(f"  Canal {canal}: {pct}%  (valor PWM = {valor})")
 
     else:
         print("  Comandos: pH  OD  Nivel  PCA 0..15  EXIT")
 
 # ─── Limpieza ─────────────────────────────────────────────────────────────────
 fase_viva[0] = False
-_cb.cancel()
-pi.write(GPIO_OE, 1)
+lgpio.gpio_write(h, GPIO_OE, 1)   # deshabilitar salidas
 for c in range(16):
     pca_apagar(c)
 os.close(fd_pca)
 bus.close()
 if ser:
     ser.close()
-pi.stop()
+lgpio.gpiochip_close(h)
 print("\nSalida limpia.")

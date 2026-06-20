@@ -157,10 +157,22 @@ def cmd_nivel():
         if num_dist == 0:
             print("  Sin objeto en rango")
             return
-        min_d = min(xm125_read(0x0011 + j) for j in range(num_dist))
-        nivel = (DIST_VACIO - min_d) / (DIST_VACIO - DIST_LLENO) * 100.0
+
+        # Leer todos los picos (ordenados por fuerza de señal, no por distancia)
+        picos = [xm125_read(0x0011 + j) for j in range(num_dist)]
+        for i, d in enumerate(picos):
+            print(f"  Objeto {i+1}: {d} mm")
+
+        # El objeto 1 (picos[0]) es una reflexión fija del montaje.
+        # El objeto 2 (picos[1]) es la superficie del líquido.
+        if num_dist < 2:
+            print("  Solo se detectó un objeto — superficie de líquido no visible")
+            return
+        dist_liquido = picos[1]
+
+        nivel = (DIST_VACIO - dist_liquido) / (DIST_VACIO - DIST_LLENO) * 100.0
         nivel = max(0.0, min(100.0, nivel))
-        print(f"  Nivel = {nivel:.1f}%   Distancia = {min_d} mm")
+        print(f"  Nivel = {nivel:.1f}%   Distancia = {dist_liquido} mm")
     except Exception as e:
         print(f"  Error XM125: {e}")
 

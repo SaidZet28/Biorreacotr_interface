@@ -162,7 +162,9 @@ def cmd_nivel():
         if num_dist == 0:
             print("  Sin objeto en rango")
             return
-        min_d = min(xm125_read(0x0011 + j) for j in range(num_dist))
+        picos = [xm125_read(0x0011 + j) for j in range(num_dist)]
+        print(f"  [DEBUG] num_dist={num_dist}  picos={picos} mm")
+        min_d = min(picos)
         nivel = (DIST_VACIO - min_d) / (DIST_VACIO - DIST_LLENO) * 100.0
         nivel = max(0.0, min(100.0, nivel))
         print(f"  Nivel = {nivel:.1f}%   Distancia = {min_d} mm")

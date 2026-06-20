@@ -133,17 +133,13 @@ def xm125_read(reg):
 def xm125_init():
     global xm125_ok
     try:
-        xm125_write(0x0040, 100)    # RANGE_START = 100 mm
-        xm125_write(0x0041, 2000)   # RANGE_END   = 2000 mm
-        xm125_write(0x0100, 1)      # APPLY_CONFIG_AND_CALIBRATE
-        for _ in range(50):
-            time.sleep(0.1)
-            st = xm125_read(0x0003)
-            if not (st & 0x80000000):
-                print(f"[XM125] Calibrado OK  (STATUS={hex(st)})")
-                xm125_ok = True
-                return
-        print("[XM125] Timeout en calibración")
+        xm125_write(0x0020, 200)    # RANGE_START = 200 mm
+        xm125_write(0x0024, 2000)   # RANGE_END   = 2000 mm
+        xm125_write(0x0002, 1)      # APPLY_CONFIG
+        time.sleep(0.1)
+        xm125_write(0x0002, 2)      # START — medición continua
+        print("[XM125] Inicializado OK (medición continua activa)")
+        xm125_ok = True
     except Exception as e:
         print(f"[XM125] Error init: {e}")
 
@@ -152,20 +148,13 @@ def cmd_nivel():
         print("  XM125 no disponible")
         return
     try:
-        xm125_write(0x0100, 2)      # CMD_MEASURE_DISTANCE
-        for _ in range(20):
-            time.sleep(0.05)
-            if not (xm125_read(0x0003) & 0x80000000):
-                break
-        result   = xm125_read(0x0010)
-        num_dist = result & 0x0F
-        if num_dist == 0:
+        dist = xm125_read(0x0080)   # Registro de distancia (mm) — modo continuo
+        if dist > 0:
+            nivel = (DIST_VACIO - dist) / (DIST_VACIO - DIST_LLENO) * 100.0
+            nivel = max(0.0, min(100.0, nivel))
+            print(f"  Nivel = {nivel:.1f}%   Distancia = {dist} mm")
+        else:
             print("  Sin objeto en rango")
-            return
-        min_d = min(xm125_read(0x0011 + j) for j in range(num_dist))
-        nivel = (DIST_VACIO - min_d) / (DIST_VACIO - DIST_LLENO) * 100.0
-        nivel = max(0.0, min(100.0, nivel))
-        print(f"  Nivel = {nivel:.1f}%   Distancia = {min_d} mm")
     except Exception as e:
         print(f"  Error XM125: {e}")
 

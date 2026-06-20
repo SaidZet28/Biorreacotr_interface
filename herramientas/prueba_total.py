@@ -53,7 +53,10 @@ QUERY_DO = bytes.fromhex('0A0300000006C4B3')
 fd_pca = os.open('/dev/i2c-1', os.O_RDWR)
 fcntl.ioctl(fd_pca, 0x0703, PCA_ADDR)
 os.write(fd_pca, bytes([0x00, 0x10])); time.sleep(0.001)   # SLEEP
-os.write(fd_pca, bytes([0x00, 0x20])); time.sleep(0.001)   # AUTO-INCREMENT
+os.write(fd_pca, bytes([0xFE, 0x79])); time.sleep(0.001)   # PRESCALE → 50 Hz
+os.write(fd_pca, bytes([0x00, 0x20])); time.sleep(0.001)   # Wake + AUTO-INCREMENT
+time.sleep(0.001)                                           # Espera oscilador (>500 µs)
+os.write(fd_pca, bytes([0x00, 0xA0])); time.sleep(0.001)   # RESTART + AUTO-INCREMENT
 
 def pca_full_on(canal):
     reg = 0x06 + canal * 4

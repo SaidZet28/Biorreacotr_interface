@@ -39,8 +39,7 @@ except ImportError:
 ESCALON_PCT   = 80        # % de potencia para la manta térmica
 CANAL_CALENT  = [0, 1]   # PCA9685 → calentadores
 CANAL_BURBUJA = 2         # PCA9685 → burbujeador
-CANAL_BOMBA   = 3         # PCA9685 → bomba solución salina
-CANAL_VINAGRE = 4         # PCA9685 → bomba vinagre
+CANALES_BOMBA = [3, 4]    # PCA9685 → bombas solución salina
 INTERVALO_S   = 2.0       # Segundos entre lecturas de sensores
 
 PCA_ADDR   = 0x40
@@ -60,8 +59,11 @@ QUERY_DO = bytes.fromhex('0A0300000006C4B3')   # OD  slave 0x0A
 fd_pca = os.open('/dev/i2c-1', os.O_RDWR)
 fcntl.ioctl(fd_pca, 0x0703, PCA_ADDR)
 os.write(fd_pca, bytes([0x00, 0x10])); time.sleep(0.001)   # SLEEP
-os.write(fd_pca, bytes([0x00, 0x20])); time.sleep(0.001)   # AUTO-INCREMENT
-print("[PCA9685] Inicializado en 0x40")
+os.write(fd_pca, bytes([0xFE, 0x79])); time.sleep(0.001)   # PRESCALE → 50 Hz
+os.write(fd_pca, bytes([0x00, 0x20])); time.sleep(0.001)   # Wake + AUTO-INCREMENT
+time.sleep(0.001)                                           # Espera oscilador (>500 µs)
+os.write(fd_pca, bytes([0x00, 0xA0])); time.sleep(0.001)   # RESTART + AUTO-INCREMENT
+print("[PCA9685] Inicializado en 0x40 — 50 Hz")
 
 def pca_full_on(canal):
     reg = 0x06 + canal * 4
@@ -140,9 +142,11 @@ def leer_sensor(query, nombre):
         ser.write(query)
         time.sleep(0.35)
         resp = ser.read(64)
-    if len(resp) < 15:
+    if len(resp) < 9:
         return None, None
     if _crc(resp[:-2]) != (resp[-2] | resp[-1] << 8):
+        return None, None
+    if len(resp) < 15:
         return None, None
     val  = struct.unpack('>f', resp[3:7])[0]
     temp = struct.unpack('>f', resp[11:15])[0]
@@ -152,10 +156,31 @@ def leer_sensor(query, nombre):
 #  Estado compartido entre hilos
 # ═══════════════════════════════════════════════════════════════════════════════
 datos        = []
-datos_lock   = threading.Lock()
-evento_sig   = [None]    # string del próximo evento a estampar en la muestra
-medir_activo = [False]
-t_inicio_med = [None]
+datos_lock     = threading.Lock()
+evento_sig     = [None]    # string del próximo evento a estampar en la muestra
+medir_activo   = [False]
+t_inicio_med   = [None]
+pausado        = [False]
+t_pausa_inicio = [None]
+t_pausa_offset = [0.0]    # segundos acumulados en pausa (se restan al elapsed)
+
+def elapsed_actual():
+    """Tiempo transcurrido descontando los periodos de pausa."""
+    offset = t_pausa_offset[0]
+    if pausado[0] and t_pausa_inicio[0]:
+        offset += time.time() - t_pausa_inicio[0]
+    return time.time() - t_inicio_med[0] - offset
+
+def pausar():
+    if not pausado[0]:
+        pausado[0]        = True
+        t_pausa_inicio[0] = time.time()
+
+def reanudar():
+    if pausado[0] and t_pausa_inicio[0]:
+        t_pausa_offset[0] += time.time() - t_pausa_inicio[0]
+        t_pausa_inicio[0]  = None
+        pausado[0]         = False
 
 def sensor_worker():
     """Hilo que lee sensores cada INTERVALO_S y guarda en datos[]."""
@@ -166,7 +191,10 @@ def sensor_worker():
             time.sleep(espera)
         siguiente += INTERVALO_S
 
-        elapsed         = time.time() - t_inicio_med[0]
+        if pausado[0]:
+            siguiente += INTERVALO_S   # no acumular retraso mientras está pausado
+            continue
+        elapsed         = elapsed_actual()
         ph_val, t_ph    = leer_sensor(QUERY_PH, "pH")
         od_val, t_od    = leer_sensor(QUERY_DO, "OD")
         temps           = [v for v in [t_ph, t_od] if v is not None]
@@ -223,7 +251,8 @@ def salida_limpia(*_):
     pi.write(GPIO_OE, 1)
     apagar_todo()
     os.close(fd_pca)
-    ser.close()
+    if ser and ser.is_open:
+        ser.close()
     pi.stop()
     guardar_csv()
     sys.exit(0)
@@ -241,13 +270,44 @@ print("═"*62)
 # ── FASE 1: LLENADO ───────────────────────────────────────────────────────────
 print("\n▶ FASE 1 — LLENADO")
 print("  Bomba solución salina (canal 3) encendida.")
-print("  Presiona ENTER cuando el nivel sea el deseado...")
-pca_full_on(CANAL_BOMBA)
-canales_activos[CANAL_BOMBA] = 100
-input()
-pca_apagar(CANAL_BOMBA)
-canales_activos.pop(CANAL_BOMBA, None)
-print("  ✓ Bomba apagada. Llenado completo.")
+print("  Comandos durante llenado:")
+print("    ENTER / listo  → Terminar llenado")
+print("    pausa          → Pausar bombas y tiempo")
+print("    reanudar       → Continuar\n")
+t_inicio_med[0] = time.time()   # timestamp desde el inicio del llenado
+for c in CANALES_BOMBA:
+    pca_full_on(c)
+    canales_activos[c] = 100
+
+while True:
+    try:
+        cmd_ll = input("  [llenado] > ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        break
+
+    if cmd_ll in ('', 'listo'):
+        break
+    elif cmd_ll == 'pausa':
+        pausar()
+        for c in CANALES_BOMBA:
+            pca_apagar(c)
+        print("  ⏸  Pausado — bombas OFF, tiempo detenido")
+    elif cmd_ll == 'reanudar':
+        reanudar()
+        for c in CANALES_BOMBA:
+            pca_full_on(c)
+            canales_activos[c] = 100
+        print("  ▶  Reanudado — bombas ON")
+    else:
+        print("  Comandos: listo | pausa | reanudar")
+
+# Asegurarse de reanudar el tiempo si quedó pausado
+if pausado[0]:
+    reanudar()
+for c in CANALES_BOMBA:
+    pca_apagar(c)
+    canales_activos.pop(c, None)
+print("  ✓ Bombas apagadas. Llenado completo.")
 
 # ── FASE 2: BURBUJEO + INICIO DE MEDICIÓN ─────────────────────────────────────
 print("\n▶ FASE 2 — BURBUJEO")
@@ -257,7 +317,6 @@ print("  Burbujeador (canal 2) encendido.")
 time.sleep(1.0)
 
 print("\n▶ MEDICIÓN — Iniciando lectura de sensores cada", INTERVALO_S, "s")
-t_inicio_med[0] = time.time()
 medir_activo[0] = True
 threading.Thread(target=sensor_worker, daemon=True).start()
 
@@ -289,15 +348,8 @@ while True:
         print(f"  ✓ Manta térmica ON — {ESCALON_PCT}% en canales {CANAL_CALENT}")
 
     elif cmd == 'vinagre':
-        pca_full_on(CANAL_VINAGRE)
-        canales_activos[CANAL_VINAGRE] = 100
         evento_sig[0] = 'VINAGRE'
-        print("  ✓ Bomba vinagre (canal 4) ON — presiona ENTER para detenerla")
-        input()
-        pca_apagar(CANAL_VINAGRE)
-        canales_activos.pop(CANAL_VINAGRE, None)
-        evento_sig[0] = 'VINAGRE_STOP'
-        print("  ✓ Bomba vinagre apagada")
+        print("  ✓ Evento 'VINAGRE' marcado en el CSV")
 
     elif cmd == 'exit':
         break

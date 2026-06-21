@@ -101,9 +101,11 @@ def leer_distancia_mm() -> float | None:
         if num_dist == 0:
             return None
         picos = [xm125_read(0x0011 + j) for j in range(num_dist)]
+        print(f"  [DEBUG] picos detectados: {picos} mm")
         # Descartar reflexión fija del soporte (~225 mm)
         candidatos = [d for d in picos
                       if abs(d - DIST_SOPORTE) > MARGEN_SOPORTE]
+        print(f"  [DEBUG] candidatos tras filtro: {candidatos} mm")
         if not candidatos:
             return None
         return float(min(candidatos))

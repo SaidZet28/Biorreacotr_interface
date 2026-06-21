@@ -84,12 +84,8 @@ def xm125_init() -> bool:
         print(f"  [XM125] Error en init: {e}")
         return False
 
-def leer_distancia_mm() -> float | None:
-    """
-    Dispara una medición y retorna la distancia al objeto MÁS CERCANO (mm).
-    El sensor apunta hacia abajo → el objeto más cercano es la superficie del líquido.
-    Retorna None si no hay objeto en rango o hay error.
-    """
+def leer_picos() -> list[int]:
+    """Dispara una medición y retorna TODOS los picos detectados (mm), sin filtrar."""
     try:
         xm125_write(0x0100, 2)           # CMD_MEASURE_DISTANCE
         for _ in range(20):
@@ -99,31 +95,11 @@ def leer_distancia_mm() -> float | None:
         result   = xm125_read(0x0010)
         num_dist = result & 0x0F
         if num_dist == 0:
-            return None
-        picos = [xm125_read(0x0011 + j) for j in range(num_dist)]
-        print(f"  [DEBUG] picos detectados: {picos} mm")
-        # Descartar reflexión fija del soporte (~225 mm)
-        candidatos = [d for d in picos
-                      if abs(d - DIST_SOPORTE) > MARGEN_SOPORTE]
-        print(f"  [DEBUG] candidatos tras filtro: {candidatos} mm")
-        if not candidatos:
-            return None
-        return float(min(candidatos))
+            return []
+        return [xm125_read(0x0011 + j) for j in range(num_dist)]
     except Exception as e:
         print(f"  [Error lectura] {e}")
-        return None
-
-def leer_distancia_promedio(n: int = N_MUESTRAS) -> float | None:
-    """Promedia n lecturas consecutivas para reducir ruido."""
-    vals = []
-    for _ in range(n):
-        d = leer_distancia_mm()
-        if d is not None:
-            vals.append(d)
-        time.sleep(0.1)
-    if not vals:
-        return None
-    return sum(vals) / len(vals)
+        return []
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  Helpers de consola
@@ -210,17 +186,38 @@ def main():
         bus.close()
         sys.exit(1)
 
-    # ── Punto inicial: reactor vacío ─────────────────────────────────────────
-    print("\n  PASO 1: Asegúrate de que el reactor esté VACÍO.")
-    input("  Presiona Enter cuando esté listo... ")
+    # ── Punto inicial ─────────────────────────────────────────────────────────
+    print("\n  PASO 1: ¿Cuánta agua hay en el reactor ahora? (0 si está vacío)")
+    while True:
+        try:
+            vol_inicial = float(input("  Volumen inicial (ml): ").strip())
+            if vol_inicial >= 0:
+                break
+            print("  Debe ser ≥ 0")
+        except ValueError:
+            print("  Número inválido")
 
-    d_vacio = leer_distancia_promedio()
-    if d_vacio is None:
-        print("  [ERROR] Sin lectura del sensor. Verifica montaje y rango.")
-        bus.close()
-        sys.exit(1)
-
-    print(f"  ✓ Distancia en vacío = {d_vacio:.1f} mm")
+    if vol_inicial == 0:
+        # Sin líquido — el radar no puede medir, pedir distancia manual
+        print("  El radar no rebota en superficies secas.")
+        print("  Mide físicamente la distancia del sensor al fondo del reactor.")
+        while True:
+            try:
+                d_vacio = float(input("  Distancia en vacío (mm): ").strip())
+                if d_vacio > 0:
+                    break
+                print("  Debe ser mayor a 0")
+            except ValueError:
+                print("  Número inválido")
+    else:
+        # Con líquido — medir con el sensor
+        input(f"  Asegúrate de que haya exactamente {vol_inicial:.0f} ml y presiona Enter... ")
+        picos_ini = leer_picos()
+        if not picos_ini:
+            print("  [ERROR] Sin lectura del sensor. Verifica montaje y rango.")
+            bus.close()
+            sys.exit(1)
+        print(f"  ✓ Objetos detectados: {picos_ini} mm")
 
     # Preparar CSV
     with open(ARCHIVO_CSV, 'w', newline='') as f:
@@ -228,21 +225,21 @@ def main():
         writer.writerow([
             '#', 'timestamp', 'evento',
             'volumen_agregado_ml', 'volumen_acumulado_ml',
-            'distancia_mm', 'nivel_pct', 'notas'
+            'num_objetos', 'picos_mm', 'notas'
         ])
-        ts = datetime.now().strftime("%H:%M:%S")
-        writer.writerow([0, ts, 'vacio', 0, 0,
-                         round(d_vacio, 1), 0.0, 'reactor vacío'])
+        if vol_inicial > 0:
+            ts = datetime.now().strftime("%H:%M:%S")
+            writer.writerow([0, ts, 'inicio', 0, round(vol_inicial, 1),
+                             len(picos_ini), str(picos_ini), f'vol inicial {vol_inicial:.0f} ml'])
 
-    filas = [{'volumen_acumulado_ml': 0.0, 'distancia_mm': d_vacio}]
+    vol_acumulado = vol_inicial
 
     print(f"\n  Guardando en: {ARCHIVO_CSV}")
     print("  En cada paso agrega un volumen conocido de agua,")
     print("  espera 10 s a que se estabilice y presiona Enter.\n")
     print("  Escribe 'q' en el volumen para terminar.\n")
 
-    muestra_num   = 0
-    vol_acumulado = 0.0
+    muestra_num = 0
 
     try:
         while True:
@@ -255,15 +252,12 @@ def main():
 
             input("  Agrega el agua, espera 10 s para estabilización y presiona Enter... ")
 
-            d = leer_distancia_promedio()
-            if d is None:
+            picos = leer_picos()
+            if not picos:
                 print("  [ADVERTENCIA] Sin lectura; punto descartado.")
                 continue
 
             vol_acumulado += vol_agregar
-            nivel_pct = (d_vacio - d) / max(d_vacio - 1.0, 1.0) * 100.0
-            nivel_pct = max(0.0, min(100.0, nivel_pct))
-
             muestra_num += 1
             ts = datetime.now().strftime("%H:%M:%S")
             notas = input("  Notas opcionales (Enter para omitir): ").strip()
@@ -273,23 +267,17 @@ def main():
                 writer.writerow([
                     muestra_num, ts, 'adicion',
                     round(vol_agregar, 1), round(vol_acumulado, 1),
-                    round(d, 1), round(nivel_pct, 2), notas
+                    len(picos), str(picos), notas
                 ])
 
-            filas.append({'volumen_acumulado_ml': vol_acumulado, 'distancia_mm': d})
-
             print(f"  ✓ #{muestra_num}  Vol. acum = {vol_acumulado:.0f} ml  "
-                  f"Distancia = {d:.1f} mm  Nivel ≈ {nivel_pct:.1f}%")
+                  f"Objetos detectados: {picos} mm")
 
     except KeyboardInterrupt:
         print("\n  Interrumpido con Ctrl+C")
 
     finally:
         bus.close()
-
-    # Análisis
-    if len(filas) >= 2:
-        analizar(filas)
 
     print(f"\n  Prueba terminada. {muestra_num} puntos guardados en:")
     print(f"  {ARCHIVO_CSV}\n")

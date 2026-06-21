@@ -36,8 +36,10 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════════════════════════
 XM125_ADDR  = 0x52
 I2C_BUS     = 1
-RANGE_START = 50      # mm — inicio del rango de detección
-RANGE_END   = 600     # mm — fin del rango  (ajustar a la altura del reactor)
+RANGE_START    = 50      # mm — inicio del rango de detección
+RANGE_END      = 1300    # mm — fin del rango
+DIST_SOPORTE   = 225.0   # mm — reflexión fija del soporte (se descarta)
+MARGEN_SOPORTE = 20.0    # mm — ±margen alrededor del soporte
 N_MUESTRAS  = 5       # lecturas promediadas por punto
 
 timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -98,8 +100,13 @@ def leer_distancia_mm() -> float | None:
         num_dist = result & 0x0F
         if num_dist == 0:
             return None
-        min_d = min(xm125_read(0x0011 + j) for j in range(num_dist))
-        return float(min_d)
+        picos = [xm125_read(0x0011 + j) for j in range(num_dist)]
+        # Descartar reflexión fija del soporte (~225 mm)
+        candidatos = [d for d in picos
+                      if abs(d - DIST_SOPORTE) > MARGEN_SOPORTE]
+        if not candidatos:
+            return None
+        return float(min(candidatos))
     except Exception as e:
         print(f"  [Error lectura] {e}")
         return None

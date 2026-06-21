@@ -45,8 +45,10 @@ SERIAL_BAUD  = 9600
 
 PCA_ADDR     = 0x40
 XM125_ADDR   = 0x52
-DIST_VACIO   = 400.0     # mm (reactor vacío)
-DIST_LLENO   =  50.0     # mm (reactor lleno)
+DIST_VACIO   = 1150.0    # mm (reactor vacío  — 1.15 m)
+DIST_LLENO   =   65.0    # mm (reactor lleno  — 6.5 cm)
+DIST_SOPORTE =  225.0    # mm (reflexión fija del soporte — ignorar)
+MARGEN_SOPORTE = 20.0    # mm (±margen alrededor del soporte)
 
 # Queries Modbus RTU precalculadas (del gestorbiorreactor.cpp)
 QUERY_PH = bytes.fromhex('030300000006C42A')
@@ -129,7 +131,7 @@ def xm125_init():
     global xm125_ok
     try:
         xm125_write(0x0040, 100)    # RANGE_START = 100 mm
-        xm125_write(0x0041, 2000)   # RANGE_END   = 2000 mm
+        xm125_write(0x0041, 1300)   # RANGE_END   = 1300 mm
         xm125_write(0x0100, 1)      # APPLY_CONFIG_AND_CALIBRATE
         for _ in range(50):
             time.sleep(0.1)
@@ -158,21 +160,10 @@ def cmd_nivel():
             print("  Sin objeto en rango")
             return
 
-        # Leer todos los picos (ordenados por fuerza de señal, no por distancia)
+        # Mostrar todos los objetos detectados sin filtrar
         picos = [xm125_read(0x0011 + j) for j in range(num_dist)]
         for i, d in enumerate(picos):
             print(f"  Objeto {i+1}: {d} mm")
-
-        # El objeto 1 (picos[0]) es una reflexión fija del montaje.
-        # El objeto 2 (picos[1]) es la superficie del líquido.
-        if num_dist < 2:
-            print("  Solo se detectó un objeto — superficie de líquido no visible")
-            return
-        dist_liquido = picos[1]
-
-        nivel = (DIST_VACIO - dist_liquido) / (DIST_VACIO - DIST_LLENO) * 100.0
-        nivel = max(0.0, min(100.0, nivel))
-        print(f"  Nivel = {nivel:.1f}%   Distancia = {dist_liquido} mm")
     except Exception as e:
         print(f"  Error XM125: {e}")
 

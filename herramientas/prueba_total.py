@@ -160,10 +160,24 @@ def cmd_nivel():
             print("  Sin objeto en rango")
             return
 
-        # Mostrar todos los objetos detectados sin filtrar
+        # Leer todos los picos (ordenados por fuerza de señal, no por distancia)
         picos = [xm125_read(0x0011 + j) for j in range(num_dist)]
         for i, d in enumerate(picos):
             print(f"  Objeto {i+1}: {d} mm")
+
+        # Solo considerar picos dentro del rango físico del reactor,
+        # excluyendo la reflexión fija del soporte (~225 mm)
+        candidatos = [d for d in picos
+                      if DIST_LLENO <= d <= DIST_VACIO
+                      and abs(d - DIST_SOPORTE) > MARGEN_SOPORTE]
+        if not candidatos:
+            print("  Ningún objeto dentro del rango válido del reactor")
+            return
+        dist_liquido = min(candidatos)
+
+        nivel = (DIST_VACIO - dist_liquido) / (DIST_VACIO - DIST_LLENO) * 100.0
+        nivel = max(0.0, min(100.0, nivel))
+        print(f"  Nivel = {nivel:.1f}%   Distancia = {dist_liquido} mm")
     except Exception as e:
         print(f"  Error XM125: {e}")
 
@@ -285,12 +299,30 @@ while True:
 
 # ─── Limpieza ─────────────────────────────────────────────────────────────────
 fase_viva[0] = False
-lgpio.gpio_write(h, GPIO_OE, 1)   # deshabilitar salidas
-for c in range(16):
-    pca_apagar(c)
-os.close(fd_pca)
-bus.close()
+try:
+    lgpio.gpio_write(h, GPIO_OE, 1)   # deshabilitar salidas
+except Exception:
+    pass
+try:
+    for c in range(16):
+        pca_apagar(c)
+except Exception:
+    pass
+try:
+    os.close(fd_pca)
+except Exception:
+    pass
+try:
+    bus.close()
+except Exception:
+    pass
 if ser:
-    ser.close()
-lgpio.gpiochip_close(h)
+    try:
+        ser.close()
+    except Exception:
+        pass
+try:
+    lgpio.gpiochip_close(h)
+except Exception:
+    pass
 print("\nSalida limpia.")

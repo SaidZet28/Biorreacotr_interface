@@ -85,19 +85,26 @@ target_include_directories(appPrototipo PRIVATE
     src/drivers
 )
 
-# 4. Recursos de imagen (mismo PREFIX que el módulo QML — los QML no necesitan cambiar)
-qt_add_resources(appPrototipo "imagesRes"
-    PREFIX "/qt/qml/Prototipo"
+# 4. Recursos de imagen — PREFIX por subcarpeta para que los QML los encuentren
+#    con rutas relativas (QML en qml/screens/ busca en .../qml/screens/, etc.)
+qt_add_resources(appPrototipo "imagesComponents"
+    PREFIX "/qt/qml/Prototipo/qml/components"
     BASE "assets"
     FILES
         assets/Logo_IPN.png
         assets/Logo_UPIIZ.png
         assets/Logo_ENCB.png
+)
+
+qt_add_resources(appPrototipo "imagesScreens"
+    PREFIX "/qt/qml/Prototipo/qml/screens"
+    BASE "assets"
+    FILES
         assets/Alerta.png
         assets/Engrane.png
         assets/Play_Pause.png
-        assets/Lapiz.png
         assets/Basura.png
+        assets/Lapiz.png
         assets/Hongo_1.png
         assets/Hongo_2.png
         assets/Hongo_3.png
@@ -107,6 +114,14 @@ qt_add_resources(appPrototipo "imagesRes"
         assets/Hongo_7.png
         assets/Hongo_8.png
         assets/Hongo_9.png
+)
+
+qt_add_resources(appPrototipo "imagesPopups"
+    PREFIX "/qt/qml/Prototipo/qml/popups"
+    BASE "assets"
+    FILES
+        assets/Basura.png
+        assets/Lapiz.png
 )
 
 # 5. Recursos de audio (WAV embebidos en el binario bajo el prefijo /audio)

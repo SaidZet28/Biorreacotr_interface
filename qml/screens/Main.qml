@@ -176,4 +176,5 @@ ApplicationWindow {
     PantallaGuardarConfig { id: pantallaGuardarConfig;  anchors.fill: parent; appWindow: mainWindow }
     PantallaLimpieza      { id: pantallaLimpieza;       anchors.fill: parent; appWindow: mainWindow }
     PantallaRegistro      { id: pantallaRegistro;       anchors.fill: parent; appWindow: mainWindow }
+    PantallaPruebaPH      { id: pantallaPruebaPH;       anchors.fill: parent; appWindow: mainWindow }
 }

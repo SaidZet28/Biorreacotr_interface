@@ -183,20 +183,20 @@
         <mxCell id="4" value="Estado 0 — VERIFICACIÓN&#xa;HW: sin alertas Serial ni Nivel&#xa;SIM: 2 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="80" y="250" width="240" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="5" value="Estado 1 — LLENADO INICIAL&#xa;HW: BombaB × m_ticksDosificacionB ticks&#xa;       luego BombaAgua hasta nivel 20%&#xa;SIM: 5 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="80" y="440" width="240" height="80" as="geometry" />
+        <mxCell id="5" value="Estado 1 — LLENADO INICIAL&#xa;HW: BombaNivel ON → nivel ≥ 20%&#xa;       (solución salina preparada manualmente)&#xa;       Volumen tanque: 55 L&#xa;SIM: 5 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="440" width="240" height="90" as="geometry" />
         </mxCell>
         <mxCell id="6" value="Estado 2 — ESTABILIZACIÓN SENSOR pH&#xa;HW: lectura pH estable 5 s consecutivos&#xa;SIM: 5 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="80" y="640" width="240" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="7" value="Estado 3 — ACONDICIONAMIENTO&#xa;[Fuzzy pH ON]&#xa;HW: pH ± 0.5  y  Temp ± 1°C&#xa;SIM: 8 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="80" y="840" width="240" height="80" as="geometry" />
+        <mxCell id="7" value="Estado 3 — ACONDICIONAMIENTO&#xa;[Fuzzy pH SISO ON — Ts = 30 s]&#xa;Pre-filtro: error ≤ 0 → sin acción&#xa;Guarda nivel: nivel ≥ 95% → sin acción pH&#xa;HW: pH ± 0.5  y  Temp ± 1°C&#xa;SIM: 8 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="840" width="240" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="8" value="Estado 4 — LLENADO FINAL&#xa;HW: BombaAgua ON → nivel = setpointNivel&#xa;SIM: 8 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="80" y="1060" width="240" height="70" as="geometry" />
+        <mxCell id="8" value="Estado 4 — LLENADO FINAL&#xa;HW: BombaNivel ON → nivel = setpointNivel&#xa;       Límite máximo: 85% (≈46.75 L de 55 L)&#xa;SIM: 8 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1080" width="240" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="9" value="Estado 5 — VERIFICACIÓN FINAL&#xa;[Fuzzy pH ON]&#xa;HW: pH ± 0.5  y  Temp ± 1°C  estables 30 s&#xa;SIM: 10 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="80" y="1250" width="240" height="80" as="geometry" />
+        <mxCell id="9" value="Estado 5 — VERIFICACIÓN FINAL&#xa;[Fuzzy pH SISO ON — Ts = 30 s]&#xa;HW: pH ± 0.5 estable ≥ 2 ciclos (60 s)&#xa;       Temp ± 1°C  |  setpoint pH ∈ [4.0, 7.5]&#xa;SIM: 10 ticks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1290" width="240" height="90" as="geometry" />
         </mxCell>
         <mxCell id="10" value="Estado 6 — LISTO&#xa;preparacionCompletada = true&#xa;[Fuzzy pH + Histéresis nivel ON]&#xa;Espera confirmación del operador" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="80" y="1460" width="240" height="80" as="geometry" />

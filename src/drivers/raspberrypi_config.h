@@ -45,8 +45,8 @@ static constexpr int    PCA9685_FREQ_HZ  = 60;
 
 // Asignación de canales (debe coincidir con el cableado físico al PCA9685)
 //  Canal 0 → Calentador (PWM analógico, 0–100 %)
-//  Canal 1 → Bomba Etanol (PWM analógico, 0–100 %)
-//  Canal 2 → Bomba Agua   (PWM analógico, 0–100 %)
+//  Canal 1 → Bomba Neutralizador (PWM analógico, 0–100 %) — control pH SISO
+//  Canal 2 → Bomba Agua          (PWM analógico, 0–100 %)
 //  Canal 3 → Iluminación   (PWM analógico, 0–100 %)
 //  Canal 4 → Airlift       (no conectado en esta versión)
 //  Canal 5 → Bomba Nivel   (digital: ON / OFF)
@@ -68,23 +68,46 @@ static constexpr double DIST_LLENO_MM  =  50.0;
 static constexpr int    SERIAL_BAUD       = 9600;    // 8N1, sin control de flujo — Modbus RTU
 
 // ── Llenado óptimo — Mezcla inicial por pH ───────────────────────────────────
-// Volumen total del biorreactor
-static constexpr double VOLUMEN_TANQUE_L       = 35.85;
+// Volumen total operativo del biorreactor [L]
+// MEDIDO: llenado a 55 L en 1409 s con BombaNivel (prueba 2026-06)
+static constexpr double VOLUMEN_TANQUE_L       = 55.0;
 
 // pH del agua de suministro (fuente A)
 static constexpr double PH_AGUA_DEFAULT        = 7.0;
 
-// pH de la sustancia B en el tanque de dosificación
+// pH de la sustancia B en el tanque de dosificación (neutralizador)
 // CALIBRAR: medir con pHímetro la solución real y actualizar este valor
 static constexpr double PH_SUSTANCIA_B         = 12.0;
 
-// Caudal de Bomba Etanol al 100% PWM [mL/s]
-// CALIBRAR: activar bomba 10 s → medir mL → dividir entre 10
-static constexpr double CAUDAL_BOMBA_B_ML_S    = 5.0;
+// Caudal de Bomba Neutralizador al 100% PWM [mL/s]
+// MEDIDO: 55 L llenados en 1409 s → Q = 55000/1409 ≈ 39 mL/s (prueba 2026-06)
+// Usado para calcular t_pulso_max = 0.5% × 55000 mL / 39 mL/s ≈ 7 s
+static constexpr double CAUDAL_BOMBA_B_ML_S    = 39.0;
+
+// Tiempo máximo de pulso de la bomba neutralizador por ciclo [s]
+// = (0.5% × VOLUMEN_TANQUE_L × 1000) / CAUDAL_BOMBA_B_ML_S = 275 / 39 ≈ 7 s
+static constexpr double T_PULSO_MAX_S          = 7.0;
+
+// Tiempo de muestreo del lazo de control pH [s]
+// Derivado del tiempo de mezclado θm = 130 s → Ts = θm / 4.3 ≈ 30 s
+static constexpr double TS_CONTROL_PH_S        = 30.0;
 
 // Nivel mínimo para que el sensor de pH haga contacto con el líquido [%]
 static constexpr double NIVEL_CONTACTO_PH_PCT  = 20.0;
 
-// Nivel de llenado objetivo del biorreactor [%]
-// CALIBRAR: medir DIST_VACIO_MM y DIST_LLENO_MM en campo y ajustar este porcentaje
-static constexpr double NIVEL_LLENADO_PCT      = 85.0;
+// ── Histéresis de nivel ───────────────────────────────────────────────────────
+// PENDIENTE DE VALIDACIÓN: valores sujetos a caracterización del sensor XM125.
+//
+// Lógica de estados:
+//   nivel < NIVEL_MAX_PCT  → operación normal, control pH habilitado
+//   nivel ≥ NIVEL_MAX_PCT  → deshabilitar pH, activar bomba de drenado
+//   nivel ≤ NIVEL_HIST_PCT → desactivar drenado, rehabilitar pH
+//
+// Banda de histéresis: NIVEL_MAX_PCT − NIVEL_HIST_PCT = 10 %
+// Propósito de la banda: tiempo suficiente para estabilización de la mezcla
+// y para evitar ciclado continuo de la bomba de drenado.
+static constexpr double NIVEL_MAX_PCT      = 95.0;   // umbral de corte superior [%]
+static constexpr double NIVEL_HIST_PCT     = 85.0;   // umbral de reactivación  [%]
+
+// Alias para compatibilidad — nivel objetivo de la FSM de preparación
+static constexpr double NIVEL_LLENADO_PCT  = NIVEL_HIST_PCT;

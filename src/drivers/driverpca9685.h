@@ -22,13 +22,13 @@ signals:
 class DriverPCA9685 : public QObject {
     Q_OBJECT
 public:
-    // Asignación de canales (ajustar si cambia el cableado)
-    static constexpr int CH_CALENTADOR   = 0;
-    static constexpr int CH_BOMBA_ETANOL = 1;
-    static constexpr int CH_BOMBA_AGUA   = 2;
-    static constexpr int CH_LUZ          = 3;
-    static constexpr int CH_AIRLIFT      = 4;
-    static constexpr int CH_BOMBA_NIVEL  = 5;
+    // Asignación de canales (verificada con RPWM3 — ajustar si cambia el cableado)
+    static constexpr int CH_CALENTADOR     = 0;
+    static constexpr int CH_BOMBA_ETANOL   = 1;   // legacy — no usar para bomba neutr.
+    static constexpr int CH_BOMBA_AGUA     = 2;
+    static constexpr int CH_BOMBA_NEUT_DIR = 3;   // Bomba Neutralizador — señal dirección
+    static constexpr int CH_BOMBA_NEUT_ENA = 4;   // Bomba Neutralizador — señal enable
+    static constexpr int CH_BOMBA_NIVEL    = 5;
 
     explicit DriverPCA9685(QObject *parent = nullptr);
     ~DriverPCA9685();

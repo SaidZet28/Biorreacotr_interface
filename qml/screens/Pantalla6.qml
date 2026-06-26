@@ -46,7 +46,7 @@ Item {
                         backend.setpointTem = Math.max(minT, Math.min(maxT, val));
                         root.tempConfigurada = true;
                     }
-                    else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
+                    else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(4.0, Math.min(7.5, val)); root.phConfigurado = true; }
                     else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                     else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
                     else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
@@ -72,7 +72,7 @@ Item {
             idCampo: "Tem"
             campoActivo: root.campoActivo
             textoEtiqueta: qsTranslate("Main", "Temperatura:")
-            valorMostrado: (root.campoActivo === "Tem" ? root.entradaTemporal + "|" : backend.setpointTem) + " °" + appWindow.unidadTemperatura
+            valorMostrado: (root.campoActivo === "Tem" ? root.entradaTemporal + "|" : backend.setpointTem) + " ï¿½" + appWindow.unidadTemperatura
             onBarraClicada: { root.campoActivo = "Tem"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
@@ -90,7 +90,7 @@ Item {
             onBarraClicada: { root.campoActivo = "Luz"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
 
-        // Tiempos (Semanas/Días)
+        // Tiempos (Semanas/Dï¿½as)
         Rectangle {
             width: appWindow.width * 0.45
             height: appWindow.height * 0.08
@@ -131,7 +131,7 @@ Item {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: qsTranslate("Main", "Días: ") + (root.campoActivo === "Dias" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_dias)
+                        text: qsTranslate("Main", "Dï¿½as: ") + (root.campoActivo === "Dias" ? root.entradaTemporal + "|" : appWindow.var_deseada_tiempo_dias)
                         font.pixelSize: parent.height * 0.35
                         font.bold: true
                     }
@@ -208,7 +208,7 @@ Item {
         z: 1
     }
 
-    // --- TECLADO NUMÉRICO 4x4 ---
+    // --- TECLADO NUMï¿½RICO 4x4 ---
     TecladoNumerico {
         id: tecladoNumerico
         z: 10
@@ -230,7 +230,7 @@ Item {
                     backend.setpointTem = Math.max(minT, Math.min(maxT, val));
                     root.tempConfigurada = true;
                 }
-                else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
+                else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(4.0, Math.min(7.5, val)); root.phConfigurado = true; }
                 else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                 else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
                 else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
@@ -267,7 +267,7 @@ Item {
                     let val = parseFloat(root.entradaTemporal);
                     if (!isNaN(val)) {
                         if (root.campoActivo === "Tem") { backend.setpointTem = Math.max(20, Math.min(100, val)); root.tempConfigurada = true; }
-                        else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(1, Math.min(14, val)); root.phConfigurado = true; }
+                        else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(4.0, Math.min(7.5, val)); root.phConfigurado = true; }
                                 else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                         else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }
                         else if (root.campoActivo === "Dias") { appWindow.var_deseada_tiempo_dias = Math.max(0, val); root.tiempoConfigurado = true; }
@@ -405,7 +405,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.10
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTranslate("Main", "Por favor, ingrese todos los parámetros")
+                text: qsTranslate("Main", "Por favor, ingrese todos los parï¿½metros")
                 font.pixelSize: parent.height * 0.08
                 font.bold: true
                 color: "black"

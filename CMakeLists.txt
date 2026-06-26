@@ -49,6 +49,7 @@ qt_add_qml_module(appPrototipo
         qml/screens/PantallaGuardarConfig.qml
         qml/screens/PantallaLimpieza.qml
         qml/screens/PantallaRegistro.qml
+        qml/screens/PantallaPruebaPH.qml
         # ── Componentes reutilizables ──────────────────────────────────────────
         qml/components/BotonAccionVerde.qml
         qml/components/BarraDisplaySensor.qml

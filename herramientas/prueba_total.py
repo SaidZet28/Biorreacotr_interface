@@ -57,26 +57,49 @@ QUERY_DO = bytes.fromhex('0A0300000006C4B3')
 # ═══════════════════════════════════════════════════════════════════════════════
 #  PCA9685 — I2C directo (inicialización completa, lógica RPWM2)
 # ═══════════════════════════════════════════════════════════════════════════════
-fd_pca = os.open('/dev/i2c-1', os.O_RDWR)
-fcntl.ioctl(fd_pca, 0x0703, PCA_ADDR)
-os.write(fd_pca, bytes([0x00, 0x10])); time.sleep(0.001)   # SLEEP
-os.write(fd_pca, bytes([0xFE, 0x79])); time.sleep(0.001)   # PRESCALE → 50 Hz
-os.write(fd_pca, bytes([0x00, 0x20])); time.sleep(0.001)   # Wake + AUTO-INCREMENT
-time.sleep(0.001)                                           # Espera oscilador (>500 µs)
-os.write(fd_pca, bytes([0x00, 0xA0])); time.sleep(0.001)   # RESTART + AUTO-INCREMENT
+fd_pca = None
+pca_ok = False
+
+try:
+    fd_pca = os.open('/dev/i2c-1', os.O_RDWR)
+    fcntl.ioctl(fd_pca, 0x0703, PCA_ADDR)
+    os.write(fd_pca, bytes([0x00, 0x10])); time.sleep(0.001)   # SLEEP
+    os.write(fd_pca, bytes([0xFE, 0x79])); time.sleep(0.001)   # PRESCALE → 50 Hz
+    os.write(fd_pca, bytes([0x00, 0x20])); time.sleep(0.001)   # Wake + AUTO-INCREMENT
+    time.sleep(0.001)                                           # Espera oscilador (>500 µs)
+    os.write(fd_pca, bytes([0x00, 0xA0])); time.sleep(0.001)   # RESTART + AUTO-INCREMENT
+    pca_ok = True
+    print("[PCA9685] Inicializado en 0x40 (50 Hz)")
+except Exception as e:
+    print(f"[PCA9685] No disponible: {e}")
+    if fd_pca is not None:
+        try:
+            os.close(fd_pca)
+        except Exception:
+            pass
+        fd_pca = None
 
 def pca_pwm(canal, valor):
     """Escribe valor PWM (0–4095) en un canal del PCA9685 — lógica RPWM2.
     LED_ON=0, LED_OFF=valor → el PCA genera pulso de disparo a 50 Hz."""
+    if not pca_ok:
+        print("  PCA9685 no disponible")
+        return
     reg = 0x06 + canal * 4
     valor = max(0, min(4095, valor))
-    os.write(fd_pca, bytes([reg, 0x00, 0x00, valor & 0xFF, valor >> 8]))
+    try:
+        os.write(fd_pca, bytes([reg, 0x00, 0x00, valor & 0xFF, valor >> 8]))
+    except Exception as e:
+        print(f"  Error PCA9685: {e}")
 
 def pca_apagar(canal):
+    if not pca_ok:
+        return
     reg = 0x06 + canal * 4
-    os.write(fd_pca, bytes([reg, 0x00, 0x00, 0x00, 0x10]))  # FULL OFF
-
-print("[PCA9685] Inicializado en 0x40 (50 Hz)")
+    try:
+        os.write(fd_pca, bytes([reg, 0x00, 0x00, 0x00, 0x10]))  # FULL OFF
+    except Exception:
+        pass
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  lgpio — OE y ZC  (lógica idéntica a RPWM2)

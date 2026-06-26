@@ -256,7 +256,8 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
 
         // Estado seguro: corte atómico de hardware, luego cero en todos los canales
         m_pca9685.habilitarSalidas(false);   // OE HIGH — todos los actuadores off en hardware
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
         m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_NIVEL,  false);
         m_pca9685.escribirDigital   (DriverPCA9685::CH_CALENTADOR,   false);
@@ -287,10 +288,11 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
 // Salidas de control
 // ─────────────────────────────────────────────────────────────────────────────
 
-double GestorBiorreactor::salidaCalentador()  const { return m_salidaCalentador;  }
-double GestorBiorreactor::salidaBombaEtanol() const { return m_salidaBombaEtanol; }
-double GestorBiorreactor::salidaBombaAgua()   const { return m_salidaBombaAgua;   }
-bool   GestorBiorreactor::salidaBombaNivel()  const { return m_salidaBombaNivel;  }
+double GestorBiorreactor::salidaCalentador()         const { return m_salidaCalentador;    }
+double GestorBiorreactor::salidaBombaEtanol()        const { return m_salidaBombaEtanol;   }  // t_pulso [s]
+double GestorBiorreactor::salidaBombaAgua()          const { return m_salidaBombaAgua;     }
+bool   GestorBiorreactor::salidaBombaNivel()         const { return m_salidaBombaNivel;    }
+bool   GestorBiorreactor::pulsoNeutralizadorActivo() const { return m_pulsoNeutralizador;  }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Persistencia
@@ -374,6 +376,44 @@ bool GestorBiorreactor::modoSimulacion() const
 bool GestorBiorreactor::fuzzyPHHabilitado()         const { return m_fuzzyPHHabilitado; }
 bool GestorBiorreactor::histeresisNivelHabilitado() const { return m_histeresisNivelHabilitado; }
 
+double GestorBiorreactor::nivelMaxPct()  const { return m_nivelMaxPct;  }
+double GestorBiorreactor::nivelHistPct() const { return m_nivelHistPct; }
+
+void GestorBiorreactor::setNivelMaxPct(double v)
+{
+    v = qBound(50.0, v, 100.0);
+    if (qFuzzyCompare(m_nivelMaxPct, v)) return;
+    m_nivelMaxPct = v;
+    emit nivelMaxPctChanged();
+}
+
+void GestorBiorreactor::setNivelHistPct(double v)
+{
+    v = qBound(10.0, v, m_nivelMaxPct - 5.0);
+    if (qFuzzyCompare(m_nivelHistPct, v)) return;
+    m_nivelHistPct = v;
+    emit nivelHistPctChanged();
+}
+
+int GestorBiorreactor::segundoProximoCiclo() const
+{
+    int restante = static_cast<int>(TS_CONTROL_PH_S) - m_contadorCicloPH;
+    return qMax(0, restante);
+}
+
+void GestorBiorreactor::dispararPulsoManual(int segundos)
+{
+    // Inyecta un pulso inmediato ignorando el lazo fuzzy — solo para pruebas de actuador.
+    int seg = qBound(1, segundos, static_cast<int>(T_PULSO_MAX_S));
+    m_tPulsoRestante = seg;
+    if (!m_pulsoNeutralizador) {
+        m_pulsoNeutralizador = true;
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 100.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 100.0);
+        emit pulsoNeutralizadorActivoChanged();
+    }
+}
+
 void GestorBiorreactor::habilitarFuzzyPH(bool v)
 {
     if (m_fuzzyPHHabilitado == v) return;
@@ -381,8 +421,9 @@ void GestorBiorreactor::habilitarFuzzyPH(bool v)
     if (!v) {
         m_salidaBombaEtanol = 0.0;
         m_salidaBombaAgua   = 0.0;
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,     0.0);
         emit salidaBombaEtanolChanged();
         emit salidaBombaAguaChanged();
     }
@@ -609,7 +650,8 @@ void GestorBiorreactor::tickPreparacion()
         if (m_ticksDosificacionB > 0 && m_ticksPrep <= m_ticksDosificacionB) {
             if (!qFuzzyCompare(m_salidaBombaEtanol, 100.0)) {
                 m_salidaBombaEtanol = 100.0;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 100.0);
                 emit salidaBombaEtanolChanged();
             }
             if (!qFuzzyCompare(m_salidaBombaAgua, 0.0)) {
@@ -620,7 +662,8 @@ void GestorBiorreactor::tickPreparacion()
         } else {
             if (!qFuzzyCompare(m_salidaBombaEtanol, 0.0)) {
                 m_salidaBombaEtanol = 0.0;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
                 emit salidaBombaEtanolChanged();
             }
             if (!qFuzzyCompare(m_salidaBombaAgua, 100.0)) {
@@ -632,8 +675,9 @@ void GestorBiorreactor::tickPreparacion()
         if (m_sensorNivel >= NIVEL_CONTACTO_PH_PCT) {
             m_salidaBombaEtanol = 0.0;
             m_salidaBombaAgua   = 0.0;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, 0.0);
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,     0.0);
             emit salidaBombaEtanolChanged();
             emit salidaBombaAguaChanged();
             setEstadoPreparacion(2);
@@ -1073,24 +1117,72 @@ void GestorBiorreactor::ejecutarControlLoop()
         emit salidaCalentadorChanged();
     }
 
-    // Fuzzy — pH → bomba etanol + bomba agua (solo si habilitado)
+    // ── Fuzzy pH SISO — control por pulso cada Ts = 30 s ─────────────────────
+    // Arquitectura:
+    //   - El timer de control corre cada 1 s.
+    //   - Cada 30 ticks (Ts) se evalúa el controlador difuso → t_pulso [0, 7] s.
+    //   - Pre-filtro: error ≤ 0 → no se actúa (hongo acidifica solo).
+    //   - Guarda nivel: nivel ≥ 85% → no se actúa (riesgo de desbordamiento).
+    //   - Durante el pulso: bomba neutralizadora ON al 100%.
+    //   - Fuera del pulso: bomba neutralizadora OFF.
     if (m_fuzzyPHHabilitado) {
-        auto [pEtanol, pAgua] = m_fuzzyPH.calcular(m_setpointPH, m_sensorPH);
-        if (!qFuzzyCompare(m_salidaBombaEtanol, pEtanol)) {
-            m_salidaBombaEtanol = pEtanol;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_ETANOL, pEtanol);
-            emit salidaBombaEtanolChanged();
+        ++m_contadorCicloPH;
+
+        // ── Gestión del pulso activo ─────────────────────────────────────────
+        if (m_tPulsoRestante > 0) {
+            --m_tPulsoRestante;
+            if (!m_pulsoNeutralizador) {
+                m_pulsoNeutralizador = true;
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 100.0);
+                emit pulsoNeutralizadorActivoChanged();
+            }
+            if (m_tPulsoRestante == 0) {
+                // Fin del pulso
+                m_pulsoNeutralizador = false;
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
+                emit pulsoNeutralizadorActivoChanged();
+            }
         }
-        if (!qFuzzyCompare(m_salidaBombaAgua, pAgua)) {
-            m_salidaBombaAgua = pAgua;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, pAgua);
-            emit salidaBombaAguaChanged();
+
+        // ── Evaluación del controlador al completar el ciclo ─────────────────
+        if (m_contadorCicloPH >= static_cast<int>(TS_CONTROL_PH_S)) {
+            m_contadorCicloPH = 0;
+
+            const double error = m_setpointPH - m_sensorPH;
+
+            // Pre-filtro: error ≤ 0 → esperar al hongo (acidificación natural)
+            // Guarda nivel: nivel ≥ 95% (NIVEL_MAX_PCT) → drenado activo, no agregar volumen
+            // La banda de histéresis [85 %, 95 %] la gestiona ControladorHisteresis por separado
+            const bool accionPermitida = (error > 0.0)
+                                      && (m_sensorNivel < m_nivelMaxPct);
+
+            if (accionPermitida) {
+                double tPulso = m_fuzzyPH.calcular(m_setpointPH, m_sensorPH);
+                // Redondear al entero más cercano de segundos (resolución del timer)
+                m_tPulsoRestante = qBound(0, static_cast<int>(qRound(tPulso)),
+                                          static_cast<int>(T_PULSO_MAX_S));
+                // Publicar t_pulso calculado para monitoreo/gráficas
+                if (!qFuzzyCompare(m_salidaBombaEtanol, tPulso)) {
+                    m_salidaBombaEtanol = tPulso;
+                    emit salidaBombaEtanolChanged();
+                }
+            } else {
+                m_tPulsoRestante = 0;
+                if (m_pulsoNeutralizador) {
+                    m_pulsoNeutralizador = false;
+                    m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
+                    m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
+                    emit pulsoNeutralizadorActivoChanged();
+                }
+            }
         }
     }
 
     // Histéresis — Nivel → bomba de nivel (solo si habilitado)
     if (m_histeresisNivelHabilitado) {
-        bool nuevoNivel = m_histeresisNivel.calcular(NIVEL_LLENADO_PCT, m_sensorNivel);
+        bool nuevoNivel = m_histeresisNivel.calcular(m_nivelHistPct, m_sensorNivel);
         if (m_salidaBombaNivel != nuevoNivel) {
             m_salidaBombaNivel = nuevoNivel;
             m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_NIVEL, nuevoNivel);
@@ -1098,10 +1190,7 @@ void GestorBiorreactor::ejecutarControlLoop()
         }
     }
 
-#ifndef SIMULACION_ACTIVA
-    // Luz — PWM proporcional directo al setpoint (sin controlador, respuesta inmediata)
-    m_pca9685.escribirPorcentaje(DriverPCA9685::CH_LUZ, qBound(0.0, m_setpointLuz, 100.0));
-#endif
+    // CH_LUZ reasignado a CH_BOMBA_NEUT_DIR=3 — control de luz deshabilitado.
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

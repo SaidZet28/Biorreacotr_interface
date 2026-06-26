@@ -38,10 +38,13 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(bool procesoActivo READ procesoActivo WRITE setProcesoActivo NOTIFY procesoActivoChanged FINAL)
 
     // ── Salidas de control (para gráficas y monitoreo) ───────────────────────
-    Q_PROPERTY(double salidaCalentador   READ salidaCalentador   NOTIFY salidaCalentadorChanged   FINAL)
-    Q_PROPERTY(double salidaBombaEtanol  READ salidaBombaEtanol  NOTIFY salidaBombaEtanolChanged  FINAL)
-    Q_PROPERTY(double salidaBombaAgua    READ salidaBombaAgua    NOTIFY salidaBombaAguaChanged    FINAL)
-    Q_PROPERTY(bool   salidaBombaNivel   READ salidaBombaNivel   NOTIFY salidaBombaNivelChanged   FINAL)
+    Q_PROPERTY(double salidaCalentador      READ salidaCalentador      NOTIFY salidaCalentadorChanged      FINAL)
+    // salidaBombaEtanol repropuesto: ahora es t_pulso [s] de la bomba neutralizadora (SISO)
+    Q_PROPERTY(double salidaBombaEtanol     READ salidaBombaEtanol     NOTIFY salidaBombaEtanolChanged     FINAL)
+    Q_PROPERTY(double salidaBombaAgua       READ salidaBombaAgua       NOTIFY salidaBombaAguaChanged       FINAL)
+    Q_PROPERTY(bool   salidaBombaNivel      READ salidaBombaNivel      NOTIFY salidaBombaNivelChanged      FINAL)
+    // Indica si la bomba neutralizadora está en pulso activo en este instante
+    Q_PROPERTY(bool   pulsoNeutralizadorActivo READ pulsoNeutralizadorActivo NOTIFY pulsoNeutralizadorActivoChanged FINAL)
 
     // ── Puerto serial ────────────────────────────────────────────────────────
     Q_PROPERTY(bool    puertoConectado READ puertoConectado NOTIFY puertoConectadoChanged FINAL)
@@ -53,6 +56,13 @@ class GestorBiorreactor : public QObject
     // ── Habilitación individual de controladores ──────────────────────────────
     Q_PROPERTY(bool fuzzyPHHabilitado         READ fuzzyPHHabilitado         NOTIFY fuzzyPHHabilitadoChanged         FINAL)
     Q_PROPERTY(bool histeresisNivelHabilitado READ histeresisNivelHabilitado NOTIFY histeresisNivelHabilitadoChanged FINAL)
+
+    // ── Umbrales de histéresis de nivel (configurables en tiempo de ejecución) ─
+    Q_PROPERTY(double nivelMaxPct  READ nivelMaxPct  WRITE setNivelMaxPct  NOTIFY nivelMaxPctChanged  FINAL)
+    Q_PROPERTY(double nivelHistPct READ nivelHistPct WRITE setNivelHistPct NOTIFY nivelHistPctChanged FINAL)
+
+    // ── Countdown al próximo ciclo pH [s] ────────────────────────────────────
+    Q_PROPERTY(int segundoProximoCiclo READ segundoProximoCiclo NOTIFY segundoProximoCicloChanged FINAL)
 
     // ── Preparación del tanque ────────────────────────────────────────────────
     Q_PROPERTY(int     estadoPreparacion       READ estadoPreparacion       NOTIFY estadoPreparacionChanged     FINAL)
@@ -92,10 +102,11 @@ public:
     bool procesoActivo() const;
     void setProcesoActivo(bool activo);
 
-    double salidaCalentador()  const;
-    double salidaBombaEtanol() const;
-    double salidaBombaAgua()   const;
-    bool   salidaBombaNivel()  const;
+    double salidaCalentador()          const;
+    double salidaBombaEtanol()         const;   // retorna t_pulso calculado [s]
+    double salidaBombaAgua()           const;
+    bool   salidaBombaNivel()          const;
+    bool   pulsoNeutralizadorActivo()  const;
 
     bool    puertoConectado() const;
     QString nombrePuerto()    const;
@@ -104,6 +115,13 @@ public:
 
     bool fuzzyPHHabilitado()         const;
     bool histeresisNivelHabilitado() const;
+
+    double nivelMaxPct()  const;
+    double nivelHistPct() const;
+    void   setNivelMaxPct (double v);
+    void   setNivelHistPct(double v);
+
+    int    segundoProximoCiclo() const;
 
     int     estadoPreparacion()       const;
     double  progresoPreparacion()     const;
@@ -122,6 +140,7 @@ public:
 
     Q_INVOKABLE void iniciarPreparacion();
     Q_INVOKABLE void cancelarPreparacion();
+    Q_INVOKABLE void dispararPulsoManual(int segundos);  // prueba bomba CH3+CH4
     Q_INVOKABLE void continuarDesdeEscalacion();
     Q_INVOKABLE void habilitarFuzzyPH(bool v);
     Q_INVOKABLE void habilitarHisteresisNivel(bool v);
@@ -170,12 +189,16 @@ signals:
     void salidaBombaEtanolChanged();
     void salidaBombaAguaChanged();
     void salidaBombaNivelChanged();
+    void pulsoNeutralizadorActivoChanged();
 
     void puertoConectadoChanged();
     void nombrePuertoChanged();
 
     void fuzzyPHHabilitadoChanged();
     void histeresisNivelHabilitadoChanged();
+    void nivelMaxPctChanged();
+    void nivelHistPctChanged();
+    void segundoProximoCicloChanged();
 
     void estadoPreparacionChanged();
     void progresoPreparacionChanged();
@@ -261,9 +284,18 @@ private:
     double m_mlSustanciaB      = 0.0;
     int    m_ticksDosificacionB = 0;
     double m_salidaCalentador  = 0.0;
-    double m_salidaBombaEtanol = 0.0;
+    double m_salidaBombaEtanol = 0.0;   // t_pulso calculado [s] — solo para monitoreo
     double m_salidaBombaAgua   = 0.0;
     bool   m_salidaBombaNivel  = false;
+
+    // ── Control pH SISO — lazo de 30 s con pulso ─────────────────────────────
+    int    m_contadorCicloPH      = 0;   // cuenta ticks de 1 s hasta TS_CONTROL_PH_S (30)
+    int    m_tPulsoRestante       = 0;   // segundos restantes del pulso activo
+    bool   m_pulsoNeutralizador   = false; // true: bomba neutralizadora ON en este tick
+
+    // ── Umbrales de histéresis (configurables desde QML) ──────────────────────
+    double m_nivelMaxPct  = 95.0;   // umbral superior [%] — deshabilitar pH + drenar
+    double m_nivelHistPct = 85.0;   // umbral inferior [%] — rehabilitar pH
 
     // ── Comunicación serial ───────────────────────────────────────────────────
     QSerialPort m_puerto;

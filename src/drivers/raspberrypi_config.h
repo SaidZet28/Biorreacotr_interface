@@ -85,11 +85,12 @@ static constexpr double PH_SUSTANCIA_B         = 12.0;
 static constexpr double CAUDAL_BOMBA_B_ML_S    = 39.0;
 
 // Tiempo máximo de pulso de la bomba neutralizador por ciclo [s]
-// = (0.5% × VOLUMEN_TANQUE_L × 1000) / CAUDAL_BOMBA_B_ML_S = 275 / 39 ≈ 7 s
-static constexpr double T_PULSO_MAX_S          = 7.0;
+// CALIBRADO: tp_max = 20 s — salida fuzzy (0–10 s) × K=2; ΔpH ≈ 0.019/pulso @ 50 L (2026-06)
+static constexpr double T_PULSO_MAX_S          = 20.0;
 
 // Tiempo de muestreo del lazo de control pH [s]
-// Derivado del tiempo de mezclado θm = 130 s → Ts = θm / 4.3 ≈ 30 s
+// Derivado del tiempo de mezclado θm = 130 s (agitación magnética + flujo aire sin difusor, 2026-06)
+// Ts = θm = 130 s redondeado a 30 s por ciclo de control (validado experimentalmente)
 static constexpr double TS_CONTROL_PH_S        = 30.0;
 
 // Nivel mínimo para que el sensor de pH haga contacto con el líquido [%]
@@ -103,11 +104,12 @@ static constexpr double NIVEL_CONTACTO_PH_PCT  = 20.0;
 //   nivel ≥ NIVEL_MAX_PCT  → deshabilitar pH, activar bomba de drenado
 //   nivel ≤ NIVEL_HIST_PCT → desactivar drenado, rehabilitar pH
 //
-// Banda de histéresis: NIVEL_MAX_PCT − NIVEL_HIST_PCT = 10 %
+// Banda de histéresis: NIVEL_MAX_PCT − NIVEL_HIST_PCT = 5 %
+// 100 % = 55 L (lleno); 95 % = 50 L (volumen operativo).
 // Propósito de la banda: tiempo suficiente para estabilización de la mezcla
 // y para evitar ciclado continuo de la bomba de drenado.
-static constexpr double NIVEL_MAX_PCT      = 95.0;   // umbral de corte superior [%]
-static constexpr double NIVEL_HIST_PCT     = 85.0;   // umbral de reactivación  [%]
+static constexpr double NIVEL_MAX_PCT      = 100.0;  // umbral de corte superior [%] — 55 L
+static constexpr double NIVEL_HIST_PCT     =  95.0;  // umbral de reactivación  [%] — 50 L
 
 // Alias para compatibilidad — nivel objetivo de la FSM de preparación
 static constexpr double NIVEL_LLENADO_PCT  = NIVEL_HIST_PCT;

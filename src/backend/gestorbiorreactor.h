@@ -294,8 +294,8 @@ private:
     bool   m_pulsoNeutralizador   = false; // true: bomba neutralizadora ON en este tick
 
     // ── Umbrales de histéresis (configurables desde QML) ──────────────────────
-    double m_nivelMaxPct  = 95.0;   // umbral superior [%] — deshabilitar pH + drenar
-    double m_nivelHistPct = 85.0;   // umbral inferior [%] — rehabilitar pH
+    double m_nivelMaxPct  = 100.0;  // umbral superior [%] — 55 L, deshabilitar pH + drenar
+    double m_nivelHistPct =  95.0;  // umbral inferior [%] — 50 L, rehabilitar pH
 
     // ── Comunicación serial ───────────────────────────────────────────────────
     QSerialPort m_puerto;

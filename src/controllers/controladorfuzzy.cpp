@@ -1,42 +1,46 @@
 #include "controladorfuzzy.h"
 #include <algorithm>
 
+// ── Parámetros calibrados (2026-06) ─────────────────────────────────────────
+static constexpr double E_SAT        = 0.8;   // error de saturación [pH] — acción directa al máximo
+static constexpr double BANDA_MUERTA = 0.1;   // banda muerta [pH] — sin acción de neutralizador
+static constexpr double K_SALIDA     = 2.0;   // factor de escala sobre salida fuzzy (CoG → t_pulso real)
+static constexpr double TP_MAX_S     = 20.0;  // pulso máximo [s] — debe coincidir con T_PULSO_MAX_S
+
 ControladorFuzzy::ControladorFuzzy(QObject *parent) : QObject(parent)
 {
     // ── Conjuntos de ENTRADA: error pH = setpoint − medido ──────────────────
-    // Universo de discurso: e ∈ [0, 3.5]  (setpoint ∈ [4.0, 7.5])
-    // Diseño asimétrico justificado por caracterización experimental (2026-06):
-    //   - Zona intermedia (e ≈ 1.0): ganancia ≈ 0.020 pH/ciclo → conjuntos más finos
-    //   - Zona ácida (e > 2.5):      ganancia ≈ 0.006 pH/ciclo → conjuntos más amplios
+    // Universo de discurso: e ∈ [0, 0.8]
+    // Calibrado para ΔpH ≈ 0.019/pulso @ tp_max en 50 L (caracterización 2026-06).
+    // Para e ≥ E_SAT=0.8 la zona de saturación evita el razonamiento difuso.
     m_errorPH = {
-        // nombre  params                      tipo
-        {"N",  {0.0,  0.0,  0.3         }, "trimf" },   // Neutro        — en setpoint
-        {"PE", {0.1,  0.5,  1.0         }, "trimf" },   // Error Pequeño — alta ganancia
-        {"ME", {0.7,  1.4,  2.1         }, "trimf" },   // Error Medio
-        {"GE", {1.8,  2.5,  3.5         }, "trimf" },   // Error Grande  — ganancia decreciente
-        {"MG", {3.0,  3.5,  3.5,  3.5  }, "trapmf"},   // Error Muy Grande — zona muy ácida
+        // nombre  params                              tipo
+        {"N",  {0.00, 0.00, 0.06            }, "trimf" },   // Neutro        — cubierto por banda muerta
+        {"PE", {0.04, 0.15, 0.28            }, "trimf" },   // Error Pequeño
+        {"ME", {0.22, 0.35, 0.50            }, "trimf" },   // Error Medio
+        {"GE", {0.42, 0.58, 0.75            }, "trimf" },   // Error Grande
+        {"MG", {0.65, 0.80, 0.80,  0.80    }, "trapmf"},   // Muy Grande    — zona de saturación
     };
 
-    // ── Conjuntos de SALIDA: t_pulso [s] ────────────────────────────────────
-    // Universo de discurso: t_pulso ∈ [0, 7] s
-    // Q = 39 mL/s  →  volumen bomba neutralizadora por ciclo:
-    //   OFF=0 mL · POCO≈55 mL · MEDIO≈137 mL · MUCHO≈218 mL · MAX=275 mL (0.5% × 55 L)
+    // ── Conjuntos de SALIDA: t_pulso fuzzy [s] ──────────────────────────────
+    // Universo de discurso: [0, 10] s
+    // La salida real es t_pulso = CoG × K_SALIDA → [0, 20] s
     m_tPulso = {
-        {"OFF",   {0.0, 0.0, 0.7          }, "trimf" },   // Sin acción
-        {"POCO",  {0.0, 1.4, 2.8          }, "trimf" },   // ~55 mL
-        {"MEDIO", {2.1, 3.5, 4.9          }, "trimf" },   // ~137 mL
-        {"MUCHO", {4.2, 5.6, 7.0          }, "trimf" },   // ~218 mL
-        {"MAX",   {6.3, 7.0, 7.0, 7.0     }, "trapmf"},   // 275 mL — acción máxima
+        {"OFF",   {0.0, 0.0,  1.5           }, "trimf" },
+        {"POCO",  {3.0, 5.0,  7.0           }, "trimf" },
+        {"MEDIO", {5.5, 7.0,  9.0           }, "trimf" },
+        {"MUCHO", {7.5, 9.0, 10.0           }, "trimf" },
+        {"MAX",   {9.5, 10.0, 10.0, 10.0   }, "trapmf"},
     };
 
     // ── Base de reglas Mamdani (5 reglas — una por conjunto de entrada) ──────
     // SI  error es <entrada>  ENTONCES  t_pulso es <salida>
     m_reglas = {
-        {"N",  "OFF"  },   // Neutro       → sin acción      (evita sobreimpulso)
-        {"PE", "POCO" },   // Peq. error   → pulso corto     (zona de alta ganancia)
-        {"ME", "MEDIO"},   // Error medio   → pulso medio
-        {"GE", "MUCHO"},   // Error grande  → pulso largo     (compensa ganancia baja)
-        {"MG", "MAX"  },   // Muy grande    → acción máxima   (zona muy ácida)
+        {"N",  "OFF"  },   // Neutro       → sin acción
+        {"PE", "POCO" },   // Peq. error   → pulso corto
+        {"ME", "MEDIO"},   // Error medio  → pulso medio
+        {"GE", "MUCHO"},   // Error grande → pulso largo
+        {"MG", "MAX"  },   // Muy grande   → acción máxima
     };
 }
 
@@ -44,10 +48,10 @@ double ControladorFuzzy::defuzzificar(double error) const
 {
     double num = 0.0, den = 0.0;
 
-    // Centro de Gravedad (CoG) con 71 puntos sobre [0, 7 s]
+    // Centro de Gravedad (CoG) con 71 puntos sobre [0, 10 s]
     constexpr int    N_PTS = 71;
     constexpr double X_MIN = 0.0;
-    constexpr double X_MAX = 7.0;
+    constexpr double X_MAX = 10.0;
 
     for (int i = 0; i < N_PTS; ++i) {
         double x  = X_MIN + i * (X_MAX - X_MIN) / (N_PTS - 1);
@@ -72,8 +76,18 @@ double ControladorFuzzy::defuzzificar(double error) const
 
 double ControladorFuzzy::calcular(double phSetpoint, double phMedido)
 {
-    // Clamp al universo de discurso; el pre-filtro (error ≤ 0) se aplica en
-    // GestorBiorreactor antes de llamar a esta función.
-    double error = std::clamp(phSetpoint - phMedido, 0.0, 3.5);
-    return defuzzificar(error);
+    double error = phSetpoint - phMedido;
+
+    // Banda muerta: evita ciclado innecesario de la bomba en zona de equilibrio
+    if (error <= BANDA_MUERTA)
+        return 0.0;
+
+    // Zona de saturación: error ≥ e_sat → acción directa al máximo sin razonamiento difuso
+    if (error >= E_SAT)
+        return TP_MAX_S;
+
+    // Zona difusa: clamp al universo de discurso, defuzzificar y escalar
+    error = std::clamp(error, 0.0, E_SAT);
+    double tp_fuzzy = defuzzificar(error);
+    return std::clamp(tp_fuzzy * K_SALIDA, 0.0, TP_MAX_S);
 }

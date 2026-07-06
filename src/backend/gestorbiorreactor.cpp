@@ -1169,15 +1169,17 @@ void GestorBiorreactor::ejecutarControlLoop()
 
     // ── Gate de nivel ─────────────────────────────────────────────────────────
     // Temperatura y pH SOLO actúan con agua tocando el sensor: banda
-    // 145 mm ≤ dist ≤ 216 mm y sin drenado en curso. Menor distancia = mayor nivel.
-    //   dist > 216 → aún sin llenar (sensor descubierto) → controles OFF
+    // 145 mm ≤ dist ≤ 240 mm y sin drenado en curso. Menor distancia = mayor nivel.
+    //   dist > 240 → aún sin llenar (sensor descubierto) → controles OFF
     //   dist < 145 → sobrellenado → drenar hasta 216 (evaluarSeguridadNivel) + controles OFF
 #ifdef SIMULACION_ACTIVA
     const bool aguaEnContacto = true;   // sin sensor de distancia en simulación
 #else
+    // Banda 145 mm ≤ dist ≤ 240 mm: el tope 240 tolera que el radar reporte el
+    // reflejo del soporte (~230 mm) a nivel operativo (sin filtro de soporte).
     const bool aguaEnContacto =
             (m_distanciaNivelMm >= DIST_NIVEL_ALTO_MM) &&
-            (m_distanciaNivelMm <= DIST_NIVEL_OBJETIVO_MM) &&
+            (m_distanciaNivelMm <= DIST_CONTACTO_MAX_MM) &&
             !m_drenandoNivel;
 #endif
 

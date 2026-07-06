@@ -75,12 +75,6 @@ static constexpr double DIST_LLENO_MM  =  145.0;  // tanque lleno (55 L = 100 %)
 static constexpr double DIST_NIVEL_ALTO_MM     = 145.0;  // disparo (= lleno)
 static constexpr double DIST_NIVEL_OBJETIVO_MM = 216.0;  // objetivo tras drenar
 
-// Tope superior de "agua tocando el sensor" para habilitar temp/pH.
-// NO se usa filtro de soporte (decisión de proyecto): el radar elige el pico de
-// mayor fuerza y a nivel operativo suele reportar el reflejo del soporte (~230 mm),
-// que aun así significa tanque lleno. Por eso el gate acepta hasta 240 mm.
-static constexpr double DIST_CONTACTO_MAX_MM   = 240.0;  // límite superior del gate de control
-
 // ── RS-485 — Sensores pH (RK50012) y DO (RK50004) ───────────────────────────
 // Puerto: GPIO14 (TXD, pin 8) + GPIO15 (RXD, pin 10) → /dev/ttyAMA0
 // Requiere dtoverlay=disable-bt en /boot/firmware/config.txt (libera ttyAMA0 del BT)

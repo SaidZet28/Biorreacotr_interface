@@ -61,7 +61,11 @@ static constexpr int UMBRAL_STALENESS_MS = 5000;
 GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
 {
     // Configurar controladores
-    m_pidTemp.configurar(2.0, 0.5, 0.1, 1.0, 0.0, 100.0);
+    // PID Temperatura — identificado 2026-07 con prueba escalón (FOPDT)
+    // Planta: K=0.6291 °C/%, τ=23088 s, θ=204 s
+    // Sintonía IMC agresiva (λ=τ): Kp=30, Ti=23088 s, Td=0 (PI puro)
+    // Conversión paralela: ki = Kp/Ti = 30/23088 = 0.001299, kd = 0
+    m_pidTemp.configurar(30.0, 0.001299, 0.0, 1.0, 0.0, 100.0);
     m_histeresisNivel.configurar(5.0);
 
 #ifndef SIMULACION_ACTIVA
@@ -240,6 +244,7 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
     m_procesoActivo = activo;
 
     if (activo) {
+        m_tAmbiente = m_sensorTem;           // Capturar T_amb para feedforward
         m_pca9685.habilitarSalidas(true);   // OE LOW — activar salidas PWM
         // Al activar el proceso completo, ambos controladores quedan habilitados
         if (!m_fuzzyPHHabilitado) {
@@ -256,11 +261,14 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
 
         // Estado seguro: corte atómico de hardware, luego cero en todos los canales
         m_pca9685.habilitarSalidas(false);   // OE HIGH — todos los actuadores off en hardware
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,   0.0);
-        m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_NIVEL,  false);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO,   0.0);
+        m_pca9685.escribirDigital   (DriverPCA9685::CH_TIRA_LED,  false);
         m_pca9685.escribirDigital   (DriverPCA9685::CH_CALENTADOR,   false);
+        m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_VAC1, false);   // drenado off
+        m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_VAC2, false);
+        m_drenandoNivel = false;
 
         m_fuzzyPHHabilitado         = false;
         m_histeresisNivelHabilitado = false;
@@ -408,8 +416,8 @@ void GestorBiorreactor::dispararPulsoManual(int segundos)
     m_tPulsoRestante = seg;
     if (!m_pulsoNeutralizador) {
         m_pulsoNeutralizador = true;
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 100.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 100.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 100.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 100.0);
         emit pulsoNeutralizadorActivoChanged();
     }
 }
@@ -421,9 +429,9 @@ void GestorBiorreactor::habilitarFuzzyPH(bool v)
     if (!v) {
         m_salidaBombaEtanol = 0.0;
         m_salidaBombaAgua   = 0.0;
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,     0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO,     0.0);
         emit salidaBombaEtanolChanged();
         emit salidaBombaAguaChanged();
     }
@@ -436,7 +444,7 @@ void GestorBiorreactor::habilitarHisteresisNivel(bool v)
     m_histeresisNivelHabilitado = v;
     if (!v) {
         m_salidaBombaNivel = false;
-        m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_NIVEL, false);
+        m_pca9685.escribirDigital(DriverPCA9685::CH_TIRA_LED, false);
         emit salidaBombaNivelChanged();
     }
     emit histeresisNivelHabilitadoChanged();
@@ -650,34 +658,34 @@ void GestorBiorreactor::tickPreparacion()
         if (m_ticksDosificacionB > 0 && m_ticksPrep <= m_ticksDosificacionB) {
             if (!qFuzzyCompare(m_salidaBombaEtanol, 100.0)) {
                 m_salidaBombaEtanol = 100.0;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 100.0);
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 100.0);
                 emit salidaBombaEtanolChanged();
             }
             if (!qFuzzyCompare(m_salidaBombaAgua, 0.0)) {
                 m_salidaBombaAgua = 0.0;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 0.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 0.0);
                 emit salidaBombaAguaChanged();
             }
         } else {
             if (!qFuzzyCompare(m_salidaBombaEtanol, 0.0)) {
                 m_salidaBombaEtanol = 0.0;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
                 emit salidaBombaEtanolChanged();
             }
             if (!qFuzzyCompare(m_salidaBombaAgua, 100.0)) {
                 m_salidaBombaAgua = 100.0;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 100.0);
                 emit salidaBombaAguaChanged();
             }
         }
         if (m_sensorNivel >= NIVEL_CONTACTO_PH_PCT) {
             m_salidaBombaEtanol = 0.0;
             m_salidaBombaAgua   = 0.0;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA,     0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO,     0.0);
             emit salidaBombaEtanolChanged();
             emit salidaBombaAguaChanged();
             setEstadoPreparacion(2);
@@ -722,12 +730,12 @@ void GestorBiorreactor::tickPreparacion()
 #else
         if (!qFuzzyCompare(m_salidaBombaAgua, 100.0)) {
             m_salidaBombaAgua = 100.0;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 100.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 100.0);
             emit salidaBombaAguaChanged();
         }
         if (m_sensorNivel >= NIVEL_LLENADO_PCT) {
             m_salidaBombaAgua = 0.0;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_AGUA, 0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 0.0);
             emit salidaBombaAguaChanged();
             setEstadoPreparacion(5);
         }
@@ -1091,10 +1099,54 @@ void GestorBiorreactor::leerSensorNivel()
     m_timerWatchdogI2C.setInterval(2000);
     m_timerWatchdogI2C.start();
 
+    m_distanciaNivelMm = distMm;   // guardar distancia cruda para la protección en mm
+
     double nivel = (DIST_VACIO_MM - distMm) / (DIST_VACIO_MM - DIST_LLENO_MM) * 100.0;
     nivel = std::clamp(nivel, 0.0, 100.0);
     setSensorNivel(nivel);
-    setAlertaNivel(false);
+
+    // Protección de sobrellenado + alarma (histéresis en mm). También decide el
+    // estado de alertaNivel en una lectura buena (alto = drenando, si no false).
+    evaluarSeguridadNivel();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Protección de sobrellenado — histéresis en DISTANCIA (mm)
+//   • distancia ≤ DIST_NIVEL_ALTO_MM     → tanque lleno: parar llenado (CH3/CH4)
+//                                           + drenar (CH8/CH10) + alarma
+//   • distancia ≥ DIST_NIVEL_OBJETIVO_MM → drenó suficiente: parar drenado + limpiar
+//   Menor distancia = mayor nivel; drenar sube la distancia hasta el objetivo.
+//   Se trabaja en mm porque DIST_VACIO_MM sigue sin calibrar (DIST_LLENO_MM sí).
+// ─────────────────────────────────────────────────────────────────────────────
+void GestorBiorreactor::evaluarSeguridadNivel()
+{
+    if (m_distanciaNivelMm < 0.0) return;   // sin lectura válida todavía
+
+    const bool anterior = m_drenandoNivel;
+    if (!m_drenandoNivel && m_distanciaNivelMm <= DIST_NIVEL_ALTO_MM)
+        m_drenandoNivel = true;                                   // tanque lleno
+    else if (m_drenandoNivel && m_distanciaNivelMm >= DIST_NIVEL_OBJETIVO_MM)
+        m_drenandoNivel = false;                                  // drenado suficiente
+
+    if (m_drenandoNivel) {
+        // Mientras dure la alarma: forzar llenado OFF y drenado ON en cada lectura
+        // (robusto ante otros lazos que intenten reactivar las bombas de llenado).
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
+        m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC1, true);
+        m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC2, true);
+    } else if (anterior) {
+        // Transición alto→normal: apagar el drenado.
+        m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC1, false);
+        m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC2, false);
+    }
+
+    if (m_drenandoNivel != anterior) {
+        m_salidaBombaNivel = m_drenandoNivel;   // reutilizado: true = drenado activo
+        emit salidaBombaNivelChanged();
+    }
+
+    setAlertaNivel(m_drenandoNivel);   // alarma de nivel alto (rojo en la GUI)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1105,10 +1157,17 @@ void GestorBiorreactor::ejecutarControlLoop()
 {
     if (!m_procesoActivo) return;
 
-    // PID — Temperatura → m_salidaCalentador (0-100 %)
+    // PID + Feedforward — Temperatura → m_salidaCalentador (0-100 %)
     // La escritura al PCA9685 CH_CALENTADOR la gestiona onCrucePorCero() via burst firing.
     // En modo simulación (sin ZC), se escribe directamente al no haber callback.
-    double nuevoCalentador = m_pidTemp.calcular(m_setpointTem, m_sensorTem);
+    //
+    // Feedforward: estimación de potencia de mantenimiento basada en modelo FOPDT
+    //   Planta: K=0.6291 °C/%, τ=23088 s, θ=204 s (identificado 2026-07, sin burbujeo)
+    //   u_ff = (SP - T_amb) / K  →  pre-carga la salida en estado estacionario
+    static constexpr double K_PLANTA_TEMP = 0.6291;  // °C/%
+    double u_ff  = qBound(0.0, (m_setpointTem - m_tAmbiente) / K_PLANTA_TEMP, 100.0);
+    double u_pid = m_pidTemp.calcular(m_setpointTem, m_sensorTem);
+    double nuevoCalentador = qBound(0.0, u_ff + u_pid, 100.0);
     if (!qFuzzyCompare(m_salidaCalentador, nuevoCalentador)) {
         m_salidaCalentador = nuevoCalentador;
 #ifdef SIMULACION_ACTIVA
@@ -1133,15 +1192,15 @@ void GestorBiorreactor::ejecutarControlLoop()
             --m_tPulsoRestante;
             if (!m_pulsoNeutralizador) {
                 m_pulsoNeutralizador = true;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 100.0);
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 100.0);
                 emit pulsoNeutralizadorActivoChanged();
             }
             if (m_tPulsoRestante == 0) {
                 // Fin del pulso
                 m_pulsoNeutralizador = false;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
                 emit pulsoNeutralizadorActivoChanged();
             }
         }
@@ -1156,7 +1215,8 @@ void GestorBiorreactor::ejecutarControlLoop()
             // Guarda nivel: nivel ≥ 95% (NIVEL_MAX_PCT) → drenado activo, no agregar volumen
             // La banda de histéresis [85 %, 95 %] la gestiona ControladorHisteresis por separado
             const bool accionPermitida = (error > 0.0)
-                                      && (m_sensorNivel < m_nivelMaxPct);
+                                      && (m_sensorNivel < m_nivelMaxPct)
+                                      && !m_drenandoNivel;   // no dosificar mientras se drena
 
             if (accionPermitida) {
                 double tPulso = m_fuzzyPH.calcular(m_setpointPH, m_sensorPH);
@@ -1172,25 +1232,19 @@ void GestorBiorreactor::ejecutarControlLoop()
                 m_tPulsoRestante = 0;
                 if (m_pulsoNeutralizador) {
                     m_pulsoNeutralizador = false;
-                    m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_DIR, 0.0);
-                    m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_ENA, 0.0);
+                    m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+                    m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
                     emit pulsoNeutralizadorActivoChanged();
                 }
             }
         }
     }
 
-    // Histéresis — Nivel → bomba de nivel (solo si habilitado)
-    if (m_histeresisNivelHabilitado) {
-        bool nuevoNivel = m_histeresisNivel.calcular(m_nivelHistPct, m_sensorNivel);
-        if (m_salidaBombaNivel != nuevoNivel) {
-            m_salidaBombaNivel = nuevoNivel;
-            m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_NIVEL, nuevoNivel);
-            emit salidaBombaNivelChanged();
-        }
-    }
+    // Nivel → protección de sobrellenado y drenado (CH8/CH10) se gestiona en
+    // evaluarSeguridadNivel(), llamado desde leerSensorNivel() con la distancia
+    // cruda en mm. Aquí ya no se actúa sobre el nivel.
 
-    // CH_LUZ reasignado a CH_BOMBA_NEUT_DIR=3 — control de luz deshabilitado.
+    // CH_LUZ reasignado a CH_BOMBA_NEUT_A=3 (bomba en serie) — control de luz deshabilitado.
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

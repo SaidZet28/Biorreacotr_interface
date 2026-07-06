@@ -56,11 +56,21 @@ static constexpr int    PCA9685_FREQ_HZ  = 60;
 // Bus: I2C-1 (comparte bus con PCA9685; direcciones distintas)
 static constexpr int    XM125_I2C_BUS   = RPI_I2C_BUS;
 
-// Geometría del biorreactor para conversión distancia→nivel (ajustar en campo)
+// Geometría del biorreactor para conversión distancia→nivel (calibrado en campo 2026-06)
 //   DIST_VACIO: distancia sensor→superficie cuando el reactor está vacío (mm)
-//   DIST_LLENO: distancia sensor→superficie cuando el reactor está lleno  (mm)
-static constexpr double DIST_VACIO_MM   = 400.0;
-static constexpr double DIST_LLENO_MM  =  50.0;
+//   DIST_LLENO: distancia sensor→superficie cuando el reactor está lleno a 55 L (mm)
+// nivel% = (DIST_VACIO_MM − distMm) / (DIST_VACIO_MM − DIST_LLENO_MM) × 100
+static constexpr double DIST_VACIO_MM   = 1150.0;  // tanque vacío
+static constexpr double DIST_LLENO_MM  =  145.0;  // tanque lleno (55 L = 100 %)
+
+// ── Protección de sobrellenado (histéresis en DISTANCIA, no en %) ────────────
+// Se trabaja en mm porque DIST_VACIO_MM aún es placeholder; DIST_LLENO_MM sí
+// está confirmado. Recordar: menor distancia = mayor nivel (sensor mira hacia
+// abajo), así que drenar SUBE la distancia.
+//   distancia ≤ DIST_NIVEL_ALTO_MM      → tanque lleno: alarma + parar llenado + drenar
+//   distancia ≥ DIST_NIVEL_OBJETIVO_MM  → drenado suficiente: parar drenado + limpiar alarma
+static constexpr double DIST_NIVEL_ALTO_MM     = 145.0;  // disparo (= lleno)
+static constexpr double DIST_NIVEL_OBJETIVO_MM = 216.0;  // objetivo tras drenar
 
 // ── RS-485 — Sensores pH (RK50012) y DO (RK50004) ───────────────────────────
 // Puerto: GPIO14 (TXD, pin 8) + GPIO15 (RXD, pin 10) → /dev/ttyAMA0

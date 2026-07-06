@@ -1,6 +1,7 @@
 #include "driverxm125.h"
 #include <QDebug>
 #include <climits>
+#include <cmath>
 
 #ifdef Q_OS_LINUX
 #include <fcntl.h>
@@ -35,9 +36,9 @@ bool DriverXM125::inicializar(int bus)
     }
     qDebug() << "[XM125] Conectado en" << dev << "— Product ID =" << Qt::hex << productId;
 
-    // Configurar rango 100..2000 mm
-    escribirRegistro(REG_RANGE_START, 100);
-    escribirRegistro(REG_RANGE_END,   2000);
+    // Configurar rango 50..1500 mm (idéntico a escanear_nivel.py / prueba_visual_nivel.py)
+    escribirRegistro(REG_RANGE_START, 50);
+    escribirRegistro(REG_RANGE_END,   1500);
 
     // Aplicar configuración y calibrar (bloqueante, ~1-2 s)
     if (!escribirRegistro(REG_COMMAND, CMD_APPLY_CONFIG_AND_CALIBRATE)) {
@@ -52,6 +53,7 @@ bool DriverXM125::inicializar(int bus)
         uint32_t st = 0;
         if (leerRegistro(REG_DETECTOR_STATUS, st) && !(st & 0x80000000u)) {
             qDebug() << "[XM125] Calibración OK, STATUS =" << Qt::hex << st;
+            reiniciarFiltro();   // arrancar el filtro de confirmación desde cero
             return true;
         }
     }
@@ -72,6 +74,7 @@ void DriverXM125::cerrar()
     if (m_fd >= 0) {
         ::close(m_fd);
         m_fd = -1;
+        reiniciarFiltro();
         qDebug() << "[XM125] Cerrado";
     }
 #endif
@@ -101,19 +104,53 @@ double DriverXM125::leerResultado()
     uint32_t result = 0;
     if (!leerRegistro(REG_DISTANCE_RESULT, result)) return -1.0;
     const int numDistances = static_cast<int>(result & 0x0Fu);
-    if (numDistances <= 0) return -1.0; // sin objeto en rango
-
-    // Los picos vienen ordenados por fuerza de señal, NO por distancia.
-    // Para nivel de líquido necesitamos el objeto MÁS CERCANO (menor distancia),
-    // que siempre será la superficie del líquido apuntando el sensor hacia abajo.
-    uint32_t minDist = UINT32_MAX;
-    for (int j = 0; j < numDistances; ++j) {
-        uint32_t d = 0;
-        if (leerRegistro(static_cast<uint16_t>(REG_PEAK_DIST_BASE + j), d) && d < minDist)
-            minDist = d;
+    if (numDistances <= 0) {
+        // Sin objeto en este ciclo: no actualizamos, mantenemos el último nivel
+        // aceptado (como en el Python: dist_raw=None → se salta el filtro).
+        return m_distAceptada;   // -1.0 si aún no hemos aceptado ninguna lectura
     }
-    if (minDist == UINT32_MAX) return -1.0;
-    return static_cast<double>(minDist);
+
+    // ── Selección del pico de MAYOR fuerza de reflexión ──────────────────────
+    // Distancias: 0x0011..0x001A (mm, unsigned).  Fuerzas: 0x001B..0x0024
+    // (int32 signed, millidB). La superficie del líquido es el reflector más
+    // fuerte, no necesariamente el más cercano — replica escanear_nivel.py.
+    double  bestDist   = -1.0;
+    int32_t bestFuerza = INT32_MIN;
+    for (int j = 0; j < numDistances; ++j) {
+        uint32_t d = 0, f = 0;
+        if (!leerRegistro(static_cast<uint16_t>(REG_PEAK_DIST_BASE + j), d)) continue;
+        if (!leerRegistro(static_cast<uint16_t>(REG_PEAK_STR_BASE  + j), f)) continue;
+        const int32_t fuerza = static_cast<int32_t>(f);   // millidB, signed
+        if (fuerza > bestFuerza) {
+            bestFuerza = fuerza;
+            bestDist   = static_cast<double>(d);
+        }
+    }
+    if (bestDist < 0.0) return m_distAceptada;   // no se pudo leer ningún pico
+
+    // ── Filtro de confirmación (portado de prueba_visual_nivel.py) ───────────
+    const double distRaw = bestDist;
+    if (m_distAceptada < 0.0) {
+        // Primera lectura válida: se acepta sin más.
+        m_distAceptada = distRaw;
+        m_candidatoVal = -1.0; m_candidatoCnt = 0;
+    } else if (std::fabs(distRaw - m_distAceptada) <= MARGEN_CONFIRM_MM) {
+        // Dentro del margen del valor aceptado: seguimiento directo.
+        m_distAceptada = distRaw;
+        m_candidatoVal = -1.0; m_candidatoCnt = 0;
+    } else {
+        // Fuera del margen: necesita CONFIRMAR_N lecturas consecutivas en zona.
+        if (m_candidatoVal >= 0.0 &&
+            std::fabs(distRaw - m_candidatoVal) <= MARGEN_CONFIRM_MM) {
+            if (++m_candidatoCnt >= CONFIRMAR_N) {
+                m_distAceptada = distRaw;
+                m_candidatoVal = -1.0; m_candidatoCnt = 0;
+            }
+        } else {
+            m_candidatoVal = distRaw; m_candidatoCnt = 1;
+        }
+    }
+    return m_distAceptada;
 #else
     return -1.0;
 #endif

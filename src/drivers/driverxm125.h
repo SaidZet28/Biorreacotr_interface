@@ -14,7 +14,12 @@ public:
 
     // API no bloqueante (usar en timers del event loop):
     //   tick par  → iniciarMedicion()
-    //   tick impar → leerResultado()  (returns -1.0 si no listo aún o error)
+    //   tick impar → leerResultado()  (returns -1.0 si no listo aún o error I2C)
+    //
+    // leerResultado() selecciona el pico de MAYOR fuerza de reflexión (no el más
+    // cercano) y le aplica el filtro de confirmación antes de devolver la
+    // distancia en mm. Mientras un cambio de zona no se confirma, devuelve la
+    // última distancia aceptada (el nivel no salta por lecturas espurias).
     bool   iniciarMedicion();
     double leerResultado();
 
@@ -22,6 +27,19 @@ public:
 
 private:
     int m_fd = -1;
+
+    // ── Filtro de confirmación (portado de prueba_visual_nivel.py) ────────────
+    //   • |nuevo − aceptado| ≤ MARGEN_CONFIRM_MM  → se acepta directo
+    //   • fuera del margen → se necesita CONFIRMAR_N lecturas consecutivas en la
+    //     zona candidata para reemplazar el valor aceptado
+    // Estado persistente entre llamadas a leerResultado(); se reinicia en
+    // inicializar()/cerrar(). Sentinela -1.0 = "aún sin valor".
+    static constexpr double MARGEN_CONFIRM_MM = 30.0;
+    static constexpr int    CONFIRMAR_N       = 3;
+    double m_distAceptada = -1.0;   // distancia actualmente válida [mm]
+    double m_candidatoVal = -1.0;   // distancia candidata (fuera del margen) [mm]
+    int    m_candidatoCnt = 0;      // lecturas consecutivas en la zona candidata
+    void   reiniciarFiltro() { m_distAceptada = -1.0; m_candidatoVal = -1.0; m_candidatoCnt = 0; }
 
     // Protocolo XM125 (SparkFun/Acconeer Qwiic I2C, dir 0x52):
     //   write: [addr_hi, addr_lo, val_b3, val_b2, val_b1, val_b0]  big-endian

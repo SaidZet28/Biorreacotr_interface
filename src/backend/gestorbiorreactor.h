@@ -223,6 +223,7 @@ private slots:
 private:
     void actualizarTemperaturaFusionada();
     void procesarBufferModbus();
+    void evaluarSeguridadNivel();   // protección de sobrellenado en mm + drenado
 
     void setSensorTem  (double v);
     void setSensorPH   (double v);
@@ -244,6 +245,7 @@ private:
 
     // ── Valores de sensores ───────────────────────────────────────────────────
     double m_sensorTem   = 24.5;
+    double m_tAmbiente   = 24.5;   // Temperatura ambiente capturada al arrancar el proceso
     double m_sensorPH    = 7.2;
     double m_sensorNivel = 85.0;
     double m_sensorLuz   = 60.0;
@@ -337,6 +339,10 @@ private:
     double m_tickSim  = 0.0;
     int    m_nivelPaso  = 0;   // 0 = iniciar medición XM125, 1 = leer resultado
     int    m_fallosNivel = 0;
+
+    // ── Protección de sobrellenado (histéresis en mm) ─────────────────────────
+    double m_distanciaNivelMm = -1.0;   // última distancia aceptada [mm] (-1 = sin lectura)
+    bool   m_drenandoNivel     = false;  // true: nivel alto → llenado off + drenado on
 
     QString m_nombreProyectoRegistro;
     QString m_nombreExpRegistro;

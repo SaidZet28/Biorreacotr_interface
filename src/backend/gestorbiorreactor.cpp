@@ -428,11 +428,13 @@ void GestorBiorreactor::habilitarFuzzyPH(bool v)
     if (m_fuzzyPHHabilitado == v) return;
     m_fuzzyPHHabilitado = v;
     if (!v) {
+        // Al deshabilitar el lazo pH solo se detiene la dosificación (CH3/CH4).
+        // El burbujeo (CH2) NO se toca aquí: el mezclado debe seguir para que la
+        // lectura de pH sea válida.
         m_salidaBombaEtanol = 0.0;
         m_salidaBombaAgua   = 0.0;
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO,     0.0);
         emit salidaBombaEtanolChanged();
         emit salidaBombaAguaChanged();
     }
@@ -501,8 +503,13 @@ void GestorBiorreactor::setEstadoPreparacion(int estado)
     switch (estado) {
     case 1:
         if (!m_procesoActivo) { m_procesoActivo = true; emit procesoActivoChanged(); }
+        m_pca9685.habilitarSalidas(true);   // OE LOW — asegurar salidas activas (robusto tras cancelar)
         habilitarFuzzyPH(false);
         habilitarHisteresisNivel(false);
+        // Burbujeo/mezclado ON desde el inicio de la preparación y durante todo el
+        // proceso: sin mezclado la lectura de pH no es representativa. Solo se apaga
+        // en el paro seguro (setProcesoActivo(false)).
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 100.0);
         break;
     case 2:
         habilitarFuzzyPH(false);

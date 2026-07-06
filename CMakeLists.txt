@@ -85,21 +85,16 @@ target_include_directories(appPrototipo PRIVATE
     src/drivers
 )
 
-# 4. Recursos de imagen — PREFIX por subcarpeta para que los QML los encuentren
-#    con rutas relativas (QML en qml/screens/ busca en .../qml/screens/, etc.)
-qt_add_resources(appPrototipo "imagesComponents"
-    PREFIX "/qt/qml/Prototipo/qml/components"
+# 4. Recursos de imagen — TODAS bajo el módulo raíz /qt/qml/Prototipo porque los
+#    QML las referencian con "../../X.png" (suben desde qml/screens|components|popups/
+#    a la raíz del módulo). Un solo bloque para no duplicar alias (Basura/Lapiz).
+qt_add_resources(appPrototipo "imagesRes"
+    PREFIX "/qt/qml/Prototipo"
     BASE "assets"
     FILES
         assets/Logo_IPN.png
         assets/Logo_UPIIZ.png
         assets/Logo_ENCB.png
-)
-
-qt_add_resources(appPrototipo "imagesScreens"
-    PREFIX "/qt/qml/Prototipo/qml/screens"
-    BASE "assets"
-    FILES
         assets/Alerta.png
         assets/Engrane.png
         assets/Play_Pause.png
@@ -114,14 +109,6 @@ qt_add_resources(appPrototipo "imagesScreens"
         assets/Hongo_7.png
         assets/Hongo_8.png
         assets/Hongo_9.png
-)
-
-qt_add_resources(appPrototipo "imagesPopups"
-    PREFIX "/qt/qml/Prototipo/qml/popups"
-    BASE "assets"
-    FILES
-        assets/Basura.png
-        assets/Lapiz.png
 )
 
 # 4b. Fuente DejaVu Sans empaquetada (glifos de acentos, °, símbolos).

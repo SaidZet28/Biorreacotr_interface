@@ -265,6 +265,19 @@ Item {
 
         BarraDisplaySensor {
             width: parent.width
+            textoEtiqueta: qsTranslate("Main", "ETA calent.")
+            // Tiempo estimado al setpoint (modelo FOPDT). <0 = N/A (en SP / sin agua)
+            textoValor: {
+                var e = backend.etaCalentamientoSeg
+                if (e < 0) return "—"
+                if (e < 3600) return "~" + Math.round(e / 60) + " min"
+                return "~" + Math.floor(e / 3600) + "h " +
+                       ("0" + Math.floor((e % 3600) / 60)).slice(-2) + "m"
+            }
+        }
+
+        BarraDisplaySensor {
+            width: parent.width
             textoEtiqueta: "pH"
             // Ocultar valor en estados 0-1 en hardware (sensor no está en contacto)
             textoValor: (backend.estadoPreparacion <= 1 && !backend.modoSimulacion)

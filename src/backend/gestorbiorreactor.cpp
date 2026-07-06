@@ -298,6 +298,7 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
 // ─────────────────────────────────────────────────────────────────────────────
 
 double GestorBiorreactor::salidaCalentador()         const { return m_salidaCalentador;    }
+double GestorBiorreactor::etaCalentamientoSeg()      const { return m_etaCalentamientoSeg; }
 double GestorBiorreactor::salidaBombaEtanol()        const { return m_salidaBombaEtanol;   }  // t_pulso [s]
 double GestorBiorreactor::salidaBombaAgua()          const { return m_salidaBombaAgua;     }
 bool   GestorBiorreactor::salidaBombaNivel()         const { return m_salidaBombaNivel;    }
@@ -446,8 +447,9 @@ void GestorBiorreactor::habilitarHisteresisNivel(bool v)
     if (m_histeresisNivelHabilitado == v) return;
     m_histeresisNivelHabilitado = v;
     if (!v) {
+        // Solo baja el indicador de drenado. CH_TIRA_LED (foco) NO se toca aquí:
+        // resabio del mapeo viejo donde CH5 era la bomba de nivel.
         m_salidaBombaNivel = false;
-        m_pca9685.escribirDigital(DriverPCA9685::CH_TIRA_LED, false);
         emit salidaBombaNivelChanged();
     }
     emit histeresisNivelHabilitadoChanged();
@@ -502,7 +504,11 @@ void GestorBiorreactor::setEstadoPreparacion(int estado)
     // Configurar controladores según el estado
     switch (estado) {
     case 1:
-        if (!m_procesoActivo) { m_procesoActivo = true; emit procesoActivoChanged(); }
+        if (!m_procesoActivo) {
+            m_procesoActivo = true;
+            m_tAmbiente = m_sensorTem;   // capturar T_amb para feedforward/ETA al arrancar la preparación
+            emit procesoActivoChanged();
+        }
         m_pca9685.habilitarSalidas(true);   // OE LOW — asegurar salidas activas (robusto tras cancelar)
         habilitarFuzzyPH(false);
         habilitarHisteresisNivel(false);
@@ -510,6 +516,8 @@ void GestorBiorreactor::setEstadoPreparacion(int estado)
         // proceso: sin mezclado la lectura de pH no es representativa. Solo se apaga
         // en el paro seguro (setProcesoActivo(false)).
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 100.0);
+        // Foco/iluminación (tira LED) ON durante la preparación y el proceso.
+        m_pca9685.escribirDigital(DriverPCA9685::CH_TIRA_LED, true);
         break;
     case 2:
         habilitarFuzzyPH(false);
@@ -657,12 +665,13 @@ void GestorBiorreactor::tickPreparacion()
     }
 
     case 1: {
-        // Llenado hasta que el nivel alcanza el sensor de pH
+        // Llenado ÚNICO hasta dist ≤ 216 mm (agua tocando el sensor). Menor distancia
+        // = mayor nivel. La protección de sobrellenado drena si baja de 145 mm.
 #ifdef SIMULACION_ACTIVA
         if (m_ticksPrep >= 5) setEstadoPreparacion(2);
 #else
         // Sub-fase A: dosificar sustancia B por tiempo calculado (primero)
-        // Sub-fase B: llenar con agua hasta contacto del sensor de pH
+        // Sub-fase B: llenar con agua hasta el objetivo de nivel
         // Ambas sub-fases usan las mismas bombas en serie CH3/CH4 (llenado = dosificación).
         if (m_ticksDosificacionB > 0 && m_ticksPrep <= m_ticksDosificacionB) {
             if (!qFuzzyCompare(m_salidaBombaEtanol, 100.0)) {
@@ -688,7 +697,8 @@ void GestorBiorreactor::tickPreparacion()
                 emit salidaBombaAguaChanged();
             }
         }
-        if (m_sensorNivel >= NIVEL_CONTACTO_PH_PCT) {
+        // Objetivo alcanzado: dist ≤ 216 mm (con lectura válida del XM125)
+        if (m_distanciaNivelMm >= 0.0 && m_distanciaNivelMm <= DIST_NIVEL_OBJETIVO_MM) {
             m_salidaBombaEtanol = 0.0;
             m_salidaBombaAgua   = 0.0;
             m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
@@ -731,24 +741,15 @@ void GestorBiorreactor::tickPreparacion()
     }
 
     case 4: {
-        // Llenado final con agua hasta setpointNivel (sustancia B ya fue dosificada en estado 1)
-#ifdef SIMULACION_ACTIVA
-        if (m_ticksPrep >= 8) setEstadoPreparacion(5);
-#else
-        if (!qFuzzyCompare(m_salidaBombaAgua, 100.0)) {
-            m_salidaBombaAgua = 100.0;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 100.0);
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 100.0);
-            emit salidaBombaAguaChanged();
-        }
-        if (m_sensorNivel >= NIVEL_LLENADO_PCT) {
+        // El llenado ya se completó en el estado 1 (dist ≤ 216 mm). Estado de paso:
+        // asegurar bombas de llenado apagadas y avanzar al ajuste fino de pH/temp.
+        if (!qFuzzyCompare(m_salidaBombaAgua, 0.0)) {
             m_salidaBombaAgua = 0.0;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
             emit salidaBombaAguaChanged();
-            setEstadoPreparacion(5);
         }
-#endif
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
+        setEstadoPreparacion(5);
         break;
     }
 
@@ -1166,17 +1167,37 @@ void GestorBiorreactor::ejecutarControlLoop()
 {
     if (!m_procesoActivo) return;
 
-    // PID + Feedforward — Temperatura → m_salidaCalentador (0-100 %)
-    // La escritura al PCA9685 CH_CALENTADOR la gestiona onCrucePorCero() via burst firing.
-    // En modo simulación (sin ZC), se escribe directamente al no haber callback.
-    //
-    // Feedforward: estimación de potencia de mantenimiento basada en modelo FOPDT
-    //   Planta: K=0.6291 °C/%, τ=23088 s, θ=204 s (identificado 2026-07, sin burbujeo)
-    //   u_ff = (SP - T_amb) / K  →  pre-carga la salida en estado estacionario
-    static constexpr double K_PLANTA_TEMP = 0.6291;  // °C/%
-    double u_ff  = qBound(0.0, (m_setpointTem - m_tAmbiente) / K_PLANTA_TEMP, 100.0);
-    double u_pid = m_pidTemp.calcular(m_setpointTem, m_sensorTem);
-    double nuevoCalentador = qBound(0.0, u_ff + u_pid, 100.0);
+    // ── Gate de nivel ─────────────────────────────────────────────────────────
+    // Temperatura y pH SOLO actúan con agua tocando el sensor: banda
+    // 145 mm ≤ dist ≤ 216 mm y sin drenado en curso. Menor distancia = mayor nivel.
+    //   dist > 216 → aún sin llenar (sensor descubierto) → controles OFF
+    //   dist < 145 → sobrellenado → drenar hasta 216 (evaluarSeguridadNivel) + controles OFF
+#ifdef SIMULACION_ACTIVA
+    const bool aguaEnContacto = true;   // sin sensor de distancia en simulación
+#else
+    const bool aguaEnContacto =
+            (m_distanciaNivelMm >= DIST_NIVEL_ALTO_MM) &&
+            (m_distanciaNivelMm <= DIST_NIVEL_OBJETIVO_MM) &&
+            !m_drenandoNivel;
+#endif
+
+    // ── Temperatura: PID + Feedforward (modelo FOPDT) → m_salidaCalentador ─────
+    // La escritura a CH_CALENTADOR/CH_CALENTADOR_2 la gestiona onCrucePorCero() via
+    // burst firing. En simulación (sin ZC) se escribe directamente.
+    //   Planta: K=0.6291 °C/%, τ=23088 s, θ=204 s (identificado 2026-07)
+    //   u_ff = (SP - T_amb) / K → pre-carga la salida en estado estacionario
+    static constexpr double K_PLANTA_TEMP     = 0.6291;   // °C/%
+    static constexpr double TAU_PLANTA_TEMP   = 23088.0;  // s
+    static constexpr double THETA_PLANTA_TEMP = 204.0;    // s
+
+    double nuevoCalentador = 0.0;
+    if (aguaEnContacto) {
+        double u_ff  = qBound(0.0, (m_setpointTem - m_tAmbiente) / K_PLANTA_TEMP, 100.0);
+        double u_pid = m_pidTemp.calcular(m_setpointTem, m_sensorTem);
+        nuevoCalentador = qBound(0.0, u_ff + u_pid, 100.0);
+    } else {
+        m_pidTemp.reiniciar();   // sin agua no se calienta; evitar windup del integrador
+    }
     if (!qFuzzyCompare(m_salidaCalentador, nuevoCalentador)) {
         m_salidaCalentador = nuevoCalentador;
 #ifdef SIMULACION_ACTIVA
@@ -1184,6 +1205,23 @@ void GestorBiorreactor::ejecutarControlLoop()
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_CALENTADOR_2, m_salidaCalentador);
 #endif
         emit salidaCalentadorChanged();
+    }
+
+    // ── ETA al setpoint de temperatura (modelo FOPDT, solo informativo) ────────
+    //   T_ss  = T_amb + K·salida  (temp estacionaria con la salida actual)
+    //   t_eta = τ·ln((T_now−T_ss)/(SP−T_ss)) + θ    [válido si T_ss > SP y T_now < SP]
+    double eta = -1.0;   // N/A (en SP, enfriando, potencia insuficiente o sin agua)
+    if (aguaEnContacto && m_salidaCalentador > 0.5 && m_sensorTem < m_setpointTem - 1.0) {
+        double T_ss = m_tAmbiente + K_PLANTA_TEMP * m_salidaCalentador;
+        if (T_ss > m_setpointTem) {
+            double arg = (m_sensorTem - T_ss) / (m_setpointTem - T_ss);
+            if (arg > 0.0)
+                eta = qMax(0.0, TAU_PLANTA_TEMP * qLn(arg)) + THETA_PLANTA_TEMP;
+        }
+    }
+    if (qAbs(m_etaCalentamientoSeg - eta) > 0.5) {
+        m_etaCalentamientoSeg = eta;
+        emit etaCalentamientoSegChanged();
     }
 
     // ── Fuzzy pH SISO — control por pulso cada Ts = 30 s ─────────────────────
@@ -1225,8 +1263,8 @@ void GestorBiorreactor::ejecutarControlLoop()
             // Guarda nivel: nivel ≥ 95% (NIVEL_MAX_PCT) → drenado activo, no agregar volumen
             // La banda de histéresis [85 %, 95 %] la gestiona ControladorHisteresis por separado
             const bool accionPermitida = (error > 0.0)
-                                      && (m_sensorNivel < m_nivelMaxPct)
-                                      && !m_drenandoNivel;   // no dosificar mientras se drena
+                                      && aguaEnContacto       // solo con agua tocando el sensor (145–216 mm, sin drenar)
+                                      && (m_sensorNivel < m_nivelMaxPct);
 
             if (accionPermitida) {
                 double tPulso = m_fuzzyPH.calcular(m_setpointPH, m_sensorPH);

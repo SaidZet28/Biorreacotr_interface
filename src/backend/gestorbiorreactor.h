@@ -39,6 +39,8 @@ class GestorBiorreactor : public QObject
 
     // ── Salidas de control (para gráficas y monitoreo) ───────────────────────
     Q_PROPERTY(double salidaCalentador      READ salidaCalentador      NOTIFY salidaCalentadorChanged      FINAL)
+    // ETA estimado al setpoint de temperatura [s] (modelo FOPDT); <0 = N/A (en SP, enfriando o sin agua)
+    Q_PROPERTY(double etaCalentamientoSeg   READ etaCalentamientoSeg   NOTIFY etaCalentamientoSegChanged   FINAL)
     // salidaBombaEtanol repropuesto: ahora es t_pulso [s] de la bomba neutralizadora (SISO)
     Q_PROPERTY(double salidaBombaEtanol     READ salidaBombaEtanol     NOTIFY salidaBombaEtanolChanged     FINAL)
     Q_PROPERTY(double salidaBombaAgua       READ salidaBombaAgua       NOTIFY salidaBombaAguaChanged       FINAL)
@@ -103,6 +105,7 @@ public:
     void setProcesoActivo(bool activo);
 
     double salidaCalentador()          const;
+    double etaCalentamientoSeg()       const;
     double salidaBombaEtanol()         const;   // retorna t_pulso calculado [s]
     double salidaBombaAgua()           const;
     bool   salidaBombaNivel()          const;
@@ -186,6 +189,7 @@ signals:
     void procesoActivoChanged();
 
     void salidaCalentadorChanged();
+    void etaCalentamientoSegChanged();
     void salidaBombaEtanolChanged();
     void salidaBombaAguaChanged();
     void salidaBombaNivelChanged();
@@ -286,6 +290,7 @@ private:
     double m_mlSustanciaB      = 0.0;
     int    m_ticksDosificacionB = 0;
     double m_salidaCalentador  = 0.0;
+    double m_etaCalentamientoSeg = -1.0;   // ETA al setpoint de temperatura [s]; <0 = N/A
     double m_salidaBombaEtanol = 0.0;   // t_pulso calculado [s] — solo para monitoreo
     double m_salidaBombaAgua   = 0.0;
     bool   m_salidaBombaNivel  = false;

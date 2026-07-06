@@ -124,6 +124,16 @@ qt_add_resources(appPrototipo "imagesPopups"
         assets/Lapiz.png
 )
 
+# 4b. Fuente DejaVu Sans empaquetada (glifos de acentos, °, símbolos).
+#     main.cpp la carga con addApplicationFont(":/fonts/DejaVuSans.ttf").
+qt_add_resources(appPrototipo "fontsRes"
+    PREFIX "/fonts"
+    BASE "assets/fonts"
+    FILES
+        assets/fonts/DejaVuSans.ttf
+        assets/fonts/DejaVuSans-Bold.ttf
+)
+
 # 5. Recursos de audio (WAV embebidos en el binario bajo el prefijo /audio)
 qt_add_resources(appPrototipo "audioRes"
     PREFIX "/audio"

@@ -526,6 +526,9 @@ void GestorBiorreactor::setEstadoPreparacion(int estado)
     case 3:
         habilitarFuzzyPH(true);
         habilitarHisteresisNivel(false);
+        // Reiniciar el timer de escalación por ETA al entrar al ajuste de temp/pH
+        m_etaInicialSeg = -1.0; m_etaLockCnt = 0;
+        m_etaLockPrevMin = -1;  m_segDesdeBloqueoEta = 0;
         break;
     case 4:
         habilitarFuzzyPH(false);
@@ -646,6 +649,7 @@ void GestorBiorreactor::continuarDesdeEscalacion()
 {
     setAlertaEscalacion(false);
     m_ticksPrep = 0;   // reinicia contador para dar otro intervalo completo
+    m_segDesdeBloqueoEta = 0;   // otra ventana completa de ETA_inicial + margen
 }
 
 void GestorBiorreactor::tickPreparacion()
@@ -733,8 +737,30 @@ void GestorBiorreactor::tickPreparacion()
         bool temOk = qAbs(m_sensorTem - m_setpointTem) <= 1.0;
         if (phOk && temOk) {
             setEstadoPreparacion(4);
-        } else if (m_ticksPrep >= 120 && !m_alertaEscalacion) {
-            setAlertaEscalacion(true);
+        } else {
+            // Alarma de escalación con deadline basado en el ETA de calentamiento.
+            // Se fija ETA_inicial cuando el ETA se estabiliza (10 lecturas seguidas
+            // con el mismo valor en minutos). Deadline = ETA_inicial + margen.
+            // Si el ETA no es calculable ("-"), se reinicia el conteo y se espera.
+            if (m_etaInicialSeg < 0.0) {
+                const double eta = m_etaCalentamientoSeg;
+                if (eta < 0.0) {
+                    m_etaLockCnt = 0; m_etaLockPrevMin = -1;   // no calculable → esperar
+                } else {
+                    const int mn = static_cast<int>(qRound(eta / 60.0));
+                    if (mn == m_etaLockPrevMin) {
+                        if (++m_etaLockCnt >= 10) {
+                            m_etaInicialSeg      = eta;         // fijar ETA_inicial
+                            m_segDesdeBloqueoEta = 0;
+                        }
+                    } else {
+                        m_etaLockPrevMin = mn; m_etaLockCnt = 1;
+                    }
+                }
+            } else if (++m_segDesdeBloqueoEta >= (m_etaInicialSeg + MARGEN_ESCALACION_TEMP_S)
+                       && !m_alertaEscalacion) {
+                setAlertaEscalacion(true);
+            }
         }
 #endif
         break;

@@ -75,6 +75,10 @@ static constexpr double DIST_LLENO_MM  =  145.0;  // tanque lleno (55 L = 100 %)
 static constexpr double DIST_NIVEL_ALTO_MM     = 145.0;  // disparo (= lleno)
 static constexpr double DIST_NIVEL_OBJETIVO_MM = 216.0;  // objetivo tras drenar
 
+// Margen que se suma al ETA de calentamiento para el deadline de la alarma de
+// escalación de temperatura (estado 3 de preparación). Ver ejecutarControlLoop/ETA.
+static constexpr double MARGEN_ESCALACION_TEMP_S = 300.0;  // 5 min
+
 // ── RS-485 — Sensores pH (RK50012) y DO (RK50004) ───────────────────────────
 // Puerto: GPIO14 (TXD, pin 8) + GPIO15 (RXD, pin 10) → /dev/ttyAMA0
 // Requiere dtoverlay=disable-bt en /boot/firmware/config.txt (libera ttyAMA0 del BT)

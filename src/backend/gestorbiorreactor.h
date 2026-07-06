@@ -284,6 +284,11 @@ private:
     int    m_ticksPrep             = 0;
     int    m_contadorEstabPH       = 0;
     int    m_contadorEstabFino     = 0;
+    // Timer de escalación basado en ETA de calentamiento (estado 3)
+    double m_etaInicialSeg         = -1.0;  // ETA_inicial fijado [s]; <0 = aún no fijado
+    int    m_etaLockCnt            = 0;      // lecturas consecutivas de ETA estable
+    int    m_etaLockPrevMin        = -1;     // último ETA en minutos (para comparar)
+    int    m_segDesdeBloqueoEta    = 0;      // s transcurridos desde que se fijó ETA_inicial
 
     // Llenado óptimo
     double m_litrosAgua        = 0.0;

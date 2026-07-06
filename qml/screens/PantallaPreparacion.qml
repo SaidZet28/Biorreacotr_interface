@@ -265,7 +265,7 @@ Item {
 
         BarraDisplaySensor {
             width: parent.width
-            textoEtiqueta: qsTranslate("Main", "ETA calent.")
+            textoEtiqueta: qsTranslate("Main", "Tiempo estimado")
             // Tiempo estimado al setpoint (modelo FOPDT). <0 = N/A (en SP / sin agua)
             textoValor: {
                 var e = backend.etaCalentamientoSeg

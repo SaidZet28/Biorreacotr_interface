@@ -266,6 +266,7 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO,   0.0);
         m_pca9685.escribirDigital   (DriverPCA9685::CH_TIRA_LED,  false);
         m_pca9685.escribirDigital   (DriverPCA9685::CH_CALENTADOR,   false);
+        m_pca9685.escribirDigital   (DriverPCA9685::CH_CALENTADOR_2, false);
         m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_VAC1, false);   // drenado off
         m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_VAC2, false);
         m_drenandoNivel = false;
@@ -655,6 +656,7 @@ void GestorBiorreactor::tickPreparacion()
 #else
         // Sub-fase A: dosificar sustancia B por tiempo calculado (primero)
         // Sub-fase B: llenar con agua hasta contacto del sensor de pH
+        // Ambas sub-fases usan las mismas bombas en serie CH3/CH4 (llenado = dosificación).
         if (m_ticksDosificacionB > 0 && m_ticksPrep <= m_ticksDosificacionB) {
             if (!qFuzzyCompare(m_salidaBombaEtanol, 100.0)) {
                 m_salidaBombaEtanol = 100.0;
@@ -662,21 +664,20 @@ void GestorBiorreactor::tickPreparacion()
                 m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 100.0);
                 emit salidaBombaEtanolChanged();
             }
+            // Llenado con agua no activo aún; no tocar CH3/CH4 (los gestiona la dosificación)
             if (!qFuzzyCompare(m_salidaBombaAgua, 0.0)) {
                 m_salidaBombaAgua = 0.0;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 0.0);
                 emit salidaBombaAguaChanged();
             }
         } else {
             if (!qFuzzyCompare(m_salidaBombaEtanol, 0.0)) {
                 m_salidaBombaEtanol = 0.0;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
                 emit salidaBombaEtanolChanged();
             }
             if (!qFuzzyCompare(m_salidaBombaAgua, 100.0)) {
                 m_salidaBombaAgua = 100.0;
-                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 100.0);
                 emit salidaBombaAguaChanged();
             }
         }
@@ -685,7 +686,6 @@ void GestorBiorreactor::tickPreparacion()
             m_salidaBombaAgua   = 0.0;
             m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
             m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO,     0.0);
             emit salidaBombaEtanolChanged();
             emit salidaBombaAguaChanged();
             setEstadoPreparacion(2);
@@ -730,12 +730,14 @@ void GestorBiorreactor::tickPreparacion()
 #else
         if (!qFuzzyCompare(m_salidaBombaAgua, 100.0)) {
             m_salidaBombaAgua = 100.0;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 100.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 100.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 100.0);
             emit salidaBombaAguaChanged();
         }
         if (m_sensorNivel >= NIVEL_LLENADO_PCT) {
             m_salidaBombaAgua = 0.0;
-            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+            m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
             emit salidaBombaAguaChanged();
             setEstadoPreparacion(5);
         }
@@ -1171,7 +1173,8 @@ void GestorBiorreactor::ejecutarControlLoop()
     if (!qFuzzyCompare(m_salidaCalentador, nuevoCalentador)) {
         m_salidaCalentador = nuevoCalentador;
 #ifdef SIMULACION_ACTIVA
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_CALENTADOR, m_salidaCalentador);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_CALENTADOR,   m_salidaCalentador);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_CALENTADOR_2, m_salidaCalentador);
 #endif
         emit salidaCalentadorChanged();
     }
@@ -1486,7 +1489,8 @@ void GestorBiorreactor::onCrucePorCero()
     if (!m_procesoActivo) {
         if (m_zcDisparando) {
             m_zcDisparando = false;
-            m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR, false);
+            m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR,   false);
+            m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR_2, false);
         }
         m_zcContador = 0;
         m_zcTotal    = 0;
@@ -1502,7 +1506,8 @@ void GestorBiorreactor::onCrucePorCero()
 
     if (disparar != m_zcDisparando) {
         m_zcDisparando = disparar;
-        m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR, disparar);
+        m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR,   disparar);
+        m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR_2, disparar);
     }
 }
 

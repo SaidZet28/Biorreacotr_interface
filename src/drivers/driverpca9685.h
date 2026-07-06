@@ -23,12 +23,14 @@ class DriverPCA9685 : public QObject {
     Q_OBJECT
 public:
     // Asignación de canales (verificada con RPWM3 — ajustar si cambia el cableado)
-    static constexpr int CH_CALENTADOR     = 0;
-    static constexpr int CH_BOMBA_ETANOL   = 1;   // legacy — no usar para bomba neutr.
-    static constexpr int CH_BOMBA_AGUA     = 2;
-    static constexpr int CH_BOMBA_NEUT_DIR = 3;   // Bomba Neutralizador — señal dirección
-    static constexpr int CH_BOMBA_NEUT_ENA = 4;   // Bomba Neutralizador — señal enable
-    static constexpr int CH_BOMBA_NIVEL    = 5;
+    static constexpr int CH_CALENTADOR     = 0;   // Manta calefactora 1
+    static constexpr int CH_CALENTADOR_2   = 1;   // Manta calefactora 2 (siempre en sincronía con CH0)
+    static constexpr int CH_BURBUJEO       = 2;   // Bomba de aire / burbujeo
+    static constexpr int CH_BOMBA_NEUT_A   = 3;   // Bomba Neutralizador 1 (serie)
+    static constexpr int CH_BOMBA_NEUT_B   = 4;   // Bomba Neutralizador 2 (serie)
+    static constexpr int CH_TIRA_LED       = 5;   // Tira LED
+    static constexpr int CH_BOMBA_VAC1     = 8;   // Vaciado nivel 1
+    static constexpr int CH_BOMBA_VAC2     = 10;  // Vaciado nivel 2
 
     explicit DriverPCA9685(QObject *parent = nullptr);
     ~DriverPCA9685();

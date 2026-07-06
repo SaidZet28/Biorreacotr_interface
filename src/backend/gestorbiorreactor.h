@@ -329,8 +329,9 @@ private:
     QDateTime m_tiempoInicioRegistro;
 
     // ── Cruce por cero — burst firing para calentador ────────────────────────────
-    // El callback (GPIO27) cuenta semiciclos AC; onCrucePorCero() dispara CH_CALENTADOR
-    // según la potencia calculada por el PID (0-100 en ventana de 100 semiciclos).
+    // El callback (GPIO27) cuenta semiciclos AC; onCrucePorCero() dispara ambas mantas
+    // (CH_CALENTADOR + CH_CALENTADOR_2, en sincronía) según la potencia calculada por el
+    // PID (0-100 en ventana de 100 semiciclos).
     int  m_zcContador   = 0;
     int  m_zcTotal      = 0;
     bool m_zcDisparando = false;

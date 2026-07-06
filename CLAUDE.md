@@ -20,8 +20,8 @@ Idioma del código y comentarios: **español**.
 ### Canales PCA9685 (`src/drivers/driverpca9685.h`)
 | Canal | Constante           | Uso |
 |-------|---------------------|-----|
-| 0     | `CH_CALENTADOR`     | Calentador (burst firing por cruce por cero) |
-| 1     | `CH_BOMBA_ETANOL`   | Legacy — **no usar** |
+| 0     | `CH_CALENTADOR`     | Manta calefactora 1 (burst firing por cruce por cero) |
+| 1     | `CH_CALENTADOR_2`   | Manta calefactora 2 (**siempre** en sincronía con CH0) |
 | 2     | `CH_BURBUJEO`       | Bomba de aire / burbujeo |
 | 3     | `CH_BOMBA_NEUT_A`   | Bomba llenado 1 **/** neutralizador A |
 | 4     | `CH_BOMBA_NEUT_B`   | Bomba llenado 2 **/** neutralizador B |

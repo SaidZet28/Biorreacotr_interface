@@ -43,13 +43,16 @@ static constexpr int RPI_I2C_BUS = 1;        // /dev/i2c-1
 static constexpr int    PCA9685_I2C_BUS  = RPI_I2C_BUS;
 static constexpr int    PCA9685_FREQ_HZ  = 60;
 
-// Asignación de canales (debe coincidir con el cableado físico al PCA9685)
-//  Canal 0 → Calentador (PWM analógico, 0–100 %)
-//  Canal 1 → Bomba Neutralizador (PWM analógico, 0–100 %) — control pH SISO
-//  Canal 2 → Bomba Agua          (PWM analógico, 0–100 %)
-//  Canal 3 → Iluminación   (PWM analógico, 0–100 %)
-//  Canal 4 → Airlift       (no conectado en esta versión)
-//  Canal 5 → Bomba Nivel   (digital: ON / OFF)
+// Asignación de canales (debe coincidir con el cableado físico al PCA9685;
+// fuente de verdad: DriverPCA9685 en src/drivers/driverpca9685.h)
+//  Canal 0  → Manta calefactora 1 (burst firing por cruce por cero)
+//  Canal 1  → Manta calefactora 2 (siempre sincronizada con CH0)
+//  Canal 2  → Bomba de aire / burbujeo
+//  Canal 3  → Bomba llenado 1 / neutralizador A (en serie con CH4)
+//  Canal 4  → Bomba llenado 2 / neutralizador B (en serie con CH3)
+//  Canal 5  → Tira LED (digital: ON / OFF)
+//  Canal 8  → Bomba vaciado / drenado 1 (en serie con CH10)
+//  Canal 10 → Bomba vaciado / drenado 2 (en serie con CH8)
 
 // ── XM125 — Sensor radar de distancia (SparkFun Qwiic) ──────────────────────
 // Dirección I2C: 0x52 (fija en hardware SparkFun)

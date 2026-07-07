@@ -231,6 +231,19 @@ void GestorBiorreactor::setAlertaNivel(bool v) {
     if (m_alertaNivel == v) return;
     m_alertaNivel = v; emit alertaNivelChanged();
 }
+bool GestorBiorreactor::alertaSobreTemp() const { return m_alertaSobreTemp; }
+bool GestorBiorreactor::alertaBombas()    const { return m_alertaBombas;    }
+void GestorBiorreactor::setAlertaSobreTemp(bool v) {
+    if (m_alertaSobreTemp == v) return;
+    m_alertaSobreTemp = v; emit alertaSobreTempChanged();
+    if (v) qWarning() << "[WD] SOBRE-TEMPERATURA: corte de calentamiento. T ="
+                      << m_sensorTem << " SP =" << m_setpointTem;
+}
+void GestorBiorreactor::setAlertaBombas(bool v) {
+    if (m_alertaBombas == v) return;
+    m_alertaBombas = v; emit alertaBombasChanged();
+    if (v) qWarning() << "[WD] Bombas activas sin cambio de nivel — verificar bombas.";
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Proceso
@@ -270,6 +283,11 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
         m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_VAC1, false);   // drenado off
         m_pca9685.escribirDigital   (DriverPCA9685::CH_BOMBA_VAC2, false);
         m_drenandoNivel = false;
+
+        // Limpiar alertas de seguridad y el watchdog de bombas
+        setAlertaSobreTemp(false);
+        setAlertaBombas(false);
+        m_distRefBomba = -1.0; m_ticksBombaSinCambio = 0;
 
         m_fuzzyPHHabilitado         = false;
         m_histeresisNivelHabilitado = false;
@@ -1144,6 +1162,26 @@ void GestorBiorreactor::leerSensorNivel()
     // Protección de sobrellenado + alarma (histéresis en mm). También decide el
     // estado de alertaNivel en una lectura buena (alto = drenando, si no false).
     evaluarSeguridadNivel();
+
+    // ── Watchdog de bombas ────────────────────────────────────────────────────
+    // Con bombas activas (llenando en estado 1, o drenando por sobrellenado) la
+    // distancia debe cambiar. Si no cambia ≥ UMBRAL_CAMBIO_NIVEL_MM en
+    // TIMEOUT_BOMBA_S → aviso de "verificar bombas". Esta función corre ~1 s por
+    // cada lectura válida del XM125 (patrón par/impar).
+    const bool llenando = (m_estadoPreparacion == 1) &&
+                          (m_distanciaNivelMm > DIST_NIVEL_OBJETIVO_MM);
+    const bool bombasActivas = m_drenandoNivel || llenando;
+    if (!bombasActivas) {
+        m_distRefBomba = -1.0; m_ticksBombaSinCambio = 0;
+        setAlertaBombas(false);
+    } else if (m_distRefBomba < 0.0) {
+        m_distRefBomba = m_distanciaNivelMm; m_ticksBombaSinCambio = 0;
+    } else if (qAbs(m_distanciaNivelMm - m_distRefBomba) >= UMBRAL_CAMBIO_NIVEL_MM) {
+        m_distRefBomba = m_distanciaNivelMm; m_ticksBombaSinCambio = 0;
+        setAlertaBombas(false);
+    } else if (++m_ticksBombaSinCambio >= TIMEOUT_BOMBA_S) {
+        setAlertaBombas(true);   // bombas activas pero nivel estancado
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1216,14 +1254,21 @@ void GestorBiorreactor::ejecutarControlLoop()
     static constexpr double TAU_PLANTA_TEMP   = 23088.0;  // s
     static constexpr double THETA_PLANTA_TEMP = 204.0;    // s
 
+    // Seguridad: no calentar sin datos frescos de temperatura (sensores RS-485 caídos).
     double nuevoCalentador = 0.0;
-    if (aguaEnContacto) {
+    if (aguaEnContacto && !m_alertaSerial) {
         double u_ff  = qBound(0.0, (m_setpointTem - m_tAmbiente) / K_PLANTA_TEMP, 100.0);
         double u_pid = m_pidTemp.calcular(m_setpointTem, m_sensorTem);
         nuevoCalentador = qBound(0.0, u_ff + u_pid, 100.0);
     } else {
-        m_pidTemp.reiniciar();   // sin agua no se calienta; evitar windup del integrador
+        m_pidTemp.reiniciar();   // sin agua o sin datos: no calentar; evitar windup
     }
+
+    // Seguridad: corte DURO por sobre-temperatura (SP + DELTA), independiente del PID.
+    // Solo con datos frescos (si el serial está caído, el calentador ya quedó en 0 arriba).
+    const bool sobreTemp = !m_alertaSerial && (m_sensorTem > m_setpointTem + DELTA_SOBRETEMP_C);
+    if (sobreTemp) { nuevoCalentador = 0.0; m_pidTemp.reiniciar(); }
+    setAlertaSobreTemp(sobreTemp);
     if (!qFuzzyCompare(m_salidaCalentador, nuevoCalentador)) {
         m_salidaCalentador = nuevoCalentador;
 #ifdef SIMULACION_ACTIVA
@@ -1290,6 +1335,7 @@ void GestorBiorreactor::ejecutarControlLoop()
             // La banda de histéresis [85 %, 95 %] la gestiona ControladorHisteresis por separado
             const bool accionPermitida = (error > 0.0)
                                       && aguaEnContacto       // solo con agua tocando el sensor (145–216 mm, sin drenar)
+                                      && !m_alertaSerial       // no dosificar sin datos frescos del sensor de pH
                                       && (m_sensorNivel < m_nivelMaxPct);
 
             if (accionPermitida) {

@@ -33,6 +33,8 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(bool alertaDivergenciaTemp READ alertaDivergenciaTemp NOTIFY alertaDivergenciaTempChanged FINAL)
     Q_PROPERTY(bool alertaSerial          READ alertaSerial          NOTIFY alertaSerialChanged          FINAL)
     Q_PROPERTY(bool alertaNivel           READ alertaNivel           NOTIFY alertaNivelChanged           FINAL)
+    Q_PROPERTY(bool alertaSobreTemp       READ alertaSobreTemp       NOTIFY alertaSobreTempChanged       FINAL)
+    Q_PROPERTY(bool alertaBombas          READ alertaBombas          NOTIFY alertaBombasChanged          FINAL)
 
     // ── Estado del proceso ───────────────────────────────────────────────────
     Q_PROPERTY(bool procesoActivo READ procesoActivo WRITE setProcesoActivo NOTIFY procesoActivoChanged FINAL)
@@ -100,6 +102,8 @@ public:
     bool alertaDivergenciaTemp() const;
     bool alertaSerial()          const;
     bool alertaNivel()           const;
+    bool alertaSobreTemp()       const;
+    bool alertaBombas()          const;
 
     bool procesoActivo() const;
     void setProcesoActivo(bool activo);
@@ -185,6 +189,8 @@ signals:
     void alertaDivergenciaTempChanged();
     void alertaSerialChanged();
     void alertaNivelChanged();
+    void alertaSobreTempChanged();
+    void alertaBombasChanged();
 
     void procesoActivoChanged();
 
@@ -239,6 +245,8 @@ private:
     void setAlertaDivergenciaTemp(bool v);
     void setAlertaSerial(bool v);
     void setAlertaNivel (bool v);
+    void setAlertaSobreTemp(bool v);
+    void setAlertaBombas(bool v);
     void resetWatchdogSerial();
 
     void setEstadoPreparacion(int estado);
@@ -270,6 +278,11 @@ private:
     bool m_alertaDivergenciaTemp = false;
     bool m_alertaSerial          = false;
     bool m_alertaNivel           = false;
+    bool m_alertaSobreTemp       = false;
+    bool m_alertaBombas          = false;
+    // Watchdog de bombas: detecta bombas activas (llenado o drenado) sin cambio de nivel
+    double m_distRefBomba        = -1.0;   // distancia mm de referencia
+    int    m_ticksBombaSinCambio = 0;      // s con bombas activas y nivel estancado
 
     // ── Proceso y salidas ─────────────────────────────────────────────────────
     bool   m_procesoActivo              = false;

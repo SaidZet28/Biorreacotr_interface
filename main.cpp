@@ -33,6 +33,10 @@ int main(int argc, char *argv[])
         [&]{ if (backend.alertaNivel()) audio.reproducirAlerta(); });
     QObject::connect(&backend, &GestorBiorreactor::alertaSerialChanged, &audio,
         [&]{ if (backend.alertaSerial()) audio.reproducirAdvertencia(); });
+    QObject::connect(&backend, &GestorBiorreactor::alertaSobreTempChanged, &audio,
+        [&]{ if (backend.alertaSobreTemp()) audio.reproducirAlerta(); });
+    QObject::connect(&backend, &GestorBiorreactor::alertaBombasChanged, &audio,
+        [&]{ if (backend.alertaBombas()) audio.reproducirAdvertencia(); });
 
     // Preparación del tanque
     QObject::connect(&backend, &GestorBiorreactor::alertaEscalacionChanged, &audio,

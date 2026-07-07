@@ -94,7 +94,7 @@ Item {
         Rectangle {
             width: parent.width
             height: appWindow.height * 0.08
-            color: backend.alertaDivergenciaTemp ? "#FF4444" : "#8DBB5A"
+            color: (backend.alertaDivergenciaTemp || backend.alertaSobreTemp) ? "#FF4444" : "#8DBB5A"
             radius: height / 2
             Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(backend.sensorTem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }

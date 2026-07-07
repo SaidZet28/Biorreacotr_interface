@@ -257,78 +257,40 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
+        // Temperatura: medido → objetivo
         BarraDisplaySensor {
             width: parent.width
             textoEtiqueta: qsTranslate("Main", "Temperatura")
-            textoValor: backend.sensorTem.toFixed(1) + " °C"
+            textoValor: backend.sensorTem.toFixed(1) + " → " + backend.setpointTem.toFixed(1) + " °C"
         }
 
+        // pH: medido → objetivo (en estados 0-1 el sensor aún no toca el líquido)
+        BarraDisplaySensor {
+            width: parent.width
+            textoEtiqueta: "pH"
+            textoValor: (backend.estadoPreparacion <= 1 && !backend.modoSimulacion)
+                        ? "--- → " + backend.setpointPH.toFixed(1)
+                        : backend.sensorPH.toFixed(2) + " → " + backend.setpointPH.toFixed(1)
+        }
+
+        // Nivel: solo en el primer paso (fase de llenado)
+        BarraDisplaySensor {
+            width: parent.width
+            visible: backend.estadoPreparacion <= 2
+            textoEtiqueta: qsTranslate("Main", "Nivel")
+            textoValor: backend.sensorNivel.toFixed(1) + " %"
+        }
+
+        // Tiempo esperado para esta etapa (ETA al setpoint, modelo FOPDT)
         BarraDisplaySensor {
             width: parent.width
             textoEtiqueta: qsTranslate("Main", "Tiempo estimado")
-            // Tiempo estimado al setpoint (modelo FOPDT). <0 = N/A (en SP / sin agua)
             textoValor: {
                 var e = backend.etaCalentamientoSeg
                 if (e < 0) return "—"
                 if (e < 3600) return "~" + Math.round(e / 60) + " min"
                 return "~" + Math.floor(e / 3600) + "h " +
                        ("0" + Math.floor((e % 3600) / 60)).slice(-2) + "m"
-            }
-        }
-
-        BarraDisplaySensor {
-            width: parent.width
-            textoEtiqueta: "pH"
-            // Ocultar valor en estados 0-1 en hardware (sensor no está en contacto)
-            textoValor: (backend.estadoPreparacion <= 1 && !backend.modoSimulacion)
-                        ? "---"
-                        : backend.sensorPH.toFixed(2)
-        }
-
-        BarraDisplaySensor {
-            width: parent.width
-            textoEtiqueta: qsTranslate("Main", "Nivel")
-            textoValor: backend.sensorNivel.toFixed(1) + " %"
-        }
-
-        // Setpoints como referencia
-        Rectangle {
-            width: parent.width
-            height: colObjetivos.implicitHeight + appWindow.height * 0.036
-            color: "#EFF8F8"
-            radius: 10
-
-            Column {
-                id: colObjetivos
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.topMargin: appWindow.height * 0.018
-                anchors.leftMargin: appWindow.height * 0.018
-                anchors.rightMargin: appWindow.height * 0.018
-                spacing: appWindow.height * 0.014
-
-                Text {
-                    text: qsTranslate("Main", "Objetivos configurados")
-                    font.pixelSize: appWindow.height * 0.026
-                    font.bold: true
-                    color: "#2a6060"
-                }
-                Text {
-                    text: qsTranslate("Main", "pH: %1  ±0.5").arg(backend.setpointPH.toFixed(1))
-                    font.pixelSize: appWindow.height * 0.026
-                    color: "#333333"
-                }
-                Text {
-                    text: qsTranslate("Main", "Temp: %1 °C  ±1.0").arg(backend.setpointTem.toFixed(1))
-                    font.pixelSize: appWindow.height * 0.026
-                    color: "#333333"
-                }
-                Text {
-                    text: qsTranslate("Main", "Nivel: %1 %").arg(backend.sensorNivel.toFixed(0))
-                    font.pixelSize: appWindow.height * 0.026
-                    color: "#333333"
-                }
             }
         }
     }
@@ -354,6 +316,31 @@ Item {
                 backend.cancelarPreparacion()
                 appWindow.estadoActual = "pantalla_7"
             }
+        }
+    }
+
+    // ── Aviso de seguridad: sobre-temperatura / bombas sin efecto ─────────────
+    Rectangle {
+        visible: backend.alertaSobreTemp || backend.alertaBombas
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: appWindow.height * 0.03
+        width: appWindow.width * 0.55
+        height: appWindow.height * 0.09
+        radius: height / 2
+        color: "#FF4444"
+        z: 150
+        Text {
+            anchors.centerIn: parent
+            width: parent.width * 0.92
+            text: backend.alertaSobreTemp
+                  ? qsTranslate("Main", "⚠ Sobre-temperatura: calentamiento cortado")
+                  : qsTranslate("Main", "⚠ Bombas activas sin cambio de nivel — verifica las bombas")
+            font.pixelSize: parent.height * 0.28
+            font.bold: true
+            color: "white"
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
         }
     }
 

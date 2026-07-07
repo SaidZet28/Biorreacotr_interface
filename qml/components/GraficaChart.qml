@@ -21,7 +21,10 @@ Item {
     function actualizarEjesY() {
         if (!root.appWindow) return
         switch (root.appWindow.var_seleccion_grafica) {
-            case 1: axisY.min = 0; axisY.max = 50;  break
+            case 1: {
+                var esF = root.appWindow && root.appWindow.unidadTemperatura === "F"
+                axisY.min = esF ? 32 : 0; axisY.max = esF ? 122 : 50; break
+            }
             case 2: axisY.min = 0; axisY.max = 100; break
             case 3: axisY.min = 0; axisY.max = 14;  break
             case 4: axisY.min = 0; axisY.max = 100; break
@@ -100,7 +103,7 @@ Item {
 
                 let vSensor = 0.0, vSetpoint = 0.0
                 switch (root.appWindow.var_seleccion_grafica) {
-                    case 1: vSensor = backend.sensorTem;   vSetpoint = backend.setpointTem;   break
+                    case 1: vSensor = root.appWindow.tempMostrada(backend.sensorTem); vSetpoint = root.appWindow.tempMostrada(backend.setpointTem); break
                     case 2: vSensor = backend.sensorNivel; vSetpoint = backend.nivelLlenadoPct; break
                     case 3: vSensor = backend.sensorPH;    vSetpoint = backend.setpointPH;    break
                     case 4: vSensor = backend.sensorLuz;   vSetpoint = backend.setpointLuz;   break

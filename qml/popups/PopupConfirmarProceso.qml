@@ -69,7 +69,7 @@ Item {
                 Text {
                     width: (parent.width / 2) - (parent.width * 0.01)
                     textFormat: Text.RichText
-                    text: qsTranslate("Main", "Temperatura: <b>%1 °%2</b>").arg(raizConfirmacion.temp).arg(raizConfirmacion.unidadTemperatura)
+                    text: qsTranslate("Main", "Temperatura: <b>%1 °%2</b>").arg((raizConfirmacion.unidadTemperatura === "F" ? (raizConfirmacion.temp * 9/5 + 32) : raizConfirmacion.temp).toFixed(1)).arg(raizConfirmacion.unidadTemperatura)
                     font.pixelSize: cajaConfirmacion.height * 0.055
                     color: "black"
                     wrapMode: Text.WordWrap

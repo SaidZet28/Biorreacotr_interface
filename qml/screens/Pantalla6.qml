@@ -41,9 +41,8 @@ Item {
                 let val = parseFloat(root.entradaTemporal);
                 if (!isNaN(val)) {
                     if (root.campoActivo === "Tem") {
-                        let minT = appWindow.unidadTemperatura === "C" ? 20 : 68;
-                        let maxT = appWindow.unidadTemperatura === "C" ? 100 : 212;
-                        backend.setpointTem = Math.max(minT, Math.min(maxT, val));
+                        // val en la unidad de display → guardar en °C (clamp 20–100 °C)
+                        backend.setpointTem = Math.max(20, Math.min(100, appWindow.tempACelsius(val)));
                         root.tempConfigurada = true;
                     }
                     else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(4.0, Math.min(7.5, val)); root.phConfigurado = true; }
@@ -72,7 +71,7 @@ Item {
             idCampo: "Tem"
             campoActivo: root.campoActivo
             textoEtiqueta: qsTranslate("Main", "Temperatura:")
-            valorMostrado: (root.campoActivo === "Tem" ? root.entradaTemporal + "|" : backend.setpointTem) + " °" + appWindow.unidadTemperatura
+            valorMostrado: (root.campoActivo === "Tem" ? root.entradaTemporal + "|" : appWindow.tempMostrada(backend.setpointTem).toFixed(1)) + " °" + appWindow.unidadTemperatura
             onBarraClicada: { root.campoActivo = "Tem"; root.entradaTemporal = ""; root.forceActiveFocus() }
         }
         BarraInputConfig {
@@ -225,9 +224,8 @@ Item {
             let val = parseFloat(root.entradaTemporal);
             if (!isNaN(val)) {
                 if (root.campoActivo === "Tem") {
-                    let minT = appWindow.unidadTemperatura === "C" ? 20 : 68;
-                    let maxT = appWindow.unidadTemperatura === "C" ? 100 : 212;
-                    backend.setpointTem = Math.max(minT, Math.min(maxT, val));
+                    // val en la unidad de display → guardar en °C (clamp 20–100 °C)
+                    backend.setpointTem = Math.max(20, Math.min(100, appWindow.tempACelsius(val)));
                     root.tempConfigurada = true;
                 }
                 else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(4.0, Math.min(7.5, val)); root.phConfigurado = true; }
@@ -266,7 +264,7 @@ Item {
                 if (root.campoActivo !== "" && root.entradaTemporal !== "") {
                     let val = parseFloat(root.entradaTemporal);
                     if (!isNaN(val)) {
-                        if (root.campoActivo === "Tem") { backend.setpointTem = Math.max(20, Math.min(100, val)); root.tempConfigurada = true; }
+                        if (root.campoActivo === "Tem") { backend.setpointTem = Math.max(20, Math.min(100, appWindow.tempACelsius(val))); root.tempConfigurada = true; }
                         else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(4.0, Math.min(7.5, val)); root.phConfigurado = true; }
                                 else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                         else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }

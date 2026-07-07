@@ -112,7 +112,7 @@ Item {
                 onTarjetaClicked: function(n, t, p, a, l, ti) {
                     appWindow.limpiarDatos(false);
                     appWindow.var_nombre_proyecto = n;
-                    backend.setpointTem   = (appWindow.unidadTemperatura === "C" ? t : (t * 9/5 + 32));
+                    backend.setpointTem   = t;   // los proyectos se guardan en °C (invariante)
                     backend.setpointPH    = p;
                     backend.setpointLuz   = l;
                     let total = parseFloat(ti);

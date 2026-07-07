@@ -251,11 +251,7 @@ Item {
                     id: areaOkUnidades
                     anchors.fill: parent
                     onClicked: {
-                        if (appWindow.unidadTemperatura === "C" && root.tempUnidades === "F") {
-                            backend.setpointTem = (backend.setpointTem * 9/5) + 32;
-                        } else if (appWindow.unidadTemperatura === "F" && root.tempUnidades === "C") {
-                            backend.setpointTem = (backend.setpointTem - 32) * 5/9;
-                        }
+                        // setpointTem se mantiene SIEMPRE en °C; solo cambia la unidad de display
                         appWindow.unidadTemperatura = root.tempUnidades;
                         root.mostrarPopupUnidades = false;
                     }

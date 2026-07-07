@@ -261,7 +261,7 @@ Item {
         BarraDisplaySensor {
             width: parent.width
             textoEtiqueta: qsTranslate("Main", "Temperatura")
-            textoValor: (backend.sensorSerialValido ? backend.sensorTem.toFixed(1) : "---") + " → " + backend.setpointTem.toFixed(1) + " °C"
+            textoValor: (backend.sensorSerialValido ? appWindow.tempMostrada(backend.sensorTem).toFixed(1) : "---") + " → " + appWindow.tempMostrada(backend.setpointTem).toFixed(1) + " °" + appWindow.unidadTemperatura
         }
 
         // pH: medido → objetivo (en estados 0-1 el sensor aún no toca el líquido)

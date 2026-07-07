@@ -52,6 +52,15 @@ ApplicationWindow {
     // ==========================================
     // 2. FUNCIONES GLOBALES
     // ==========================================
+    // Conversión de temperatura. INVARIANTE: el backend (setpointTem/sensorTem) y
+    // el control SIEMPRE trabajan en °C. Solo se convierte para mostrar/ingresar.
+    function tempMostrada(celsius) {   // °C interno → unidad de display
+        return unidadTemperatura === "F" ? (celsius * 9 / 5 + 32) : celsius
+    }
+    function tempACelsius(mostrada) {  // valor en unidad de display → °C para guardar
+        return unidadTemperatura === "F" ? ((mostrada - 32) * 5 / 9) : mostrada
+    }
+
     function limpiarDatos(mantenerNombres) {
         if (!mantenerNombres) {
             var_nombre_proyecto = ""

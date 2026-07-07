@@ -59,7 +59,7 @@ Item {
                 Text {
                     width: (parent.width / 2) - (parent.width * 0.01)
                     textFormat: Text.RichText
-                    text: qsTranslate("Main", "Temperatura: <b>%1 °%2</b>").arg(root.temp.toFixed(1)).arg(appWindow.unidadTemperatura)
+                    text: qsTranslate("Main", "Temperatura: <b>%1 °%2</b>").arg(appWindow.tempMostrada(root.temp).toFixed(1)).arg(appWindow.unidadTemperatura)
                     font.pixelSize: caja.height * 0.055; color: "black"; wrapMode: Text.WordWrap
                 }
                 Text {

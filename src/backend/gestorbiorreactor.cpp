@@ -497,13 +497,10 @@ double  GestorBiorreactor::mlSustanciaB()          const { return m_mlSustanciaB
 QString GestorBiorreactor::textoTareaPreparacion() const
 {
     switch (m_estadoPreparacion) {
-    case 0:  return QCoreApplication::translate("Main", "Verificando el sistema...");
-    case 1:  return QCoreApplication::translate("Main", "Llenando el tanque con la mezcla calculada...");
-    case 2:  return QCoreApplication::translate("Main", "Estabilizando el sensor de pH...");
-    case 3:  return QCoreApplication::translate("Main", "Acondicionando el medio de cultivo...");
-    case 4:  return QCoreApplication::translate("Main", "Completando el llenado...");
-    case 5:  return QCoreApplication::translate("Main", "Verificando estabilidad final...");
-    case 6:  return QCoreApplication::translate("Main", "Tanque preparado");
+    case 0:  return QCoreApplication::translate("Main", "Verificando sensores...");
+    case 1:  return QCoreApplication::translate("Main", "Llenando el tanque con el medio...");
+    case 2:  return QCoreApplication::translate("Main", "Acondicionando pH y temperatura...");
+    case 3:  return QCoreApplication::translate("Main", "Tanque listo — introduzca el organismo");
     default: return QCoreApplication::translate("Main", "Iniciando...");
     }
 }
@@ -511,13 +508,31 @@ QString GestorBiorreactor::textoTareaPreparacion() const
 QString GestorBiorreactor::textoDetallePreparacion() const
 {
     switch (m_estadoPreparacion) {
-    case 0:  return QCoreApplication::translate("Main", "Comprobando que las válvulas de drenaje estén cerradas y que todos los sensores estén disponibles.");
-    case 1:  return QCoreApplication::translate("Main", "Se añade primero la sustancia B para ajustar el pH base, luego el agua completa el volumen. La temperatura se precalienta al mismo tiempo.");
-    case 2:  return QCoreApplication::translate("Main", "El sensor de pH acaba de hacer contacto con el líquido. Se espera a que la lectura se estabilice antes de realizar ajustes de pH.");
-    case 3:  return QCoreApplication::translate("Main", "Dosificando reactivos para alcanzar el pH deseado. El sistema de temperatura trabaja al mismo tiempo. Corregir el pH en poco volumen requiere menos reactivo.");
-    case 4:  return QCoreApplication::translate("Main", "pH y temperatura en sus valores objetivo. Completando el llenado hasta el volumen de trabajo.");
-    case 5:  return QCoreApplication::translate("Main", "Se confirma que las condiciones se mantienen estables antes de introducir el organismo.");
-    case 6:  return QCoreApplication::translate("Main", "pH, temperatura y nivel en sus valores objetivo. El tanque está listo para recibir el organismo.");
+    case 0:
+        if (!m_sensorSerialValido && !m_sensorNivelValido)
+            return QCoreApplication::translate("Main", "⚠ Sin respuesta de los sensores (pH/DO/temperatura y nivel). Revise las conexiones.");
+        if (!m_sensorSerialValido)
+            return QCoreApplication::translate("Main", "⚠ Sin respuesta de los sensores RS-485 (pH/DO/temperatura). Revise la conexión.");
+        if (!m_sensorNivelValido)
+            return QCoreApplication::translate("Main", "⚠ Sin respuesta del sensor de nivel. Revise la conexión.");
+        return QCoreApplication::translate("Main", "Comprobando que los sensores estén conectados y entregando lecturas.");
+    case 1:
+        return QCoreApplication::translate("Main", "Llenando con el medio de cultivo hasta el nivel funcional. El burbujeo mantiene la mezcla homogénea.");
+    case 2: {
+        const QString tem = (m_sensorTem < m_setpointTem - 1.0)
+            ? QCoreApplication::translate("Main", "Calentando hacia el objetivo. ")
+            : QCoreApplication::translate("Main", "Temperatura en objetivo. ");
+        QString ph;
+        if (m_setpointPH < m_sensorPH)
+            ph = QCoreApplication::translate("Main", "El pH objetivo es menor al actual: se espera a que el organismo acidifique el medio.");
+        else if (qAbs(m_sensorPH - m_setpointPH) <= 0.5)
+            ph = QCoreApplication::translate("Main", "pH en objetivo.");
+        else
+            ph = QCoreApplication::translate("Main", "Ajustando el pH hacia el objetivo (dosificando).");
+        return tem + ph;
+    }
+    case 3:
+        return QCoreApplication::translate("Main", "pH, temperatura y nivel estables. Luz encendida. Introduzca el organismo y confirme para continuar.");
     default: return QString();
     }
 }
@@ -529,53 +544,40 @@ void GestorBiorreactor::setEstadoPreparacion(int estado)
     m_contadorEstabPH   = 0;
     m_contadorEstabFino = 0;
 
-    // Configurar controladores según el estado
+    // Configurar controladores/salidas según el estado (FSM de 4 fases:
+    // 0=Verificación, 1=Llenado, 2=Acondicionamiento, 3=Listo)
     switch (estado) {
-    case 1:
+    case 1:  // Llenado
         if (!m_procesoActivo) {
             m_procesoActivo = true;
-            m_tAmbiente = m_sensorTem;   // capturar T_amb para feedforward/ETA al arrancar la preparación
+            m_tAmbiente = m_sensorTem;   // T_amb para feedforward/ETA
             emit procesoActivoChanged();
         }
-        m_pca9685.habilitarSalidas(true);   // OE LOW — asegurar salidas activas (robusto tras cancelar)
-        habilitarFuzzyPH(false);
+        m_pca9685.habilitarSalidas(true);          // OE LOW — salidas activas
+        habilitarFuzzyPH(false);                   // aún no se controla el pH durante el llenado
         habilitarHisteresisNivel(false);
-        // Burbujeo/mezclado ON desde el inicio de la preparación y durante todo el
-        // proceso: sin mezclado la lectura de pH no es representativa. Solo se apaga
-        // en el paro seguro (setProcesoActivo(false)).
+        // Burbujeo/mezclado ON desde el llenado y durante todo el proceso: sin mezclado
+        // la lectura de pH no es representativa. Solo se apaga en el paro seguro.
         m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BURBUJEO, 100.0);
-        // Foco/iluminación (tira LED) ON durante la preparación y el proceso.
-        m_pca9685.escribirDigital(DriverPCA9685::CH_TIRA_LED, true);
         break;
-    case 2:
-        habilitarFuzzyPH(false);
-        habilitarHisteresisNivel(false);
-        break;
-    case 3:
+    case 2:  // Acondicionamiento — control de temperatura y pH hasta estabilidad
         habilitarFuzzyPH(true);
         habilitarHisteresisNivel(false);
-        // Reiniciar el timer de escalación por ETA al entrar al ajuste de temp/pH
+        // Reiniciar el timer de escalación por ETA al entrar al acondicionamiento
         m_etaInicialSeg = -1.0; m_etaLockCnt = 0;
         m_etaLockPrevMin = -1;  m_segDesdeBloqueoEta = 0;
         break;
-    case 4:
-        habilitarFuzzyPH(false);
-        habilitarHisteresisNivel(false);
-        break;
-    case 5:
-        habilitarFuzzyPH(true);
-        habilitarHisteresisNivel(false);
-        break;
-    case 6:
+    case 3:  // Listo — encender la luz y esperar la confirmación del operador
         habilitarFuzzyPH(true);
         habilitarHisteresisNivel(true);
+        m_pca9685.escribirDigital(DriverPCA9685::CH_TIRA_LED, true);  // luz al final
         setPreparacionCompletada(true);
         break;
     }
 
-    // Progreso: proporción lineal entre estados (milestones fijos)
-    static const double hitos[] = { 0.0, 0.15, 0.32, 0.48, 0.65, 0.82, 1.0 };
-    setProgresoPreparacion(hitos[qBound(0, estado, 6)]);
+    // Progreso: 4 fases
+    static const double hitos[] = { 0.0, 0.34, 0.67, 1.0 };
+    setProgresoPreparacion(hitos[qBound(0, estado, 3)]);
 
     emit estadoPreparacionChanged();
 }
@@ -637,7 +639,7 @@ void GestorBiorreactor::iniciarPreparacion()
 {
     // Bloquear solo si hay preparación activa en curso (estados 1-5).
     // Permite reiniciar desde -1 (nuevo experimento) o 6 (ciclo anterior completado).
-    if (m_timerPreparacion.isActive() && m_estadoPreparacion > 0 && m_estadoPreparacion < 6) return;
+    if (m_timerPreparacion.isActive() && m_estadoPreparacion > 0 && m_estadoPreparacion < 3) return;
 
     m_timerPreparacion.stop();
     calcularMezclaOptima();
@@ -687,11 +689,14 @@ void GestorBiorreactor::tickPreparacion()
     switch (m_estadoPreparacion) {
 
     case 0: {
-        // Verificar que los sensores respondan sin alertas activas
+        // Verificación: los sensores deben estar conectados y entregando lecturas.
 #ifdef SIMULACION_ACTIVA
         if (m_ticksPrep >= 2) setEstadoPreparacion(1);
 #else
-        if (!m_alertaSerial && !m_alertaNivel) setEstadoPreparacion(1);
+        // Solo avanza si TODOS los sensores dan lecturas frescas y no hay sobrellenado;
+        // si no, se queda aquí y la GUI muestra la alerta de sensores desconectados.
+        if (m_sensorSerialValido && m_sensorNivelValido && !m_drenandoNivel)
+            setEstadoPreparacion(1);
 #endif
         break;
     }
@@ -743,44 +748,33 @@ void GestorBiorreactor::tickPreparacion()
         break;
     }
 
-    case 2: {
+    case 2: {  // Acondicionamiento: temperatura y pH hasta estabilidad (30 s en margen)
 #ifdef SIMULACION_ACTIVA
-        // En simulación: tiempo fijo, sin depender de valores simulados
-        if (m_ticksPrep >= 5) setEstadoPreparacion(3);
+        if (m_ticksPrep >= 10) setEstadoPreparacion(3);
 #else
-        if (m_sensorPH >= 2.0 && m_sensorPH <= 12.0)
-            m_contadorEstabPH++;
-        else
-            m_contadorEstabPH = 0;
-        if (m_contadorEstabPH >= 5) setEstadoPreparacion(3);
-#endif
-        break;
-    }
-
-    case 3: {
-#ifdef SIMULACION_ACTIVA
-        if (m_ticksPrep >= 8) setEstadoPreparacion(4);
-#else
-        bool phOk  = qAbs(m_sensorPH  - m_setpointPH)  <= 0.5;
-        bool temOk = qAbs(m_sensorTem - m_setpointTem) <= 1.0;
-        if (phOk && temOk) {
-            setEstadoPreparacion(4);
+        // Temperatura: el equipo SOLO calienta → objetivo alcanzado si está a ≤1°C.
+        const bool temOk = qAbs(m_sensorTem - m_setpointTem) <= 1.0;
+        // pH: si el setpoint es MENOR al actual no se puede bajar por control → se
+        // espera a que el organismo acidifique (pH "listo" para la preparación). Si el
+        // setpoint es mayor/igual, el lazo difuso dosifica para subirlo hasta el margen.
+        const bool phListo = (m_setpointPH < m_sensorPH)
+                           ? true
+                           : (qAbs(m_sensorPH - m_setpointPH) <= 0.5);
+        if (phListo && temOk) {
+            if (++m_contadorEstabFino >= 30) setEstadoPreparacion(3);   // estable 30 s → listo
         } else {
-            // Alarma de escalación con deadline basado en el ETA de calentamiento.
-            // Se fija ETA_inicial cuando el ETA se estabiliza (10 lecturas seguidas
-            // con el mismo valor en minutos). Deadline = ETA_inicial + margen.
-            // Si el ETA no es calculable ("-"), se reinicia el conteo y se espera.
+            m_contadorEstabFino = 0;
+            // Alarma de escalación con deadline = ETA_inicial + margen (temperatura).
+            // ETA_inicial se fija cuando el ETA se estabiliza (10 lecturas en el mismo
+            // minuto); si no es calculable ("-") se espera.
             if (m_etaInicialSeg < 0.0) {
                 const double eta = m_etaCalentamientoSeg;
                 if (eta < 0.0) {
-                    m_etaLockCnt = 0; m_etaLockPrevMin = -1;   // no calculable → esperar
+                    m_etaLockCnt = 0; m_etaLockPrevMin = -1;
                 } else {
                     const int mn = static_cast<int>(qRound(eta / 60.0));
                     if (mn == m_etaLockPrevMin) {
-                        if (++m_etaLockCnt >= 10) {
-                            m_etaInicialSeg      = eta;         // fijar ETA_inicial
-                            m_segDesdeBloqueoEta = 0;
-                        }
+                        if (++m_etaLockCnt >= 10) { m_etaInicialSeg = eta; m_segDesdeBloqueoEta = 0; }
                     } else {
                         m_etaLockPrevMin = mn; m_etaLockCnt = 1;
                     }
@@ -794,38 +788,12 @@ void GestorBiorreactor::tickPreparacion()
         break;
     }
 
-    case 4: {
-        // El llenado ya se completó en el estado 1 (dist ≤ 216 mm). Estado de paso:
-        // asegurar bombas de llenado apagadas y avanzar al ajuste fino de pH/temp.
-        if (!qFuzzyCompare(m_salidaBombaAgua, 0.0)) {
-            m_salidaBombaAgua = 0.0;
-            emit salidaBombaAguaChanged();
-        }
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
-        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
-        setEstadoPreparacion(5);
+    case 3:  // Listo — esperando que el operador confirme la introducción del organismo
         break;
     }
 
-    case 5: {
-#ifdef SIMULACION_ACTIVA
-        if (m_ticksPrep >= 10) setEstadoPreparacion(6);
-#else
-        bool phOk  = qAbs(m_sensorPH  - m_setpointPH)  <= 0.5;
-        bool temOk = qAbs(m_sensorTem - m_setpointTem) <= 1.0;
-        if (phOk && temOk)
-            m_contadorEstabFino++;
-        else
-            m_contadorEstabFino = 0;
-        if (m_contadorEstabFino >= 30) setEstadoPreparacion(6);
-#endif
-        break;
-    }
-
-    case 6:
-        // Esperando que el operador confirme la introducción del organismo
-        break;
-    }
+    // Refrescar los textos dinámicos (sensores en verificación, dirección de pH, etc.)
+    emit estadoPreparacionChanged();
 }
 
 void GestorBiorreactor::tickSimulacion()

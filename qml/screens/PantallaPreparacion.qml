@@ -28,13 +28,8 @@ Item {
     }
 
     // ── 4 fases visibles que agrupan los 7 estados internos ──────────────────
-    readonly property int faseVisual: {
-        let s = backend.estadoPreparacion
-        if (s <= 0)  return 0
-        if (s <= 2)  return 1
-        if (s <= 5)  return 2
-        return 3
-    }
+    // Los 4 estados internos (0-3) corresponden 1:1 con las 4 fases visibles
+    readonly property int faseVisual: Math.max(0, backend.estadoPreparacion)
 
     readonly property var nombreFase: [
         qsTranslate("Main", "Verificación"),
@@ -276,7 +271,7 @@ Item {
         // Nivel: solo en el primer paso (fase de llenado)
         BarraDisplaySensor {
             width: parent.width
-            visible: backend.estadoPreparacion <= 2
+            visible: backend.estadoPreparacion <= 1
             textoEtiqueta: qsTranslate("Main", "Nivel")
             textoValor: (backend.sensorNivelValido ? backend.sensorNivel.toFixed(1) : "---") + " %"
         }
@@ -295,9 +290,10 @@ Item {
         }
     }
 
-    // ── Botón Atrás (solo mientras no ha comenzado o en estado 0) ────────────
+    // ── Botón Cancelar/Atrás — disponible durante toda la preparación ─────────
+    // (oculto solo cuando hay un popup modal encima: escalación o "tanque listo")
     Rectangle {
-        visible: backend.estadoPreparacion <= 0
+        visible: backend.estadoPreparacion <= 2 && !backend.alertaEscalacion && !backend.preparacionCompletada
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.margins: appWindow.width * 0.05
@@ -306,6 +302,7 @@ Item {
         height: appWindow.height * 0.10
         radius: height / 2
         color: maAtras.pressed ? "#cc1e1e" : "#FF2D2D"
+        z: 160
 
         Text { anchors.centerIn: parent; text: "↶"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
         MouseArea {
@@ -319,13 +316,15 @@ Item {
         }
     }
 
-    // ── Aviso de seguridad: sobre-temperatura / bombas sin efecto ─────────────
+    // ── Aviso: sensores desconectados / sobre-temperatura / bombas sin efecto ──
     Rectangle {
-        visible: backend.alertaSobreTemp || backend.alertaBombas
+        readonly property bool sensoresCaidos: backend.estadoPreparacion === 0
+                                            && (!backend.sensorSerialValido || !backend.sensorNivelValido)
+        visible: backend.alertaSobreTemp || backend.alertaBombas || sensoresCaidos
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: appWindow.height * 0.03
-        width: appWindow.width * 0.55
+        width: appWindow.width * 0.60
         height: appWindow.height * 0.09
         radius: height / 2
         color: "#FF4444"
@@ -335,7 +334,9 @@ Item {
             width: parent.width * 0.92
             text: backend.alertaSobreTemp
                   ? qsTranslate("Main", "⚠ Sobre-temperatura: calentamiento cortado")
-                  : qsTranslate("Main", "⚠ Bombas activas sin cambio de nivel — verifica las bombas")
+                  : backend.alertaBombas
+                    ? qsTranslate("Main", "⚠ Bombas activas sin cambio de nivel — verifica las bombas")
+                    : qsTranslate("Main", "⚠ Sensores sin respuesta — revise las conexiones")
             font.pixelSize: parent.height * 0.28
             font.bold: true
             color: "white"
@@ -477,10 +478,11 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: qsTranslate("Main", "pH: %1   |   Temperatura: %2 °C   |   Nivel: %3 %")
-                              .arg(backend.sensorPH.toFixed(2))
-                              .arg(backend.sensorTem.toFixed(1))
-                              .arg(backend.sensorNivel.toFixed(1))
+                    text: qsTranslate("Main", "pH: %1   |   Temperatura: %2 °%4   |   Nivel: %3 %")
+                              .arg(backend.sensorSerialValido ? backend.sensorPH.toFixed(2) : "---")
+                              .arg(backend.sensorSerialValido ? appWindow.tempMostrada(backend.sensorTem).toFixed(1) : "---")
+                              .arg(backend.sensorNivelValido ? backend.sensorNivel.toFixed(1) : "---")
+                              .arg(appWindow.unidadTemperatura)
                     font.pixelSize: appWindow.height * 0.030
                     color: "#1a5c1a"
                     horizontalAlignment: Text.AlignHCenter
@@ -496,29 +498,56 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
-                Rectangle {
+                Row {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: appWindow.width * 0.26
-                    height: appWindow.height * 0.090
-                    radius: height / 2
-                    color: maConfirmar.pressed ? "#6b42b5" : "#8b5cf6"
+                    spacing: appWindow.width * 0.03
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: qsTranslate("Main", "Organismo introducido — Iniciar proceso")
-                        font.pixelSize: parent.height * 0.28
-                        font.bold: true
-                        color: "black"
-                        horizontalAlignment: Text.AlignHCenter
-                        width: parent.width * 0.88
-                        wrapMode: Text.WordWrap
+                    Rectangle {
+                        width: appWindow.width * 0.26
+                        height: appWindow.height * 0.090
+                        radius: height / 2
+                        color: maConfirmar.pressed ? "#6b42b5" : "#8b5cf6"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: qsTranslate("Main", "Organismo introducido — Iniciar proceso")
+                            font.pixelSize: parent.height * 0.28
+                            font.bold: true
+                            color: "black"
+                            horizontalAlignment: Text.AlignHCenter
+                            width: parent.width * 0.88
+                            wrapMode: Text.WordWrap
+                        }
+                        MouseArea {
+                            id: maConfirmar
+                            anchors.fill: parent
+                            onClicked: {
+                                appWindow.procesoListoParaIniciar = true
+                                appWindow.estadoActual = "pantalla_procesos"
+                            }
+                        }
                     }
-                    MouseArea {
-                        id: maConfirmar
-                        anchors.fill: parent
-                        onClicked: {
-                            appWindow.procesoListoParaIniciar = true
-                            appWindow.estadoActual = "pantalla_procesos"
+
+                    Rectangle {
+                        width: appWindow.width * 0.16
+                        height: appWindow.height * 0.090
+                        radius: height / 2
+                        color: maCancelarListo.pressed ? "#cc1e1e" : "#FF2D2D"
+                        Text {
+                            anchors.centerIn: parent
+                            text: qsTranslate("Main", "Cancelar")
+                            font.pixelSize: parent.height * 0.30
+                            font.bold: true
+                            color: "black"
+                        }
+                        MouseArea {
+                            id: maCancelarListo
+                            anchors.fill: parent
+                            onClicked: {
+                                appWindow.procesoListoParaIniciar = false
+                                backend.cancelarPreparacion()
+                                appWindow.estadoActual = "pantalla_7"
+                            }
                         }
                     }
                 }

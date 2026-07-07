@@ -57,34 +57,36 @@ Item {
     }
 
     // -- Timers --------------------------------
+    // La calibración solo tiene éxito si el sensor REAL responde (datos frescos).
+    // Si está desconectado → estado 3 (error ✗). pH/DO usan RS-485; nivel usa I2C.
     Timer {
         id: tPH4; interval: root.duracionCal
         onTriggered: {
-            if (appWindow.sensor_estado_calibracion === 1) { root.stPH4 = 2; root.puntos_pH++ }
+            if (backend.sensorSerialValido) { root.stPH4 = 2; root.puntos_pH++ }
             else { root.stPH4 = 3 }
         }
     }
     Timer {
         id: tPH7; interval: root.duracionCal
         onTriggered: {
-            if (appWindow.sensor_estado_calibracion === 1) { root.stPH7 = 2; root.puntos_pH++ }
+            if (backend.sensorSerialValido) { root.stPH7 = 2; root.puntos_pH++ }
             else { root.stPH7 = 3 }
         }
     }
     Timer {
         id: tPH10; interval: root.duracionCal
         onTriggered: {
-            if (appWindow.sensor_estado_calibracion === 1) { root.stPH10 = 2; root.puntos_pH++ }
+            if (backend.sensorSerialValido) { root.stPH10 = 2; root.puntos_pH++ }
             else { root.stPH10 = 3 }
         }
     }
     Timer {
         id: tDO; interval: root.duracionCal
-        onTriggered: { root.stDO = (appWindow.sensor_estado_calibracion === 1) ? 2 : 3 }
+        onTriggered: { root.stDO = backend.sensorSerialValido ? 2 : 3 }
     }
     Timer {
         id: tNivel; interval: root.duracionCal
-        onTriggered: { root.stNivel = (appWindow.sensor_estado_calibracion === 1) ? 2 : 3 }
+        onTriggered: { root.stNivel = backend.sensorNivelValido ? 2 : 3 }
     }
 
     // --------------------------------------------
@@ -126,17 +128,17 @@ Item {
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30
                     textoEtiqueta: "pH"
-                    textoValor: backend.sensorPH.toFixed(1)
+                    textoValor: backend.sensorSerialValido ? backend.sensorPH.toFixed(1) : "---"
                 }
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30
                     textoEtiqueta: "DO"
-                    textoValor: backend.sensorDO.toFixed(1) + " mg/L"
+                    textoValor: (backend.sensorSerialValido ? backend.sensorDO.toFixed(1) : "---") + " mg/L"
                 }
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30
                     textoEtiqueta: qsTranslate("Main", "Nivel")
-                    textoValor: backend.sensorNivel.toFixed(1) + " %"
+                    textoValor: (backend.sensorNivelValido ? backend.sensorNivel.toFixed(1) : "---") + " %"
                 }
             }
 

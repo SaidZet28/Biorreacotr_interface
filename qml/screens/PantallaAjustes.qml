@@ -46,10 +46,6 @@ Item {
             }
         }
         BotonAccionVerde {
-            textoBoton: "Prueba Control pH"
-            onClicado: appWindow.estadoActual = "pantalla_prueba_ph"
-        }
-        BotonAccionVerde {
             textoBoton: qsTranslate("Main", "Créditos")
             onClicado: root.mostrarPopupCreditos = true
         }

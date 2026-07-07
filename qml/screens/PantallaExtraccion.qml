@@ -138,7 +138,7 @@ Item {
                 anchors.rightMargin: parent.width * 0.10
                 color: areaAtrasConfirmar1.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "←"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea { id: areaAtrasConfirmar1; anchors.fill: parent; onClicked: root.mostrarConfirmacion1 = false }
             }
         }
@@ -219,7 +219,7 @@ Item {
                 anchors.rightMargin: parent.width * 0.10
                 color: areaAtrasConfirmar2.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "←"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea { id: areaAtrasConfirmar2; anchors.fill: parent; onClicked: root.mostrarConfirmacion2 = false }
             }
         }

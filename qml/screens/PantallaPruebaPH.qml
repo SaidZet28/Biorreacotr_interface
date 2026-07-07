@@ -427,7 +427,7 @@ Item {
         MouseArea {
             id: maAtras
             anchors.fill: parent
-            onClicked: appWindow.estadoActual = "pantalla_ajustes"
+            onClicked: appWindow.estadoActual = "pantalla_configuraciones"
         }
     }
 

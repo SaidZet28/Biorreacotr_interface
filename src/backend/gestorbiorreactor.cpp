@@ -244,6 +244,16 @@ void GestorBiorreactor::setAlertaBombas(bool v) {
     m_alertaBombas = v; emit alertaBombasChanged();
     if (v) qWarning() << "[WD] Bombas activas sin cambio de nivel — verificar bombas.";
 }
+bool GestorBiorreactor::sensorSerialValido() const { return m_sensorSerialValido; }
+bool GestorBiorreactor::sensorNivelValido()  const { return m_sensorNivelValido;  }
+void GestorBiorreactor::setSensorSerialValido(bool v) {
+    if (m_sensorSerialValido == v) return;
+    m_sensorSerialValido = v; emit sensorSerialValidoChanged();
+}
+void GestorBiorreactor::setSensorNivelValido(bool v) {
+    if (m_sensorNivelValido == v) return;
+    m_sensorNivelValido = v; emit sensorNivelValidoChanged();
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Proceso
@@ -1632,17 +1642,16 @@ void GestorBiorreactor::verificarStaleness()
 {
     const qint64 ahora = QDateTime::currentMSecsSinceEpoch();
 
-    // Si los datos RS-485 son viejos y hay proceso activo, activar alerta serial
-    if (m_procesoActivo && m_ultimaLecturaRS485.isValid()) {
-        qint64 edadRS485 = ahora - m_ultimaLecturaRS485.toMSecsSinceEpoch();
-        if (edadRS485 > UMBRAL_STALENESS_MS)
-            setAlertaSerial(true);
-    }
+    // Validez de datos (SIEMPRE, aun sin proceso): la GUI muestra "---" si el sensor
+    // no entrega lecturas frescas (desconectado). RS-485 = temp/pH/DO; I2C = nivel.
+    const bool serialFresco = m_ultimaLecturaRS485.isValid() &&
+        (ahora - m_ultimaLecturaRS485.toMSecsSinceEpoch()) <= UMBRAL_STALENESS_MS;
+    const bool nivelFresco  = m_ultimaLecturaI2C.isValid() &&
+        (ahora - m_ultimaLecturaI2C.toMSecsSinceEpoch()) <= UMBRAL_STALENESS_MS;
+    setSensorSerialValido(serialFresco);
+    setSensorNivelValido(nivelFresco);
 
-    // Si los datos I2C son viejos y hay proceso activo, activar alerta nivel
-    if (m_procesoActivo && m_ultimaLecturaI2C.isValid()) {
-        qint64 edadI2C = ahora - m_ultimaLecturaI2C.toMSecsSinceEpoch();
-        if (edadI2C > UMBRAL_STALENESS_MS)
-            setAlertaNivel(true);
-    }
+    // Alertas de proceso (solo con proceso activo) — comportamiento previo
+    if (m_procesoActivo && !serialFresco) setAlertaSerial(true);
+    if (m_procesoActivo && !nivelFresco)  setAlertaNivel(true);
 }

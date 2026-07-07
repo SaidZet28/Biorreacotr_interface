@@ -35,6 +35,9 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(bool alertaNivel           READ alertaNivel           NOTIFY alertaNivelChanged           FINAL)
     Q_PROPERTY(bool alertaSobreTemp       READ alertaSobreTemp       NOTIFY alertaSobreTempChanged       FINAL)
     Q_PROPERTY(bool alertaBombas          READ alertaBombas          NOTIFY alertaBombasChanged          FINAL)
+    // Validez de datos: false = sin lecturas frescas (sensor desconectado) → GUI muestra "---"
+    Q_PROPERTY(bool sensorSerialValido    READ sensorSerialValido    NOTIFY sensorSerialValidoChanged    FINAL)
+    Q_PROPERTY(bool sensorNivelValido     READ sensorNivelValido     NOTIFY sensorNivelValidoChanged     FINAL)
 
     // ── Estado del proceso ───────────────────────────────────────────────────
     Q_PROPERTY(bool procesoActivo READ procesoActivo WRITE setProcesoActivo NOTIFY procesoActivoChanged FINAL)
@@ -104,6 +107,8 @@ public:
     bool alertaNivel()           const;
     bool alertaSobreTemp()       const;
     bool alertaBombas()          const;
+    bool sensorSerialValido()    const;
+    bool sensorNivelValido()     const;
 
     bool procesoActivo() const;
     void setProcesoActivo(bool activo);
@@ -191,6 +196,8 @@ signals:
     void alertaNivelChanged();
     void alertaSobreTempChanged();
     void alertaBombasChanged();
+    void sensorSerialValidoChanged();
+    void sensorNivelValidoChanged();
 
     void procesoActivoChanged();
 
@@ -247,6 +254,8 @@ private:
     void setAlertaNivel (bool v);
     void setAlertaSobreTemp(bool v);
     void setAlertaBombas(bool v);
+    void setSensorSerialValido(bool v);
+    void setSensorNivelValido(bool v);
     void resetWatchdogSerial();
 
     void setEstadoPreparacion(int estado);
@@ -280,6 +289,8 @@ private:
     bool m_alertaNivel           = false;
     bool m_alertaSobreTemp       = false;
     bool m_alertaBombas          = false;
+    bool m_sensorSerialValido    = true;   // hay datos RS-485 frescos (temp/pH/DO)
+    bool m_sensorNivelValido     = true;   // hay datos I2C frescos (nivel)
     // Watchdog de bombas: detecta bombas activas (llenado o drenado) sin cambio de nivel
     double m_distRefBomba        = -1.0;   // distancia mm de referencia
     int    m_ticksBombaSinCambio = 0;      // s con bombas activas y nivel estancado

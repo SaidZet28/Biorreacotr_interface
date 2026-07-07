@@ -261,7 +261,7 @@ Item {
         BarraDisplaySensor {
             width: parent.width
             textoEtiqueta: qsTranslate("Main", "Temperatura")
-            textoValor: backend.sensorTem.toFixed(1) + " → " + backend.setpointTem.toFixed(1) + " °C"
+            textoValor: (backend.sensorSerialValido ? backend.sensorTem.toFixed(1) : "---") + " → " + backend.setpointTem.toFixed(1) + " °C"
         }
 
         // pH: medido → objetivo (en estados 0-1 el sensor aún no toca el líquido)
@@ -270,7 +270,7 @@ Item {
             textoEtiqueta: "pH"
             textoValor: (backend.estadoPreparacion <= 1 && !backend.modoSimulacion)
                         ? "--- → " + backend.setpointPH.toFixed(1)
-                        : backend.sensorPH.toFixed(2) + " → " + backend.setpointPH.toFixed(1)
+                        : (backend.sensorSerialValido ? backend.sensorPH.toFixed(2) : "---") + " → " + backend.setpointPH.toFixed(1)
         }
 
         // Nivel: solo en el primer paso (fase de llenado)
@@ -278,7 +278,7 @@ Item {
             width: parent.width
             visible: backend.estadoPreparacion <= 2
             textoEtiqueta: qsTranslate("Main", "Nivel")
-            textoValor: backend.sensorNivel.toFixed(1) + " %"
+            textoValor: (backend.sensorNivelValido ? backend.sensorNivel.toFixed(1) : "---") + " %"
         }
 
         // Tiempo esperado para esta etapa (ETA al setpoint, modelo FOPDT)

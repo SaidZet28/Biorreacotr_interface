@@ -243,7 +243,7 @@ Item {
         height: parent.height * 0.10
         color: areaMouseAtras15.pressed ? "#cc1e1e" : "#FF2D2D"
         radius: height / 2
-        Text { anchors.centerIn: parent; text: "?"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
+        Text { anchors.centerIn: parent; text: "←"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
         MouseArea {
             id: areaMouseAtras15
             anchors.fill: parent
@@ -314,7 +314,7 @@ Item {
                 anchors.rightMargin: parent.width * 0.10
                 color: areaAtrasConfirmarBorrado.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "←"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea { id: areaAtrasConfirmarBorrado; anchors.fill: parent; onClicked: root.mostrarPopupConfirmarBorrado = false }
             }
         }
@@ -343,7 +343,7 @@ Item {
                 anchors.right: parent.right
                 anchors.rightMargin: parent.width * 0.03
                 color: areaCerrarExportar.pressed ? "#cc1e1e" : "#FF2D2D"
-                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.65; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: parent.height * 0.65; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaCerrarExportar
                     anchors.fill: parent
@@ -364,7 +364,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "?"
+                    text: "✓"
                     font.pixelSize: parent.parent.height * 0.18
                     color: "#2e7d32"
                     font.bold: true
@@ -402,7 +402,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "?"
+                    text: "✗"
                     font.pixelSize: parent.parent.height * 0.18
                     color: "#c62828"
                     font.bold: true

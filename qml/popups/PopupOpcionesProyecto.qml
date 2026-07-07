@@ -63,7 +63,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             color: areaAtras.pressed ? "#cc1e1e" : "#FF2D2D"
             radius: height / 2
-            Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: "←"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
             MouseArea { id: areaAtras; anchors.fill: parent; onClicked: cerrado() }
         }
     }

@@ -170,7 +170,7 @@ Item {
                         anchors.right: flechaPH.left
                         anchors.rightMargin: appWindow.width * 0.015
                         visible: root.phCalibrado
-                        text: "? " + qsTranslate("Main", "Calibrado")
+                        text: "✓ " + qsTranslate("Main", "Calibrado")
                         font.pixelSize: parent.height * 0.38
                         font.bold: true
                         color: "#1a8a1a"
@@ -238,8 +238,8 @@ Item {
                                         PauseAnimation { duration: 200 }
                                     }
                                 }
-                                Text { anchors.centerIn: parent; visible: root.stPH4 === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                Text { anchors.centerIn: parent; visible: root.stPH4 === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH4 === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH4 === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 MouseArea {
                                     id: maPH4; anchors.fill: parent
                                     enabled: (root.stPH4 === 0 || root.stPH4 === 3) && !root.calibracionEnCurso
@@ -260,8 +260,8 @@ Item {
                                         PauseAnimation { duration: 200 }
                                     }
                                 }
-                                Text { anchors.centerIn: parent; visible: root.stPH7 === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                Text { anchors.centerIn: parent; visible: root.stPH7 === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH7 === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH7 === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 MouseArea { id: maPH7; anchors.fill: parent; enabled: (root.stPH7 === 0 || root.stPH7 === 3) && !root.calibracionEnCurso; onClicked: { root.stPH7 = 1; tPH7.restart() } }
                             }
 
@@ -278,8 +278,8 @@ Item {
                                         PauseAnimation { duration: 200 }
                                     }
                                 }
-                                Text { anchors.centerIn: parent; visible: root.stPH10 === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                Text { anchors.centerIn: parent; visible: root.stPH10 === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH10 === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stPH10 === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 MouseArea { id: maPH10; anchors.fill: parent; enabled: (root.stPH10 === 0 || root.stPH10 === 3) && !root.calibracionEnCurso; onClicked: { root.stPH10 = 1; tPH10.restart() } }
                             }
                         }
@@ -378,8 +378,8 @@ Item {
                                         PauseAnimation { duration: 200 }
                                     }
                                 }
-                                Text { anchors.centerIn: parent; visible: root.stDO === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                                Text { anchors.centerIn: parent; visible: root.stDO === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stDO === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                                Text { anchors.centerIn: parent; visible: root.stDO === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                                 MouseArea { id: maCalDO; anchors.fill: parent; enabled: (root.stDO === 0 || root.stDO === 3) && !root.calibracionEnCurso; onClicked: { root.stDO = 1; tDO.restart() } }
                             }
                             Rectangle {
@@ -441,8 +441,8 @@ Item {
                                         PauseAnimation { duration: 200 }
                                     }
                             }
-                            Text { anchors.centerIn: parent; visible: root.stNivel === 2; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
-                            Text { anchors.centerIn: parent; visible: root.stNivel === 3; text: "?"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                            Text { anchors.centerIn: parent; visible: root.stNivel === 2; text: "✓"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
+                            Text { anchors.centerIn: parent; visible: root.stNivel === 3; text: "✗"; font.pixelSize: parent.height * 0.55; font.bold: true; color: "white" }
                             MouseArea { id: maCalNivel; anchors.fill: parent; enabled: (root.stNivel === 0 || root.stNivel === 3) && !root.calibracionEnCurso; onClicked: { root.stNivel = 1; tNivel.restart() } }
                         }
                         Rectangle {
@@ -472,7 +472,7 @@ Item {
         radius: height / 2
         color: maAtrasPantalla7.pressed ? "#cc1e1e" : "#FF2D2D"
 
-        Text { anchors.centerIn: parent; text: "?"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
+        Text { anchors.centerIn: parent; text: "←"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
         MouseArea {
             id: maAtrasPantalla7
             anchors.fill: parent

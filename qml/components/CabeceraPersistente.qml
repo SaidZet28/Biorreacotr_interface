@@ -27,7 +27,7 @@ Item {
         fillMode: Image.PreserveAspectFit
     }
 
-    // Banner de simulación — visible solo cuando SIMULACION_ACTIVA está definido
+    // Banner de simulaciÃ³n â€” visible solo cuando SIMULACION_ACTIVA estÃ¡ definido
     Rectangle {
         visible: backend.modoSimulacion
         anchors.centerIn: parent
@@ -46,7 +46,7 @@ Item {
         Text {
             id: labelSim
             anchors.centerIn: parent
-            text: "?  MODO SIMULACIÓN — SIN HARDWARE REAL"
+            text: "?  MODO SIMULACIÃ“N â€” SIN HARDWARE REAL"
             font.pixelSize: parent.parent.height * 0.11
             font.bold: true
             color: "#1C1917"

@@ -7,7 +7,7 @@ Item {
     property ApplicationWindow appWindow
     visible: appWindow.estadoActual === "pantalla_7"
 
-    // Duración del ciclo de calibración en ms. Cambiar a 182000 para producción.
+    // DuraciÃ³n del ciclo de calibraciÃ³n en ms. Cambiar a 182000 para producciÃ³n.
     readonly property int duracionCal: 182000
 
     // -- Estado pH (3 puntos) -------------------
@@ -28,7 +28,7 @@ Item {
     property bool nivelCalibrado:  false
     property int  stNivel: 0
 
-    // true mientras cualquier temporizador de calibración esté activo
+    // true mientras cualquier temporizador de calibraciÃ³n estÃ© activo
     readonly property bool calibracionEnCurso: stPH4 === 1 || stPH7 === 1 || stPH10 === 1 || stDO === 1 || stNivel === 1
 
     // -- Popup advertencia ---------------------
@@ -43,7 +43,7 @@ Item {
         mostrarAdvertencia = false
 
         if (backend.modoSimulacion) {
-            // Sin hardware real: calibración instantánea para no bloquear el flujo
+            // Sin hardware real: calibraciÃ³n instantÃ¡nea para no bloquear el flujo
             phCalibrado = true; doCalibrado = true; nivelCalibrado = true
             puntos_pH = 3
             stPH4 = 2; stPH7 = 2; stPH10 = 2
@@ -109,9 +109,9 @@ Item {
             width: flickArea.width
             spacing: appWindow.height * 0.018
 
-            // Título
+            // TÃ­tulo
             Text {
-                text: qsTranslate("Main", "CALIBRACIÓN")
+                text: qsTranslate("Main", "CALIBRACIÃ“N")
                 font.pixelSize: appWindow.height * 0.065
                 font.bold: true
                 color: "black"
@@ -202,7 +202,7 @@ Item {
                         anchors.topMargin: appWindow.height * 0.025
                         spacing: appWindow.height * 0.02
 
-                        // 3 botones de punto de calibración
+                        // 3 botones de punto de calibraciÃ³n
                         Row {
                             anchors.horizontalCenter: parent.horizontalCenter
                             spacing: appWindow.width * 0.04
@@ -284,7 +284,7 @@ Item {
                             }
                         }
 
-                        // Puntos medidos + botón OK pestaña
+                        // Puntos medidos + botÃ³n OK pestaÃ±a
                         Row {
                             anchors.horizontalCenter: parent.horizontalCenter
                             spacing: appWindow.width * 0.03
@@ -352,7 +352,7 @@ Item {
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: parent.width * 0.90
-                            text: qsTranslate("Main", "Asegúrate de que el sensor se encuentre seco")
+                            text: qsTranslate("Main", "AsegÃºrate de que el sensor se encuentre seco")
                             font.pixelSize: appWindow.height * 0.032
                             fontSizeMode: Text.Fit
                             minimumPixelSize: appWindow.height * 0.018
@@ -456,12 +456,12 @@ Item {
                 }
             }
 
-            // Espacio para que el botón OK no tape el contenido
+            // Espacio para que el botÃ³n OK no tape el contenido
             Item { width: 1; height: appWindow.height * 0.02 }
         }
     }
 
-    // -- Botón Atrás ---------------------------
+    // -- BotÃ³n AtrÃ¡s ---------------------------
     Rectangle {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
@@ -484,7 +484,7 @@ Item {
         }
     }
 
-    // -- Botón OK Principal --------------------
+    // -- BotÃ³n OK Principal --------------------
     Rectangle {
         id: botonOkPrincipal
         anchors.bottom: parent.bottom
@@ -529,7 +529,7 @@ Item {
                 anchors.topMargin: parent.height * 0.12
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width * 0.80
-                text: qsTranslate("Main", "Hay sensores sin calibrar.\n¿Desea continuar de todas formas?")
+                text: qsTranslate("Main", "Hay sensores sin calibrar.\nÂ¿Desea continuar de todas formas?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"

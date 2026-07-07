@@ -44,7 +44,7 @@ Item {
         }
     }
 
-    // -- Gr�fica en tiempo real ------------------------------------------------
+    // -- Gráfica en tiempo real ------------------------------------------------
     // Activa solo en Linux (RPi con OpenGL). En Windows D3D11 + MinGW causa crash
     // con QtCharts; se muestra un fondo decorativo como placeholder.
     Rectangle {
@@ -67,8 +67,19 @@ Item {
         anchors.left: chartBackground.left
         anchors.top: chartBackground.top
         active: root.chartaActivada && Qt.platform.os === "linux"
-        source: active ? "GraficaChart.qml" : ""
+        // Se usa el tipo registrado (no una ruta relativa que en la RPi no resuelve)
+        // y se le pasan las propiedades que la gráfica necesita.
+        sourceComponent: graficaComp
         function resetear() { if (chartLoader.item && chartLoader.item.resetear) chartLoader.item.resetear() }
+    }
+
+    Component {
+        id: graficaComp
+        GraficaChart {
+            appWindow:  root.appWindow
+            pausado:    root.mostrarPopupPausa
+            finalizado: root.mostrarPopupFinalizado
+        }
     }
 
     // -- Pildoras de sensor/setpoint ---------------------------------------
@@ -86,9 +97,9 @@ Item {
             color: backend.alertaDivergenciaTemp ? "#FF4444" : "#8DBB5A"
             radius: height / 2
             Behavior on color { ColorAnimation { duration: 400 } }
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp �%1: %2").arg(appWindow.unidadTemperatura).arg(backend.sensorTem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-            Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp �%1: %2").arg(appWindow.unidadTemperatura).arg(backend.setpointTem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(backend.sensorTem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(backend.setpointTem.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
             width: parent.width
@@ -98,7 +109,7 @@ Item {
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(backend.sensorPH.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-            Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
             Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(backend.setpointPH.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
@@ -109,7 +120,7 @@ Item {
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Nivel: %1%").arg(backend.sensorNivel.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-            Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
             Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Objetivo: %1%").arg(backend.nivelLlenadoPct.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
@@ -119,9 +130,7 @@ Item {
             radius: height / 2
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Luz: %1%").arg(backend.sensorLuz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-            Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. Luz: %1%").arg(backend.setpointLuz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: qsTranslate("Main", "N. Luz: %1 %").arg(backend.setpointLuz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
             width: parent.width
@@ -130,9 +139,7 @@ Item {
             radius: height / 2
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "OD: %1 mg/L").arg(backend.sensorDO.toFixed(2)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
-            Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "DO Sat: %1 %").arg(backend.sensorDO.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.centerIn: parent; text: qsTranslate("Main", "OD: %1 mg/L").arg(backend.sensorDO.toFixed(2)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
     }
 
@@ -301,7 +308,7 @@ Item {
                 anchors.rightMargin: parent.width * 0.05
                 color: areaAtrasPausa.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "←"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaAtrasPausa
                     anchors.fill: parent
@@ -333,7 +340,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTranslate("Main", "�Seguro que deseas detener el proceso?")
+                text: qsTranslate("Main", "¿Seguro que deseas detener el proceso?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -382,7 +389,7 @@ Item {
                 anchors.rightMargin: parent.width * 0.10
                 color: areaAtrasDetener.pressed ? "#cc1e1e" : "#FF2D2D"
                 radius: height / 2
-                Text { anchors.centerIn: parent; text: "?"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
+                Text { anchors.centerIn: parent; text: "←"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea {
                     id: areaAtrasDetener
                     anchors.fill: parent

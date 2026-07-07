@@ -107,7 +107,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTranslate("Main", "¿Iniciar vaciado de nivel 1?")
+                text: qsTranslate("Main", "Â¿Iniciar vaciado de nivel 1?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"
@@ -188,7 +188,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTranslate("Main", "¿Iniciar vaciado de nivel 2?")
+                text: qsTranslate("Main", "Â¿Iniciar vaciado de nivel 2?")
                 font.pixelSize: parent.height * 0.10
                 font.bold: true
                 color: "black"

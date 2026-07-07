@@ -42,7 +42,7 @@ Rectangle {
         Text { text: root.nombre; font.pixelSize: parent.height * 0.07; font.bold: true; color: "black"; width: parent.width; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
         Item { height: parent.height * 0.01; width: 1 }
         Text {
-            text: qsTranslate("Main", "Temp °%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.unidadTemperatura === "C" ? root.temp : (root.temp * 9/5 + 32).toFixed(1))
+            text: qsTranslate("Main", "Temp Â°%1: %2").arg(appWindow.unidadTemperatura).arg(appWindow.unidadTemperatura === "C" ? root.temp : (root.temp * 9/5 + 32).toFixed(1))
             font.pixelSize: parent.height * 0.06; font.bold: true; color: "black"
         }
         Text { text: qsTranslate("Main", "Nivel pH: %1").arg(root.ph);        font.pixelSize: parent.height * 0.06; font.bold: true; color: "black" }

@@ -20,7 +20,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
         }
         Text {
-            text: qsTranslate("Main", "Se detectó un error :(")
+            text: qsTranslate("Main", "Se detectÃ³ un error :(")
             font.pixelSize: appWindow.height * 0.08
             font.bold: true
             color: "black"

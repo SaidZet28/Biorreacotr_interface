@@ -53,7 +53,7 @@ Item {
             }
             Item {
                 width: parent.width * 0.12; height: parent.height
-                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTranslate("Main", "Tamaño"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
+                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: qsTranslate("Main", "TamaÃ±o"); font.pixelSize: parent.height * 0.45; font.bold: true; color: "black" }
             }
             Item { width: parent.width * 0.10; height: parent.height }
         }
@@ -268,7 +268,7 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: parent.height * 0.15
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTranslate("Main", "¿Seguro que deseas borrar los documentos seleccionados?")
+                text: qsTranslate("Main", "Â¿Seguro que deseas borrar los documentos seleccionados?")
                 font.pixelSize: parent.height * 0.08
                 font.bold: true
                 color: "black"
@@ -333,7 +333,7 @@ Item {
             color: Qt.rgba(0.8, 0.8, 0.8, 0.95)
             radius: 20
 
-            // Botón regresar (esquina superior derecha)
+            // BotÃ³n regresar (esquina superior derecha)
             Rectangle {
                 width: appWindow.width * 0.07
                 height: appWindow.height * 0.07
@@ -356,7 +356,7 @@ Item {
                 }
             }
 
-            // -- Estado: éxito ----------------------------------------------
+            // -- Estado: Ã©xito ----------------------------------------------
             Column {
                 anchors.centerIn: parent
                 spacing: parent.height * 0.06

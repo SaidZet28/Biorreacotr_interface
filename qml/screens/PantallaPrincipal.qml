@@ -5,6 +5,7 @@ import QtQuick.Controls 2.15
 Item {
     id: root
     property ApplicationWindow appWindow
+    property bool mostrarPopupSiesta: false
 
     visible: appWindow.estadoActual === "pantalla_principal"
 
@@ -80,6 +81,81 @@ Item {
             onClicked: {
                 appWindow.estadoPrevioAjustes = "pantalla_principal"
                 appWindow.estadoActual = "pantalla_configuraciones"
+            }
+        }
+    }
+
+    // ── Botón Modo siesta (apaga la RP de forma limpia) ───────────────────────
+    Rectangle {
+        id: botonSiesta
+        anchors.bottom: parent.bottom
+        anchors.right: botonAjustes.left
+        anchors.rightMargin: appWindow.width * 0.025
+        anchors.bottomMargin: appWindow.height * 0.04
+        width: appWindow.width * 0.09
+        height: appWindow.height * 0.11
+        radius: width * 0.35
+        color: areaSiesta.pressed ? "#c98a3a" : "#E0A24E"
+        Text {
+            anchors.centerIn: parent
+            text: qsTranslate("Main", "Siesta")
+            font.pixelSize: parent.height * 0.24
+            font.bold: true
+            color: "white"
+        }
+        MouseArea { id: areaSiesta; anchors.fill: parent; onClicked: root.mostrarPopupSiesta = true }
+    }
+
+    // ── Popup confirmar modo siesta ───────────────────────────────────────────
+    Item {
+        anchors.fill: parent
+        z: 300
+        visible: root.mostrarPopupSiesta
+        MouseArea { anchors.fill: parent; hoverEnabled: true }
+
+        Rectangle {
+            width: parent.width * 0.55
+            height: parent.height * 0.42
+            anchors.centerIn: parent
+            color: Qt.rgba(0.92, 0.92, 0.92, 0.97)
+            radius: 20
+
+            Column {
+                anchors.centerIn: parent
+                width: parent.width * 0.86
+                spacing: appWindow.height * 0.045
+
+                Text {
+                    width: parent.width
+                    text: qsTranslate("Main", "¿Poner el equipo en modo siesta? Se detiene todo de forma segura y la Raspberry se apaga.")
+                    font.pixelSize: appWindow.height * 0.032
+                    font.bold: true
+                    color: "black"
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: appWindow.width * 0.04
+
+                    Rectangle {
+                        width: appWindow.width * 0.18
+                        height: appWindow.height * 0.10
+                        radius: height / 2
+                        color: areaSiestaOk.pressed ? "#a03030" : "#D64545"
+                        Text { anchors.centerIn: parent; text: qsTranslate("Main", "Apagar"); font.pixelSize: parent.height * 0.32; font.bold: true; color: "white" }
+                        MouseArea { id: areaSiestaOk; anchors.fill: parent; onClicked: { root.mostrarPopupSiesta = false; backend.apagarSistema() } }
+                    }
+                    Rectangle {
+                        width: appWindow.width * 0.18
+                        height: appWindow.height * 0.10
+                        radius: height / 2
+                        color: areaSiestaNo.pressed ? "#5a8282" : "#6E9C9C"
+                        Text { anchors.centerIn: parent; text: qsTranslate("Main", "Cancelar"); font.pixelSize: parent.height * 0.32; font.bold: true; color: "white" }
+                        MouseArea { id: areaSiestaNo; anchors.fill: parent; onClicked: root.mostrarPopupSiesta = false }
+                    }
+                }
             }
         }
     }

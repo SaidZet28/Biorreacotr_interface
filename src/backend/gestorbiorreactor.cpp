@@ -12,6 +12,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDir>
+#include <QProcess>
 #include <QDateTime>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -673,6 +674,23 @@ void GestorBiorreactor::cancelarPreparacion()
     emit preparacionCompletadaChanged();
     emit alertaEscalacionChanged();
     emit preparacionCancelada();
+}
+
+void GestorBiorreactor::apagarSistema()
+{
+    // Modo siesta: paro seguro y apagado limpio de la Raspberry.
+    m_timerPreparacion.stop();
+    setProcesoActivo(false);   // apaga controladores + pone canales usados a 0 + OE HIGH
+    guardarConfiguracion();
+#ifdef Q_OS_LINUX
+    // Cero explícito de los 16 canales del PCA9685 (defensivo: aunque OE flote en LOW
+    // al cortar energía, las salidas quedan apagadas) y OE HIGH.
+    for (int c = 0; c < 16; ++c) m_pca9685.escribirCanal(c, 0);
+    m_pca9685.habilitarSalidas(false);
+    // La app corre como root → puede apagar el sistema directamente.
+    QProcess::startDetached(QStringLiteral("/sbin/shutdown"),
+                            QStringList() << QStringLiteral("-h") << QStringLiteral("now"));
+#endif
 }
 
 void GestorBiorreactor::continuarDesdeEscalacion()

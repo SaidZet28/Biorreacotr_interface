@@ -152,6 +152,7 @@ public:
 
     Q_INVOKABLE void iniciarPreparacion();
     Q_INVOKABLE void cancelarPreparacion();
+    Q_INVOKABLE void apagarSistema();   // paro seguro (canales 0 + OE HIGH) y apaga la RP
     Q_INVOKABLE void dispararPulsoManual(int segundos);  // prueba bomba CH3+CH4
     Q_INVOKABLE void continuarDesdeEscalacion();
     Q_INVOKABLE void habilitarFuzzyPH(bool v);

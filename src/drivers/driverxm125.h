@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QVector>
 #include <cstdint>
 
 class DriverXM125 : public QObject {
@@ -24,6 +25,25 @@ public:
     double leerResultado();
 
     bool conectado() const { return m_fd >= 0; }
+
+    // ── Modo CARACTERIZACIÓN (portado fiel de xm125_distance.py) ──────────────
+    // Herramienta de diagnóstico: NO usa el filtro de confirmación ni elige un
+    // solo pico. Devuelve TODOS los picos crudos para poder decidir con datos las
+    // reglas de filtrado. No pisa la lógica de producción de arriba.
+    struct PicoCrudo {
+        double   distMm;     // distancia del pico en mm
+        uint32_t fuerzaRaw;  // valor crudo del registro de fuerza (patrón de bits)
+    };
+
+    // Inicializa igual que xm125_distance.py: RESET_MODULE + rango 100..2000 mm +
+    // APPLY_CONFIG_AND_CALIBRATE. Reabre el fd si hace falta. Bloqueante (~5 s).
+    bool inicializarCaracterizacion(int bus = 1);
+
+    // Mide y devuelve TODOS los picos en el ORDEN DEL FIRMWARE (sin ordenar ni
+    // filtrar). Llena tempC (°C del chip, bits[31:16] de 0x0010) y resultadoCrudo
+    // (registro 0x0010 completo). Devuelve lista vacía si no hay objeto; si hay
+    // error de I2C/medición pone ok=false.
+    QVector<PicoCrudo> medirPicosCrudos(bool &ok, double &tempC, uint32_t &resultadoCrudo);
 
 private:
     int m_fd = -1;
@@ -60,4 +80,11 @@ private:
     // Comandos para REG_COMMAND
     static constexpr uint32_t CMD_APPLY_CONFIG_AND_CALIBRATE = 1;
     static constexpr uint32_t CMD_MEASURE_DISTANCE           = 2;
+    static constexpr uint32_t CMD_RECALIBRATE                = 5;
+    static constexpr uint32_t CMD_RESET_MODULE               = 0x52535421u; // "RST!"
+
+    // Bits de REG_DISTANCE_RESULT (0x0010)
+    static constexpr uint32_t RESULT_NUM_DISTANCES_MASK = 0x0000000Fu;
+    static constexpr uint32_t RESULT_CALIBRATION_NEEDED = 0x00000200u;
+    static constexpr uint32_t RESULT_MEASURE_ERROR      = 0x00000400u;
 };

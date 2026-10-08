@@ -41,8 +41,8 @@ Item {
                 let val = parseFloat(root.entradaTemporal);
                 if (!isNaN(val)) {
                     if (root.campoActivo === "Tem") {
-                        // val en la unidad de display → guardar en °C (clamp 20–100 °C)
-                        backend.setpointTem = Math.max(20, Math.min(100, appWindow.tempACelsius(val)));
+                        // val en la unidad de display → guardar en °C (clamp 20–60 °C)
+                        backend.setpointTem = Math.max(20, Math.min(60, appWindow.tempACelsius(val)));
                         root.tempConfigurada = true;
                     }
                     else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(4.0, Math.min(7.5, val)); root.phConfigurado = true; }
@@ -224,8 +224,8 @@ Item {
             let val = parseFloat(root.entradaTemporal);
             if (!isNaN(val)) {
                 if (root.campoActivo === "Tem") {
-                    // val en la unidad de display → guardar en °C (clamp 20–100 °C)
-                    backend.setpointTem = Math.max(20, Math.min(100, appWindow.tempACelsius(val)));
+                    // val en la unidad de display → guardar en °C (clamp 20–60 °C)
+                    backend.setpointTem = Math.max(20, Math.min(60, appWindow.tempACelsius(val)));
                     root.tempConfigurada = true;
                 }
                 else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(4.0, Math.min(7.5, val)); root.phConfigurado = true; }
@@ -264,7 +264,7 @@ Item {
                 if (root.campoActivo !== "" && root.entradaTemporal !== "") {
                     let val = parseFloat(root.entradaTemporal);
                     if (!isNaN(val)) {
-                        if (root.campoActivo === "Tem") { backend.setpointTem = Math.max(20, Math.min(100, appWindow.tempACelsius(val))); root.tempConfigurada = true; }
+                        if (root.campoActivo === "Tem") { backend.setpointTem = Math.max(20, Math.min(60, appWindow.tempACelsius(val))); root.tempConfigurada = true; }
                         else if (root.campoActivo === "pH") { backend.setpointPH = Math.max(4.0, Math.min(7.5, val)); root.phConfigurado = true; }
                                 else if (root.campoActivo === "Luz") { backend.setpointLuz = Math.max(0, Math.min(100, val)); root.luzConfigurada = true; }
                         else if (root.campoActivo === "Semanas") { appWindow.var_deseada_tiempo_semanas = Math.max(0, val); root.tiempoConfigurado = true; }

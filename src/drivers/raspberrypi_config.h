@@ -72,14 +72,52 @@ static constexpr double DIST_LLENO_MM  =  145.0;  // tanque lleno (55 L = 100 %)
 // abajo), así que drenar SUBE la distancia.
 //   distancia ≤ DIST_NIVEL_ALTO_MM      → tanque lleno: alarma + parar llenado + drenar
 //   distancia ≥ DIST_NIVEL_OBJETIVO_MM  → drenado suficiente: parar drenado + limpiar alarma
-static constexpr double DIST_NIVEL_ALTO_MM     = 145.0;  // disparo (= lleno)
-static constexpr double DIST_NIVEL_OBJETIVO_MM = 216.0;  // objetivo tras drenar
+static constexpr double DIST_NIVEL_ALTO_MM     = 150.0;  // nivel máximo (banda de operación 150–216)
+static constexpr double DIST_NIVEL_OBJETIVO_MM = 216.0;  // nivel seguro/objetivo tras drenar
+
+// Extracción (vaciado por etapas, pantalla de extracción). Distancias del banco
+// (CSV banco_nivel_20260708_033243, agua real por picos crudos + multipath, NO la moda buggy):
+//   Vaciado 1 abre SOLO CH10 (EV superior) y drena hasta DIST_EV_SUPERIOR_MM.
+//   Vaciado 2 abre SOLO CH8  (EV inferior) y drena hasta DIST_EV_INFERIOR_MM.
+// Drenar AUMENTA la distancia; se para cuando dist ≥ referencia (confirmación CONFIRM_NIVEL_N).
+static constexpr double DIST_EV_SUPERIOR_MM    = 640.0;  // corte del Vaciado 1 (CH10)
+static constexpr double DIST_EV_INFERIOR_MM    = 870.0;  // corte del Vaciado 2 (CH8)
+static constexpr int    VACIADO_TIMEOUT_S      = 240;    // tope de tiempo por etapa (seguridad)
+
+// Confirmación de umbral (anti salto espurio del radar): N lecturas sostenidas para cruzar
+// cada umbral de la histéresis antes de arrancar/parar el drenado.
+static constexpr int    CONFIRM_NIVEL_N        = 5;
+
+// Lecturas consecutivas en objetivo para confirmar "nivel alcanzado" (anti lectura falsa).
+static constexpr int    LLENADO_CONFIRM_OBJETIVO_N = 4;
+// Llenado robusto de preparación:
+//  - Si el tanque arranca vacío, el radar da basura por debajo de la última válvula. Se llena
+//    "a ciegas" hasta que el radar lea establemente ≤ DIST_REF_CONFIABLE_MM (agua llegó a la
+//    referencia confiable, ~647 mm de la calibración).
+//  - Luego se llena guiado hasta el objetivo (216 mm), pero se RECHAZA "nivel alcanzado" si
+//    llega demasiado pronto vs el caudal calibrado (filtro de plausibilidad): el tiempo del
+//    tramo guiado debe ser ≥ FACTOR × (distancia por recorrer / caudal calibrado).
+static constexpr double DIST_REF_CONFIABLE_MM      = 660.0; // radar confiable a partir de aquí
+static constexpr double FACTOR_PLAUSIBLE_LLENADO   = 0.6;   // fracción del tiempo esperado
+// La preparación lleva el nivel al OBJETIVO conocido (216 mm) ±margen, tanto si está muy
+// vacío (llena) como si ya tiene algo (drena a 216). Luego el proceso opera en [150,216].
+static constexpr double LLENADO_MARGEN_MM          = 8.0;   // banda muerta alrededor del objetivo
 
 // Margen que se suma al ETA de calentamiento para el deadline de la alarma de
 // escalación de temperatura (estado 3 de preparación). Ver ejecutarControlLoop/ETA.
 static constexpr double MARGEN_ESCALACION_TEMP_S = 300.0;  // 5 min
 
 // ── Seguridad ────────────────────────────────────────────────────────────────
+// Límites del setpoint de temperatura configurable por el operador [°C]. Se aplican
+// en el backend (setSetpointTem) para cubrir TODAS las rutas: teclado, edición de
+// proyecto y carga de proyectos guardados.
+static constexpr double TEMP_SETPOINT_MIN_C      = 20.0;   // mínimo permitido
+static constexpr double TEMP_SETPOINT_MAX_C      = 60.0;   // máximo permitido
+// Alerta de divergencia entre los 2 sensores de temperatura (sonda pH vs OD), con
+// histéresis para no repicar: los sensores tienen un desfase base de ~1 °C, así que
+// dispara solo si superan ON y se limpia al bajar de OFF (evita alarma fantasma).
+static constexpr double DIVERGENCIA_TEMP_ON_C    = 2.0;    // dispara si |ΔT| > 2.0 °C
+static constexpr double DIVERGENCIA_TEMP_OFF_C   = 1.5;    // limpia si |ΔT| < 1.5 °C
 // Corte DURO de calentamiento si la temperatura supera el setpoint por este margen
 // (cobertura de control hasta ~60 °C; no hay tope fijo). Independiente del PID.
 static constexpr double DELTA_SOBRETEMP_C        = 5.0;    // °C sobre el setpoint
@@ -93,24 +131,14 @@ static constexpr int    TIMEOUT_BOMBA_S          = 60;     // s sin cambio → a
 // Requiere dtoverlay=disable-bt en /boot/firmware/config.txt (libera ttyAMA0 del BT)
 static constexpr int    SERIAL_BAUD       = 9600;    // 8N1, sin control de flujo — Modbus RTU
 
-// ── Llenado óptimo — Mezcla inicial por pH ───────────────────────────────────
+// ── Llenado con el medio de cultivo ──────────────────────────────────────────
+// Un único compuesto sirve de medio; si el organismo lo acidifica se dosifica ese
+// mismo medio por CH3/CH4 (lazo de pH). No hay cálculo de mezcla Sustancia B + agua.
 // Volumen total operativo del biorreactor [L]
 // MEDIDO: llenado a 55 L en 1409 s con BombaNivel (prueba 2026-06)
 static constexpr double VOLUMEN_TANQUE_L       = 55.0;
 
-// pH del agua de suministro (fuente A)
-static constexpr double PH_AGUA_DEFAULT        = 7.0;
-
-// pH de la sustancia B en el tanque de dosificación (neutralizador)
-// CALIBRAR: medir con pHímetro la solución real y actualizar este valor
-static constexpr double PH_SUSTANCIA_B         = 12.0;
-
-// Caudal de Bomba Neutralizador al 100% PWM [mL/s]
-// MEDIDO: 55 L llenados en 1409 s → Q = 55000/1409 ≈ 39 mL/s (prueba 2026-06)
-// Usado para calcular t_pulso_max = 0.5% × 55000 mL / 39 mL/s ≈ 7 s
-static constexpr double CAUDAL_BOMBA_B_ML_S    = 39.0;
-
-// Tiempo máximo de pulso de la bomba neutralizador por ciclo [s]
+// Tiempo máximo de pulso de la bomba de dosificación del medio por ciclo [s]
 // CALIBRADO: tp_max = 20 s — salida fuzzy (0–10 s) × K=2; ΔpH ≈ 0.019/pulso @ 50 L (2026-06)
 static constexpr double T_PULSO_MAX_S          = 20.0;
 

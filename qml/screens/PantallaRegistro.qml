@@ -173,7 +173,11 @@ Item {
                                 root.itemExportarIndex = index
                                 root.exportarExito = false
                                 root.exportarError = false
+                                // Detecta la USB; si no hay ninguna montada, intenta montarla
+                                // (en kiosko sin escritorio no se auto-montan).
                                 root.rutaUSBDetectada = backend.detectarUSB()
+                                if (root.rutaUSBDetectada === "")
+                                    root.rutaUSBDetectada = backend.montarUSB()
                                 root.mostrarPopupExportar = true
                             }
                         }
@@ -508,7 +512,11 @@ Item {
                         MouseArea {
                             id: areaReintentar
                             anchors.fill: parent
-                            onClicked: root.rutaUSBDetectada = backend.detectarUSB()
+                            onClicked: {
+                                root.rutaUSBDetectada = backend.detectarUSB()
+                                if (root.rutaUSBDetectada === "")
+                                    root.rutaUSBDetectada = backend.montarUSB()
+                            }
                         }
                     }
                     Rectangle {

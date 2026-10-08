@@ -64,7 +64,11 @@ bool DriverPCA9685::inicializar(int bus, int frecuenciaHz)
         return false;
     }
 
-    // Inicializar pigpio y configurar pines GPIO
+    // Inicializar pigpio y configurar pines GPIO.
+    // PI_CFG_NOSIGHANDLER: pigpio NO instala sus manejadores de señales. Así un SIGSEGV
+    // genera coredump con backtrace (para diagnóstico) en vez de que pigpio se lo trague,
+    // y SIGTERM lo maneja la app (apagado limpio con destructor) — ver main.cpp.
+    gpioCfgSetInternals(gpioCfgGetInternals() | PI_CFG_NOSIGHANDLER);
     if (gpioInitialise() < 0) {
         qWarning() << "[PCA9685] pigpio init falló — sin control de OE/ZC";
     } else {
@@ -138,6 +142,15 @@ void DriverPCA9685::habilitarSalidas(bool activo)
     gpioWrite(GPIO_OE_PCA9685, activo ? 0 : 1);
 #else
     Q_UNUSED(activo)
+#endif
+}
+
+int DriverPCA9685::estadoOE() const
+{
+#ifdef Q_OS_LINUX
+    return gpioRead(GPIO_OE_PCA9685);   // 0 = salidas activas, 1 = deshabilitadas
+#else
+    return -1;
 #endif
 }
 

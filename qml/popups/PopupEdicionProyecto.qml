@@ -45,7 +45,7 @@ Item {
         let val = parseFloat(root.entradaTemporal)
         if (!isNaN(val)) {
             if (root.campoActivo === "Tem") {
-                datos.temp = Math.max(20, Math.min(100, appWindow.tempACelsius(val)))   // guardar en °C
+                datos.temp = Math.max(20, Math.min(60, appWindow.tempACelsius(val)))   // guardar en °C (límite 20–60)
             } else if (root.campoActivo === "pH")    datos.ph   = Math.max(1,  Math.min(14,  val))
               else if (root.campoActivo === "Luz")    datos.luz  = Math.max(0,  Math.min(100, val))
               else if (root.campoActivo === "Tiempo") datos.tiempo = Math.max(6, val).toString()

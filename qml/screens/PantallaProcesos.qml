@@ -33,7 +33,12 @@ Item {
     onVisibleChanged: {
         if (visible) {
             chartaActivada = true
-            if (progresoSimulado === 0.0 && !mostrarPopupFinalizado) {
+            // El registro de datos SOLO arranca cuando el operador ya confirmó
+            // "Organismo introducido" (procesoListoParaIniciar). Así no se guarda
+            // nada durante verificación/llenado/acondicionamiento. El guard de
+            // registroActivo evita reabrir el registro si se vuelve a esta pantalla.
+            if (progresoSimulado === 0.0 && !mostrarPopupFinalizado
+                    && appWindow.procesoListoParaIniciar && !backend.registroActivo()) {
                 mostrarPopupPausa = false;
                 mostrarPopupFinalizado = false;
                 mostrarPopupConfirmarDetener = false;
@@ -67,6 +72,10 @@ Item {
         anchors.left: chartBackground.left
         anchors.top: chartBackground.top
         active: root.chartaActivada && Qt.platform.os === "linux"
+        // Incubación ASÍNCRONA: crea el ChartView de QtCharts repartido en varios ciclos
+        // del event loop en vez de una recursión síncrona profunda. En la RPi (eglfs) la
+        // creación síncrona de QtCharts desbordaba la pila → SIGSEGV al entrar a procesos.
+        asynchronous: true
         // Se usa el tipo registrado (no una ruta relativa que en la RPi no resuelve)
         // y se le pasan las propiedades que la gráfica necesita.
         sourceComponent: graficaComp
@@ -108,9 +117,9 @@ Item {
             radius: height / 2
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(backend.sensorSerialValido ? backend.sensorPH.toFixed(1) : "---"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(backend.sensorSerialValido ? backend.sensorPH.toFixed(2) : "---"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
-            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(backend.setpointPH.toFixed(1)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "N. pH: %1").arg(backend.setpointPH.toFixed(2)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
         Rectangle {
             width: parent.width
@@ -119,7 +128,7 @@ Item {
             radius: height / 2
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
-            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Nivel: %1%").arg(backend.sensorNivelValido ? backend.sensorNivel.toFixed(0) : "---"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text { anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Nivel: %1%").arg(backend.sensorNivelValido ? backend.sensorNivel.toFixed(1) : "---"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
             Text { anchors.centerIn: parent; text: "→"; font.pixelSize: parent.height * 0.50; font.bold: true; color: "black" }
             Text { anchors.left: parent.horizontalCenter; anchors.leftMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: qsTranslate("Main", "Objetivo: %1%").arg(backend.nivelLlenadoPct.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
@@ -130,7 +139,29 @@ Item {
             radius: height / 2
             opacity: backend.alertaSerial ? 0.7 : 1.0
             Behavior on color { ColorAnimation { duration: 400 } }
-            Text { anchors.centerIn: parent; text: qsTranslate("Main", "N. Luz: %1 %").arg(backend.setpointLuz.toFixed(0)); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
+            Text {
+                anchors.left: parent.left; anchors.leftMargin: 30; anchors.verticalCenter: parent.verticalCenter
+                text: qsTranslate("Main", "N. Luz: %1 %").arg(backend.setpointLuz.toFixed(0))
+                font.pixelSize: parent.height * 0.40; font.bold: true; color: "black"
+            }
+            // Ajuste de la luz en vivo (PWM a la tira LED) — para ver si el foco atenúa.
+            Row {
+                anchors.right: parent.right; anchors.rightMargin: parent.height * 0.22
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: parent.height * 0.18
+                Rectangle {
+                    width: parent.parent.height * 0.60; height: width; radius: width / 2
+                    color: maLuzMenos.pressed ? "#2c4f4f" : "#3d6b6b"
+                    Text { anchors.centerIn: parent; text: "−"; color: "white"; font.pixelSize: parent.height * 0.62; font.bold: true }
+                    MouseArea { id: maLuzMenos; anchors.fill: parent; onClicked: backend.setLuzProceso(backend.setpointLuz - 5) }
+                }
+                Rectangle {
+                    width: parent.parent.height * 0.60; height: width; radius: width / 2
+                    color: maLuzMas.pressed ? "#2c4f4f" : "#3d6b6b"
+                    Text { anchors.centerIn: parent; text: "+"; color: "white"; font.pixelSize: parent.height * 0.62; font.bold: true }
+                    MouseArea { id: maLuzMas; anchors.fill: parent; onClicked: backend.setLuzProceso(backend.setpointLuz + 5) }
+                }
+            }
         }
         Rectangle {
             width: parent.width
@@ -141,6 +172,25 @@ Item {
             Behavior on color { ColorAnimation { duration: 400 } }
             Text { anchors.centerIn: parent; text: qsTranslate("Main", "OD: %1 mg/L").arg(backend.sensorSerialValido ? backend.sensorDO.toFixed(2) : "---"); font.pixelSize: parent.height * 0.40; font.bold: true; color: "black" }
         }
+    }
+
+    // Re-sync del nivel en operación (por si el seguidor se clava cerca del 100 %).
+    Rectangle {
+        id: btnResyncNivel
+        anchors.right: pildorasProceso.right
+        anchors.top: pildorasProceso.bottom
+        anchors.topMargin: appWindow.height * 0.02
+        width: pildorasProceso.width * 0.62
+        height: appWindow.height * 0.075
+        radius: height / 2
+        color: maResyncNivel.pressed ? "#1f6f86" : "#2E90AE"
+        Row {
+            anchors.centerIn: parent
+            spacing: appWindow.width * 0.008
+            Text { text: "⟳"; color: "white"; font.pixelSize: parent.parent.height * 0.55; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: qsTranslate("Main", "Re-sync nivel"); color: "white"; font.pixelSize: parent.parent.height * 0.36; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+        }
+        MouseArea { id: maResyncNivel; anchors.fill: parent; onClicked: backend.resyncNivelOperacion() }
     }
 
     // -- Barra de progreso y controles -------------------------------------
@@ -362,7 +412,7 @@ Item {
                     anchors.fill: parent
                     onClicked: {
                         animacionProgreso.stop();
-                        backend.detenerRegistro();
+                        backend.detenerProceso();   // apagado seguro + detiene registro
                         let lastIdx = appWindow.registro_experimentos.count - 1;
                         if (lastIdx >= 0) {
                             let e_total = root.progresoSimulado * appWindow.var_deseada_tiempo_total_horas;
@@ -375,6 +425,7 @@ Item {
                         root.mostrarPopupConfirmarDetener = false;
                         root.mostrarPopupPausa = false;
                         root.progresoSimulado = 0.0;
+                        appWindow.procesoListoParaIniciar = false;
                         appWindow.estadoActual = "pantalla_11";
                     }
                 }
@@ -437,7 +488,7 @@ Item {
                     id: areaOkFinalizado
                     anchors.fill: parent
                     onClicked: {
-                        backend.detenerRegistro();
+                        backend.detenerProceso();   // apagado seguro + detiene registro
                         let lastIdx = appWindow.registro_experimentos.count - 1;
                         if (lastIdx >= 0) {
                             appWindow.registro_experimentos.setProperty(lastIdx, "tiempo", appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " / " + appWindow.var_deseada_tiempo_total_horas.toFixed(1) + " hrs");
@@ -448,6 +499,7 @@ Item {
                         }
                         root.progresoSimulado = 0.0;
                         root.mostrarPopupFinalizado = false;
+                        appWindow.procesoListoParaIniciar = false;
                         appWindow.estadoActual = "pantalla_11";
                     }
                 }

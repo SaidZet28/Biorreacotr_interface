@@ -50,6 +50,8 @@ qt_add_qml_module(appPrototipo
         qml/screens/PantallaLimpieza.qml
         qml/screens/PantallaRegistro.qml
         qml/screens/PantallaPruebaPH.qml
+        qml/screens/PantallaCalibracionTanque.qml
+        qml/screens/PantallaCaracterizacionNivel.qml
         # ── Componentes reutilizables ──────────────────────────────────────────
         qml/components/BotonAccionVerde.qml
         qml/components/BarraDisplaySensor.qml
@@ -179,6 +181,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     else()
         message(WARNING "pigpio no encontrado — sin control GPIO de cruce por cero")
     endif()
+    # -rdynamic: exporta los símbolos para que backtrace_symbols_fd() muestre nombres
+    # de función en el backtrace del manejador de crash (ver main.cpp).
+    target_link_options(appPrototipo PRIVATE -rdynamic)
 endif()
 
 install(TARGETS appPrototipo

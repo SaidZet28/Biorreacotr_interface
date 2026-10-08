@@ -110,10 +110,9 @@ double DriverXM125::leerResultado()
         return m_distAceptada;   // -1.0 si aún no hemos aceptado ninguna lectura
     }
 
-    // ── Selección del pico de MAYOR fuerza de reflexión ──────────────────────
+    // ── Selección del pico de MAYOR fuerza de reflexión (ORIGINAL) ───────────
     // Distancias: 0x0011..0x001A (mm, unsigned).  Fuerzas: 0x001B..0x0024
-    // (int32 signed, millidB). La superficie del líquido es el reflector más
-    // fuerte, no necesariamente el más cercano — replica escanear_nivel.py.
+    // (int32 signed, millidB). La superficie del líquido es el reflector más fuerte.
     double  bestDist   = -1.0;
     int32_t bestFuerza = INT32_MIN;
     for (int j = 0; j < numDistances; ++j) {
@@ -153,6 +152,140 @@ double DriverXM125::leerResultado()
     return m_distAceptada;
 #else
     return -1.0;
+#endif
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  MODO CARACTERIZACIÓN — port fiel de xm125_distance.py (reset + 100..2000 mm,
+//  todos los picos crudos, sin filtro ni selección). Herramienta de diagnóstico.
+// ═════════════════════════════════════════════════════════════════════════════
+bool DriverXM125::inicializarCaracterizacion(int bus)
+{
+#ifdef Q_OS_LINUX
+    // Reabrir el fd si estaba cerrado (o si venimos de la ruta de producción).
+    if (m_fd < 0) {
+        QString dev = QString("/dev/i2c-%1").arg(bus);
+        m_fd = open(dev.toLocal8Bit().constData(), O_RDWR);
+        if (m_fd < 0) {
+            qWarning() << "[XM125-CARACT] No se pudo abrir" << dev;
+            return false;
+        }
+    }
+
+    // Version / presencia
+    uint32_t version = 0;
+    if (!leerRegistro(REG_PRODUCT_ID, version)) {
+        qWarning() << "[XM125-CARACT] Sin respuesta en 0x52";
+        ::close(m_fd); m_fd = -1;
+        return false;
+    }
+    qDebug() << "[XM125-CARACT] Version firmware =" << Qt::hex << version;
+
+    // Esperar Busy=0 antes de empezar
+    for (int i = 0; i < 50; ++i) {
+        uint32_t st = 0;
+        if (leerRegistro(REG_DETECTOR_STATUS, st) && !(st & 0x80000000u)) break;
+        usleep(50'000);
+    }
+
+    // RESET_MODULE ("RST!") — tal cual el script viejo
+    escribirRegistro(REG_COMMAND, CMD_RESET_MODULE);
+    usleep(1'000'000); // 1 s
+    for (int i = 0; i < 60; ++i) {
+        uint32_t st = 0;
+        if (leerRegistro(REG_DETECTOR_STATUS, st) && !(st & 0x80000000u)) break;
+        usleep(50'000);
+    }
+
+    // Rango 100..2000 mm (idéntico a xm125_distance.py)
+    escribirRegistro(REG_RANGE_START, 100);
+    escribirRegistro(REG_RANGE_END,   2000);
+
+    // Aplicar config + calibrar (~5 s)
+    escribirRegistro(REG_COMMAND, CMD_APPLY_CONFIG_AND_CALIBRATE);
+    for (int i = 0; i < 300; ++i) { // hasta ~30 s
+        usleep(100'000);
+        uint32_t st = 0;
+        if (leerRegistro(REG_DETECTOR_STATUS, st) && !(st & 0x80000000u)) {
+            if (st & 0x00FF0000u) { // STATUS_ERROR_MASK
+                qWarning() << "[XM125-CARACT] Error de calibración, STATUS =" << Qt::hex << st;
+                ::close(m_fd); m_fd = -1;
+                return false;
+            }
+            qDebug() << "[XM125-CARACT] Calibración OK, STATUS =" << Qt::hex << st;
+            reiniciarFiltro();
+            return true;
+        }
+    }
+    qWarning() << "[XM125-CARACT] Timeout esperando fin de calibración";
+    ::close(m_fd); m_fd = -1;
+    return false;
+#else
+    Q_UNUSED(bus)
+    qWarning() << "[XM125-CARACT] Hardware I2C solo disponible en Linux (Raspberry Pi)";
+    return false;
+#endif
+}
+
+QVector<DriverXM125::PicoCrudo>
+DriverXM125::medirPicosCrudos(bool &ok, double &tempC, uint32_t &resultadoCrudo)
+{
+    QVector<PicoCrudo> picos;
+    ok = false;
+    tempC = 0.0;
+    resultadoCrudo = 0;
+#ifdef Q_OS_LINUX
+    if (m_fd < 0) return picos;
+
+    // Disparar una medición
+    if (!escribirRegistro(REG_COMMAND, CMD_MEASURE_DISTANCE)) return picos;
+
+    // Esperar Busy=0 (bounded)
+    uint32_t status = 0;
+    bool listo = false;
+    for (int i = 0; i < 40; ++i) {
+        if (leerRegistro(REG_DETECTOR_STATUS, status) && !(status & 0x80000000u)) {
+            listo = true;
+            break;
+        }
+        usleep(10'000);
+    }
+    if (!listo) return picos; // sigue ocupado → ok=false (deja que el llamador lo trate)
+
+    // Leer resultado
+    uint32_t result = 0;
+    if (!leerRegistro(REG_DISTANCE_RESULT, result)) return picos;
+    resultadoCrudo = result;
+    // Temperatura del chip en bits[31:16] (int16 con signo, °C)
+    tempC = static_cast<int16_t>((result >> 16) & 0xFFFFu);
+
+    if (result & RESULT_MEASURE_ERROR) return picos;      // error de medición → ok=false
+    if (result & RESULT_CALIBRATION_NEEDED) {
+        // El firmware pide recalibrar; lo hacemos y devolvemos vacío este ciclo.
+        escribirRegistro(REG_COMMAND, CMD_RECALIBRATE);
+        for (int i = 0; i < 300; ++i) {
+            usleep(100'000);
+            uint32_t st = 0;
+            if (leerRegistro(REG_DETECTOR_STATUS, st) && !(st & 0x80000000u)) break;
+        }
+        ok = true; // no es error: simplemente sin picos este ciclo
+        return picos;
+    }
+
+    const int numPicos = static_cast<int>(result & RESULT_NUM_DISTANCES_MASK);
+    ok = true; // medición válida (aunque numPicos pueda ser 0)
+
+    // Leer TODOS los picos en orden de firmware, SIN ordenar ni filtrar.
+    for (int j = 0; j < numPicos; ++j) {
+        uint32_t d = 0, f = 0;
+        if (!leerRegistro(static_cast<uint16_t>(REG_PEAK_DIST_BASE + j), d)) continue;
+        if (!leerRegistro(static_cast<uint16_t>(REG_PEAK_STR_BASE  + j), f)) continue;
+        picos.push_back(PicoCrudo{ static_cast<double>(d), f });
+    }
+    return picos;
+#else
+    Q_UNUSED(ok) Q_UNUSED(tempC) Q_UNUSED(resultadoCrudo)
+    return picos;
 #endif
 }
 

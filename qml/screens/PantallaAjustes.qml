@@ -16,6 +16,16 @@ Item {
 
     property bool mostrarPopupCreditos: false
 
+    property bool mostrarPopupVaciado: false
+    // Seguridad: al salir de Configuraciones, cierra el vaciado manual (válvulas + OE HIGH)
+    // por si quedó algún toggle encendido.
+    onVisibleChanged: {
+        if (!visible) {
+            root.mostrarPopupVaciado = false
+            backend.cerrarVaciadoManual()
+        }
+    }
+
     Text {
         text: qsTranslate("Main", "Configuraciones")
         font.pixelSize: appWindow.height * 0.08
@@ -44,6 +54,18 @@ Item {
                 root.tempUnidades = appWindow.unidadTemperatura;
                 root.mostrarPopupUnidades = true;
             }
+        }
+        BotonAccionVerde {
+            textoBoton: qsTranslate("Main", "Calibrar tanque")
+            onClicado: appWindow.estadoActual = "pantalla_calibracion_tanque"
+        }
+        BotonAccionVerde {
+            textoBoton: qsTranslate("Main", "Caracterizar nivel")
+            onClicado: appWindow.estadoActual = "pantalla_caracterizacion_nivel"
+        }
+        BotonAccionVerde {
+            textoBoton: qsTranslate("Main", "Vaciado manual")
+            onClicado: root.mostrarPopupVaciado = true
         }
         BotonAccionVerde {
             textoBoton: qsTranslate("Main", "Créditos")
@@ -181,6 +203,112 @@ Item {
                 radius: height / 2
                 Text { anchors.centerIn: parent; text: "↶"; font.pixelSize: parent.height * 0.70; font.bold: true; color: "black" }
                 MouseArea { id: areaAtrasIdioma; anchors.fill: parent; onClicked: root.mostrarPopupIdioma = false }
+            }
+        }
+    }
+
+    // --- POPUP: VACIADO MANUAL ---
+    Item {
+        anchors.fill: parent
+        z: 200
+        visible: root.mostrarPopupVaciado
+        MouseArea { anchors.fill: parent; hoverEnabled: true }   // bloquea toques detrás
+
+        Rectangle {
+            width: parent.width * 0.68
+            height: parent.height * 0.66
+            anchors.centerIn: parent
+            color: Qt.rgba(0.90, 0.94, 0.98, 0.97)
+            radius: 20
+
+            Text {
+                anchors.top: parent.top
+                anchors.topMargin: parent.height * 0.06
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTranslate("Main", "Vaciado manual")
+                font.pixelSize: parent.height * 0.085
+                font.bold: true
+                color: "black"
+            }
+
+            // Nota de disponibilidad / seguridad
+            Text {
+                anchors.top: parent.top
+                anchors.topMargin: parent.height * 0.19
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width * 0.86
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                text: backend.procesoActivo
+                      ? qsTranslate("Main", "No disponible: hay un proceso activo. El vaciado manual solo funciona con el equipo en reposo.")
+                      : qsTranslate("Main", "Toca cada electroválvula para abrirla o cerrarla. Se cierran todas al salir.")
+                font.pixelSize: parent.height * 0.040
+                color: backend.procesoActivo ? "#b00000" : "#333333"
+            }
+
+            // 3 toggles independientes (EV inferior CH8, EV superior CH10, EV vaciado 3 CH11)
+            Column {
+                anchors.top: parent.top
+                anchors.topMargin: parent.height * 0.34
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: appWindow.height * 0.028
+
+                Repeater {
+                    model: [
+                        { etiqueta: qsTranslate("Main", "EV inferior (CH8)"),   idx: 0 },
+                        { etiqueta: qsTranslate("Main", "EV superior (CH10)"),  idx: 1 },
+                        { etiqueta: qsTranslate("Main", "EV vaciado 3 (CH11)"), idx: 2 }
+                    ]
+                    Rectangle {
+                        property bool encendido: modelData.idx === 0 ? backend.vaciadoManualInf
+                                               : modelData.idx === 1 ? backend.vaciadoManualSup
+                                                                     : backend.vaciadoManualAux
+                        width: appWindow.width * 0.42
+                        height: appWindow.height * 0.10
+                        radius: height / 2
+                        color: encendido ? "#2E90AE" : "#cfd8d8"
+                        border.color: encendido ? "#1f6f86" : "#9bb3b3"
+                        border.width: 2
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: appWindow.width * 0.012
+                            Text {
+                                text: encendido ? "●" : "○"
+                                color: encendido ? "white" : "#667"
+                                font.pixelSize: parent.parent.height * 0.44
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: modelData.etiqueta
+                                color: encendido ? "white" : "#333"
+                                font.pixelSize: parent.parent.height * 0.30
+                                font.bold: true
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+                        MouseArea { anchors.fill: parent; onClicked: backend.toggleVaciadoManual(modelData.idx) }
+                    }
+                }
+            }
+
+            // Cerrar (apaga las 3 válvulas + OE HIGH)
+            Rectangle {
+                width: appWindow.width * 0.18
+                height: appWindow.height * 0.09
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: parent.height * 0.07
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: areaCerrarVaciado.pressed ? "#cc1e1e" : "#FF2D2D"
+                radius: height / 2
+                Text { anchors.centerIn: parent; text: qsTranslate("Main", "Cerrar"); font.pixelSize: parent.height * 0.36; font.bold: true; color: "black" }
+                MouseArea {
+                    id: areaCerrarVaciado
+                    anchors.fill: parent
+                    onClicked: {
+                        backend.cerrarVaciadoManual()
+                        root.mostrarPopupVaciado = false
+                    }
+                }
             }
         }
     }

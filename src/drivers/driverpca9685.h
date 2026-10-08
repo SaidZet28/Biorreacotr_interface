@@ -31,6 +31,7 @@ public:
     static constexpr int CH_TIRA_LED       = 5;   // Tira LED
     static constexpr int CH_BOMBA_VAC1     = 8;   // Vaciado nivel 1
     static constexpr int CH_BOMBA_VAC2     = 10;  // Vaciado nivel 2
+    static constexpr int CH_BOMBA_VAC3     = 11;  // Vaciado nivel 3 (tercera electroválvula — vaciado manual)
 
     explicit DriverPCA9685(QObject *parent = nullptr);
     ~DriverPCA9685();
@@ -50,6 +51,7 @@ public:
 
     // OE pin (GPIO17): LOW = salidas activas, HIGH = todos los canales deshabilitados
     void habilitarSalidas(bool activo);
+    int  estadoOE() const;   // lee el nivel actual del pin OE (0=activo, 1=deshabilitado, -1=N/A)
 
     bool conectado() const { return m_fd >= 0; }
 

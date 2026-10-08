@@ -22,6 +22,9 @@ ApplicationWindow {
     property string estadoPrevioPantalla7: "pantalla_6"
     property bool   procesoListoParaIniciar: false
 
+    // Modo reposo: pantalla en negro que despierta al tocar (ver overlay al final).
+    property bool   enReposo: false
+
     property int sensor_estado_primero: 1
     property int sensor_estado_calibracion: 1
     property string estado_sensor_retorno_error: "pantalla_de_carga"
@@ -186,4 +189,29 @@ ApplicationWindow {
     PantallaLimpieza      { id: pantallaLimpieza;       anchors.fill: parent; appWindow: mainWindow }
     PantallaRegistro      { id: pantallaRegistro;       anchors.fill: parent; appWindow: mainWindow }
     PantallaPruebaPH      { id: pantallaPruebaPH;       anchors.fill: parent; appWindow: mainWindow }
+    PantallaCalibracionTanque { id: pantallaCalibracionTanque; anchors.fill: parent; appWindow: mainWindow }
+    PantallaCaracterizacionNivel { id: pantallaCaracterizacionNivel; anchors.fill: parent; appWindow: mainWindow }
+
+    // ==========================================
+    // OVERLAY DE REPOSO — pantalla en negro, despierta al tocar
+    // ==========================================
+    // Cubre toda la ventana por encima de cualquier pantalla. El backlight se apaga
+    // en el backend (pantallaReposo); este rectángulo garantiza que la imagen quede
+    // negra aunque el backlight del panel no responda.
+    Rectangle {
+        id: overlayReposo
+        anchors.fill: parent
+        color: "black"
+        visible: mainWindow.enReposo
+        z: 9999
+
+        MouseArea {
+            anchors.fill: parent
+            enabled: mainWindow.enReposo
+            onClicked: {
+                mainWindow.enReposo = false
+                backend.pantallaReposo(false)
+            }
+        }
+    }
 }

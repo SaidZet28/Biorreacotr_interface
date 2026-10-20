@@ -242,7 +242,7 @@ Item {
         Text { anchors.centerIn: parent; text: "↶"; color: "black"; font.pixelSize: parent.height * 0.70; font.bold: true }
         MouseArea {
             id: maSalir; anchors.fill: parent
-            onClicked: appWindow.estadoActual = "pantalla_configuraciones"
+            onClicked: appWindow.estadoActual = "pantalla_mantenimiento"
         }
     }
 

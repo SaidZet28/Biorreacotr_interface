@@ -898,6 +898,155 @@ void GestorBiorreactor::cerrarVaciadoManual()
     emit vaciadoManualChanged();
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+//  MANTENIMIENTO — prueba manual de actuadores y del flotador de nivel (PCF8574)
+//  Cada actuador se apaga solo al terminar su tiempo. Al salir: todo en 0 + OE HIGH.
+// ═════════════════════════════════════════════════════════════════════════════
+namespace {
+struct ActuadorMant { int chA; int chB; int tiempoS; };
+// chB = -1 si el actuador usa un solo canal. El calentador tiene menos tiempo
+// para no calentar la manta en seco.
+constexpr ActuadorMant MANT_ACTUADORES[] = {
+    { DriverPCA9685::CH_BOMBA_NEUT_A, DriverPCA9685::CH_BOMBA_NEUT_B, 10 },  // 0 bombas llenado (serie)
+    { DriverPCA9685::CH_BURBUJEO,     -1,                             10 },  // 1 burbujeo
+    { DriverPCA9685::CH_BOMBA_VAC1,   -1,                             10 },  // 2 EV1
+    { DriverPCA9685::CH_BOMBA_VAC2,   -1,                             10 },  // 3 EV2
+    { DriverPCA9685::CH_BOMBA_VAC3,   -1,                             10 },  // 4 EV3
+    { DriverPCA9685::CH_TIRA_LED,     -1,                             10 },  // 5 tira LED
+    { DriverPCA9685::CH_CALENTADOR,   DriverPCA9685::CH_CALENTADOR_2,  5 },  // 6 calentador (siempre juntos)
+};
+}
+
+bool GestorBiorreactor::mantActiva() const { return m_mantActiva; }
+int  GestorBiorreactor::flotadorDireccion() const { return m_flotadorDireccion; }
+int  GestorBiorreactor::flotadorPuerto()    const { return m_flotadorPuerto; }
+
+QVariantList GestorBiorreactor::mantRestantes() const
+{
+    QVariantList l;
+    for (int i = 0; i < MANT_NUM_ACTUADORES; ++i) l.append(m_mantRestantes[i]);
+    return l;
+}
+
+void GestorBiorreactor::entrarMantenimiento()
+{
+    if (m_mantActiva) return;
+    if (m_procesoActivo || m_caractActiva) {
+        qWarning() << "[Mant] No disponible: equipo no está en reposo";
+        return;
+    }
+
+    // Pausar el lazo de nivel del XM125 para que el drenado de seguridad no actúe
+    // mientras se prueban bombas y válvulas a mano.
+    m_timerNivel.stop();
+
+    mantApagarTodo();
+    flotadorBuscar();
+
+    m_mantActiva = true;
+    emit mantActivaChanged();
+
+    connect(&m_timerMantenimiento, &QTimer::timeout,
+            this, &GestorBiorreactor::tickMantenimiento, Qt::UniqueConnection);
+    m_mantSubTick = 0;
+    m_timerMantenimiento.setInterval(200);
+    m_timerMantenimiento.start();
+    qDebug() << "[Mant] Modo mantenimiento ACTIVO";
+}
+
+void GestorBiorreactor::salirMantenimiento()
+{
+    if (!m_mantActiva) return;
+    m_timerMantenimiento.stop();
+    mantApagarTodo();
+    m_pcf8574.cerrar();
+
+    // Reanudar el lazo de nivel de producción desde cero.
+    resyncNivel();
+#ifndef SIMULACION_ACTIVA
+    m_timerNivel.start();
+#endif
+
+    m_mantActiva = false;
+    emit mantActivaChanged();
+    qDebug() << "[Mant] Modo mantenimiento FINALIZADO — salidas en estado seguro";
+}
+
+void GestorBiorreactor::mantToggleActuador(int id)
+{
+    if (!m_mantActiva || m_procesoActivo) return;
+    if (id < 0 || id >= MANT_NUM_ACTUADORES) return;
+    const bool encender = (m_mantRestantes[id] == 0);
+    m_mantRestantes[id] = encender ? MANT_ACTUADORES[id].tiempoS : 0;
+    mantEscribirActuador(id, encender);
+    emit mantActuadoresChanged();
+}
+
+void GestorBiorreactor::mantEscribirActuador(int id, bool encender)
+{
+    const ActuadorMant &a = MANT_ACTUADORES[id];
+    if (encender) m_pca9685.habilitarSalidas(true);   // OE LOW al encender
+    m_pca9685.escribirDigital(a.chA, encender);
+    if (a.chB >= 0) m_pca9685.escribirDigital(a.chB, encender);
+    qDebug() << "[Mant] actuador" << id << (encender ? "ON" : "OFF");
+
+    // Si ya no queda ninguno encendido → OE HIGH (estado seguro)
+    bool alguno = false;
+    for (int i = 0; i < MANT_NUM_ACTUADORES; ++i) alguno = alguno || m_mantRestantes[i] > 0;
+    if (!alguno) m_pca9685.habilitarSalidas(false);
+}
+
+void GestorBiorreactor::mantApagarTodo()
+{
+    for (int i = 0; i < MANT_NUM_ACTUADORES; ++i) {
+        m_mantRestantes[i] = 0;
+        m_pca9685.escribirDigital(MANT_ACTUADORES[i].chA, false);
+        if (MANT_ACTUADORES[i].chB >= 0)
+            m_pca9685.escribirDigital(MANT_ACTUADORES[i].chB, false);
+    }
+    m_pca9685.habilitarSalidas(false);   // OE HIGH
+    emit mantActuadoresChanged();
+}
+
+void GestorBiorreactor::flotadorBuscar()
+{
+    m_pcf8574.cerrar();
+    m_flotadorDireccion = -1;
+    m_flotadorPuerto    = -1;
+    // PCF8574 usa 0x20-0x27 y PCF8574A 0x38-0x3F (según A0-A2). Nada más del bus
+    // vive ahí (PCA9685 0x40, XM125 0x52, RTC 0x68), así que es seguro escanear.
+    QVector<int> direcciones;
+    for (int d = 0x20; d <= 0x27; ++d) direcciones.append(d);
+    for (int d = 0x38; d <= 0x3F; ++d) direcciones.append(d);
+    for (int d : direcciones) {
+        if (m_pcf8574.inicializar(1, d)) { m_flotadorDireccion = d; break; }
+    }
+    if (m_flotadorDireccion < 0) qWarning() << "[Mant] PCF8574 no encontrado en el bus I2C-1";
+    emit flotadorChanged();
+}
+
+void GestorBiorreactor::tickMantenimiento()
+{
+    // Lectura del flotador (cada 200 ms)
+    if (m_pcf8574.conectado()) {
+        bool ok = false;
+        const int v = m_pcf8574.leerPuerto(ok);
+        const int nuevo = ok ? v : -1;
+        if (nuevo != m_flotadorPuerto) { m_flotadorPuerto = nuevo; emit flotadorChanged(); }
+    }
+
+    // Descuento de tiempos (cada 1 s) y apagado automático
+    if (++m_mantSubTick < 5) return;
+    m_mantSubTick = 0;
+    bool cambio = false;
+    for (int i = 0; i < MANT_NUM_ACTUADORES; ++i) {
+        if (m_mantRestantes[i] <= 0) continue;
+        cambio = true;
+        if (--m_mantRestantes[i] == 0) mantEscribirActuador(i, false);
+    }
+    if (cambio) emit mantActuadoresChanged();
+}
+
 // ── Calibración del tanque ────────────────────────────────────────────────────
 double GestorBiorreactor::calibTLlenadoS()    const { return m_calibTLlenadoS; }
 double GestorBiorreactor::calibTVaciadoS()     const { return m_calibTVaciadoS; }

@@ -52,6 +52,7 @@ qt_add_qml_module(appPrototipo
         qml/screens/PantallaPruebaPH.qml
         qml/screens/PantallaCalibracionTanque.qml
         qml/screens/PantallaCaracterizacionNivel.qml
+        qml/screens/PantallaMantenimiento.qml
         # ── Componentes reutilizables ──────────────────────────────────────────
         qml/components/BotonAccionVerde.qml
         qml/components/BarraDisplaySensor.qml
@@ -77,6 +78,7 @@ qt_add_qml_module(appPrototipo
         src/controllers/controladorhisteresis.h src/controllers/controladorhisteresis.cpp
         src/drivers/driverpca9685.h         src/drivers/driverpca9685.cpp
         src/drivers/driverxm125.h           src/drivers/driverxm125.cpp
+        src/drivers/driverpcf8574.h         src/drivers/driverpcf8574.cpp
         src/drivers/raspberrypi_config.h
 )
 

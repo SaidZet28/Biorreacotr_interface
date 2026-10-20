@@ -191,6 +191,7 @@ ApplicationWindow {
     PantallaPruebaPH      { id: pantallaPruebaPH;       anchors.fill: parent; appWindow: mainWindow }
     PantallaCalibracionTanque { id: pantallaCalibracionTanque; anchors.fill: parent; appWindow: mainWindow }
     PantallaCaracterizacionNivel { id: pantallaCaracterizacionNivel; anchors.fill: parent; appWindow: mainWindow }
+    PantallaMantenimiento { id: pantallaMantenimiento;  anchors.fill: parent; appWindow: mainWindow }
 
     // ==========================================
     // OVERLAY DE REPOSO — pantalla en negro, despierta al tocar

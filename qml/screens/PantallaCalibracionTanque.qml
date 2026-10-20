@@ -199,7 +199,7 @@ Item {
                 id: maGuardar; anchors.fill: parent
                 onClicked: {
                     backend.guardarCalibracionTanque(root.tLlenado, root.tVaciado, root.dVacio, root.dOperacion);
-                    appWindow.estadoActual = "pantalla_configuraciones";
+                    appWindow.estadoActual = "pantalla_mantenimiento";
                 }
             }
         }
@@ -218,7 +218,7 @@ Item {
             id: maSalir; anchors.fill: parent
             onClicked: {
                 root.detenerAccion();
-                appWindow.estadoActual = "pantalla_configuraciones";
+                appWindow.estadoActual = "pantalla_mantenimiento";
             }
         }
     }

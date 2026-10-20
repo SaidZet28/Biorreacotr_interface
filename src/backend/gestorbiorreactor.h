@@ -12,6 +12,7 @@
 #include "controladorhisteresis.h"
 #include "driverpca9685.h"
 #include "driverxm125.h"
+#include "driverpcf8574.h"
 
 class GestorBiorreactor : public QObject
 {
@@ -36,6 +37,12 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(bool vaciadoManualInf READ vaciadoManualInf NOTIFY vaciadoManualChanged FINAL) // CH8
     Q_PROPERTY(bool vaciadoManualSup READ vaciadoManualSup NOTIFY vaciadoManualChanged FINAL) // CH10
     Q_PROPERTY(bool vaciadoManualAux READ vaciadoManualAux NOTIFY vaciadoManualChanged FINAL) // CH11
+
+    // ── Mantenimiento: prueba de actuadores y del flotador de nivel (PCF8574) ──
+    Q_PROPERTY(bool         mantActiva        READ mantActiva        NOTIFY mantActivaChanged      FINAL)
+    Q_PROPERTY(QVariantList mantRestantes     READ mantRestantes     NOTIFY mantActuadoresChanged  FINAL) // s restantes por actuador (0 = apagado)
+    Q_PROPERTY(int          flotadorDireccion READ flotadorDireccion NOTIFY flotadorChanged        FINAL) // -1 = no encontrado
+    Q_PROPERTY(int          flotadorPuerto    READ flotadorPuerto    NOTIFY flotadorChanged        FINAL) // byte crudo de P0-P7, -1 = sin lectura
 
     // Temperatura del gabinete de la HMI (sensor interno del RTC DS3231). Indicador.
     // <0 = sin lectura disponible.
@@ -265,6 +272,21 @@ public:
     Q_INVOKABLE void toggleVaciadoManual(int cual);
     Q_INVOKABLE void cerrarVaciadoManual();
 
+    // ── Mantenimiento ─────────────────────────────────────────────────────────
+    // Al entrar pausa el lazo de nivel del XM125, busca el PCF8574 y lo lee cada 200 ms.
+    // Actuadores (id): 0=bombas llenado CH3+CH4, 1=burbujeo CH2, 2=EV1 CH8, 3=EV2 CH10,
+    // 4=EV3 CH11, 5=tira LED CH5, 6=calentador CH0+CH1. Cada uno se apaga solo al
+    // terminar su tiempo (MANT_TIEMPO_S). Solo con el equipo en reposo.
+    bool         mantActiva()        const;
+    QVariantList mantRestantes()     const;
+    int          flotadorDireccion() const;
+    int          flotadorPuerto()    const;
+    Q_INVOKABLE void entrarMantenimiento();
+    Q_INVOKABLE void salirMantenimiento();
+    Q_INVOKABLE void mantToggleActuador(int id);
+    Q_INVOKABLE void flotadorBuscar();   // escanea 0x20-0x27 y 0x38-0x3F
+    Q_INVOKABLE void mantApagarTodo();   // apaga los 7 actuadores de prueba + OE HIGH
+
     // ── Calibración del tanque (menú en Ajustes) ──────────────────────────────
     // accion: 0=parar seguro, 1=llenar (CH3/CH4), 2=drenar (CH8+CH10). Habilita OE.
     Q_INVOKABLE void calibAccion(int accion);
@@ -340,6 +362,9 @@ signals:
     void salidaBombaNivelChanged();
     void pulsoNeutralizadorActivoChanged();
     void vaciadoManualChanged();
+    void mantActivaChanged();
+    void mantActuadoresChanged();
+    void flotadorChanged();
     void vaciadoEtapaChanged();
     void vaciadoEtapaCompletada(int etapa);   // la etapa llegó a su referencia y se detuvo sola
     void vaciadoAbortado(const QString &motivo); // tope de tiempo u otro paro del vaciado
@@ -380,6 +405,7 @@ private slots:
     void onCrucePorCero();
     void leerTempHmi();   // temperatura del RTC DS3231 (gabinete HMI) vía hwmon sysfs
     void tickCaracterizacion();   // mide picos crudos del XM125 en modo diagnóstico
+    void tickMantenimiento();     // lee el flotador y descuenta los tiempos de prueba
 
 private:
     void actualizarTemperaturaFusionada();
@@ -520,6 +546,7 @@ private:
     // ── Drivers de hardware ───────────────────────────────────────────────────
     DriverPCA9685 m_pca9685;
     DriverXM125   m_xm125;
+    DriverPCF8574 m_pcf8574;      // flotador doble de nivel (en prueba desde Mantenimiento)
 
     // ── Timers ────────────────────────────────────────────────────────────────
     QTimer m_timerRS485;          // 500 ms  — query a sensores RS-485
@@ -561,6 +588,16 @@ private:
     bool m_vaciadoManualInf = false;   // CH8
     bool m_vaciadoManualSup = false;   // CH10
     bool m_vaciadoManualAux = false;   // CH11
+
+    // ── Mantenimiento ─────────────────────────────────────────────────────────
+    static constexpr int MANT_NUM_ACTUADORES = 7;
+    void mantEscribirActuador(int id, bool encender);
+    QTimer m_timerMantenimiento;           // 200 ms — lee PCF8574 + descuenta tiempos
+    bool   m_mantActiva = false;
+    int    m_mantRestantes[MANT_NUM_ACTUADORES] = {};   // s restantes (0 = apagado)
+    int    m_mantSubTick = 0;               // 5 ticks de 200 ms = 1 s
+    int    m_flotadorDireccion = -1;
+    int    m_flotadorPuerto    = -1;
 
     // Vaciado por etapas automático (pantalla de extracción): 0=ninguna, 1=EV superior (CH10),
     // 2=EV inferior (CH8). Corta al llegar a la referencia (confirmación) o por tope de tiempo.

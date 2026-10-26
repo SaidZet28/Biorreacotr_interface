@@ -48,6 +48,20 @@ Item {
         return backend.flotadorPuerto < 0 ? -1 : ((backend.flotadorPuerto >> i) & 1)
     }
 
+    // Estado que el control de nivel entiende con la lectura actual (sin antirrebote)
+    function textoLectura(e) {
+        switch (e) {
+        case 0: return qsTranslate("Main", "Vacío")
+        case 1: return qsTranslate("Main", "Operativo")
+        case 2: return qsTranslate("Main", "Lleno")
+        case 3: return qsTranslate("Main", "Falla (A arriba, B abajo)")
+        default: return qsTranslate("Main", "Sin lectura")
+        }
+    }
+    function colorLectura(e) {
+        return e === 1 ? "#1a8a1a" : e === 3 || e < 0 ? "#b00000" : "#b07a1a"
+    }
+
     function hex2(v) {
         var s = v.toString(16).toUpperCase()
         return "0x" + (s.length < 2 ? "0" + s : s)
@@ -218,6 +232,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: backend.flotadorDireccion >= 0
                           ? qsTranslate("Main", "PCF8574 encontrado en %1").arg(root.hex2(backend.flotadorDireccion))
+                            + (backend.flotadorPuerto >= 0 ? "  ·  " + root.hex2(backend.flotadorPuerto) : "")
                           : qsTranslate("Main", "PCF8574 no encontrado")
                     font.pixelSize: appWindow.height * 0.038
                     font.bold: true
@@ -237,7 +252,7 @@ Item {
             Row {
                 id: filaPines
                 anchors.top: filaEstadoPcf.bottom
-                anchors.topMargin: appWindow.height * 0.035
+                anchors.topMargin: appWindow.height * 0.025
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: appWindow.width * 0.012
                 Repeater {
@@ -271,25 +286,78 @@ Item {
                 }
             }
 
-            Text {
-                id: ayudaFlotador
+            // Cómo lo interpreta el control de nivel + ajuste del cableado sin recompilar
+            Row {
+                id: filaLectura
                 anchors.top: filaPines.bottom
                 anchors.topMargin: appWindow.height * 0.02
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: appWindow.width * 0.015
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    Text {
+                        text: root.textoLectura(backend.flotadorLectura)
+                        font.pixelSize: appWindow.height * 0.042
+                        font.bold: true
+                        color: root.colorLectura(backend.flotadorLectura)
+                    }
+                    Text {
+                        text: qsTranslate("Main", "A = P%1  ·  B = P%2  ·  bola activada = %3")
+                              .arg(backend.flotadorIntercambiado ? 1 : 0)
+                              .arg(backend.flotadorIntercambiado ? 0 : 1)
+                              .arg(backend.flotadorInvertido ? 0 : 1)
+                        font.pixelSize: appWindow.height * 0.026
+                        color: "#333333"
+                    }
+                }
+                Repeater {
+                    model: [
+                        { nombre: qsTranslate("Main", "Intercambiar A/B"), accion: 0 },
+                        { nombre: qsTranslate("Main", "Invertir"), accion: 1 }
+                    ]
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: appWindow.width * 0.13
+                        height: appWindow.height * 0.065
+                        radius: height / 2
+                        color: areaAjuste.pressed ? "#5a8282" : "#6E9C9C"
+                        Text {
+                            anchors.fill: parent
+                            anchors.margins: parent.height * 0.15
+                            text: modelData.nombre
+                            font.pixelSize: parent.height * 0.36
+                            font.bold: true
+                            color: "black"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            fontSizeMode: Text.Fit
+                            minimumPixelSize: 10
+                        }
+                        MouseArea {
+                            id: areaAjuste
+                            anchors.fill: parent
+                            onClicked: modelData.accion === 0 ? backend.flotadorIntercambiar() : backend.flotadorInvertir()
+                        }
+                    }
+                }
+            }
+
+            Text {
+                id: ayudaFlotador
+                anchors.top: filaLectura.bottom
+                anchors.topMargin: appWindow.height * 0.015
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                text: (backend.flotadorPuerto >= 0
-                       ? qsTranslate("Main", "Byte crudo: %1").arg(root.hex2(backend.flotadorPuerto)) + "\n"
-                       : "")
-                      + qsTranslate("Main", "Sube y baja cada bola con la mano: el pin que cambia es el de esa bola. Verde = contacto cerrado.")
-                font.pixelSize: appWindow.height * 0.03
+                text: qsTranslate("Main", "Sube cada bola con la mano: el pin que cambia es el de esa bola. Verde = contacto cerrado (0).")
+                font.pixelSize: appWindow.height * 0.028
                 color: "#333333"
             }
 
             // Prueba cruzada con agua: llenar / drenar unos segundos y ver qué pin cambia
             Row {
                 anchors.top: ayudaFlotador.bottom
-                anchors.topMargin: appWindow.height * 0.025
+                anchors.topMargin: appWindow.height * 0.02
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: appWindow.width * 0.02
                 Repeater {

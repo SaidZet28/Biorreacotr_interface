@@ -47,8 +47,10 @@ Item {
         }
     }
 
-    // Texto de nivel en vivo (distancia mm — más confiable — y %).
+    // Texto de nivel en vivo: estado del flotador, o distancia mm y % con el radar.
     function textoNivelVivo() {
+        if (backend.usaFlotador)
+            return qsTranslate("Main", "Nivel: %1").arg(backend.textoNivel);
         var d = backend.distanciaNivelMm;
         var dist = (d >= 0) ? (Math.round(d) + " mm") : "--- mm";
         var pct  = backend.sensorNivelValido ? (backend.sensorNivel.toFixed(1) + " %") : "--- %";
@@ -194,7 +196,9 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: qsTranslate("Main", "Vaciado de nivel 1 en proceso\n(EV superior — CH10). Se detiene solo al llegar al nivel.")
+                    text: backend.usaFlotador
+                          ? qsTranslate("Main", "Vaciado de nivel 1 en proceso\n(EV superior — CH10). Toca Terminar cuando deje de salir líquido.")
+                          : qsTranslate("Main", "Vaciado de nivel 1 en proceso\n(EV superior — CH10). Se detiene solo al llegar al nivel.")
                     font.pixelSize: parent.parent.height * 0.075
                     font.bold: true
                     color: "black"
@@ -208,19 +212,36 @@ Item {
                     color: "#1a1a1a"
                     horizontalAlignment: Text.AlignHCenter
                 }
-                Rectangle {
-                    width: appWindow.width * 0.30
-                    height: appWindow.height * 0.10
+                Row {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    radius: height / 2
-                    color: areaDetener1.pressed ? "#a03030" : "#D64545"
-                    Text { anchors.centerIn: parent; text: qsTranslate("Main", "Detener (emergencia)"); font.pixelSize: parent.height * 0.30; font.bold: true; color: "white" }
-                    MouseArea {
-                        id: areaDetener1
-                        anchors.fill: parent
-                        onClicked: {
-                            backend.detenerVaciado();     // paro de emergencia (cierra válvula, cancela)
-                            root.mostrarProceso1 = false;
+                    spacing: appWindow.width * 0.03
+                    // Extracción manual (flotador): cierra la válvula y pasa a la siguiente etapa
+                    Rectangle {
+                        visible: backend.usaFlotador
+                        width: appWindow.width * 0.24
+                        height: appWindow.height * 0.10
+                        radius: height / 2
+                        color: areaTerminar1.pressed ? "#3a7d3a" : "#4CAF50"
+                        Text { anchors.centerIn: parent; text: qsTranslate("Main", "Terminar vaciado"); font.pixelSize: parent.height * 0.30; font.bold: true; color: "white" }
+                        MouseArea {
+                            id: areaTerminar1
+                            anchors.fill: parent
+                            onClicked: backend.terminarEtapaVaciado()   // emite vaciadoEtapaCompletada
+                        }
+                    }
+                    Rectangle {
+                        width: backend.usaFlotador ? appWindow.width * 0.20 : appWindow.width * 0.30
+                        height: appWindow.height * 0.10
+                        radius: height / 2
+                        color: areaDetener1.pressed ? "#a03030" : "#D64545"
+                        Text { anchors.centerIn: parent; text: backend.usaFlotador ? qsTranslate("Main", "Cancelar") : qsTranslate("Main", "Detener (emergencia)"); font.pixelSize: parent.height * 0.30; font.bold: true; color: "white" }
+                        MouseArea {
+                            id: areaDetener1
+                            anchors.fill: parent
+                            onClicked: {
+                                backend.detenerVaciado();     // paro de emergencia (cierra válvula, cancela)
+                                root.mostrarProceso1 = false;
+                            }
                         }
                     }
                 }
@@ -305,7 +326,9 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: qsTranslate("Main", "Vaciado de nivel 2 en proceso\n(EV inferior — CH8). Se detiene solo al llegar al nivel.")
+                    text: backend.usaFlotador
+                          ? qsTranslate("Main", "Vaciado de nivel 2 en proceso\n(EV inferior — CH8). Toca Terminar cuando deje de salir líquido.")
+                          : qsTranslate("Main", "Vaciado de nivel 2 en proceso\n(EV inferior — CH8). Se detiene solo al llegar al nivel.")
                     font.pixelSize: parent.parent.height * 0.075
                     font.bold: true
                     color: "black"
@@ -319,19 +342,36 @@ Item {
                     color: "#1a1a1a"
                     horizontalAlignment: Text.AlignHCenter
                 }
-                Rectangle {
-                    width: appWindow.width * 0.30
-                    height: appWindow.height * 0.10
+                Row {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    radius: height / 2
-                    color: areaDetener2.pressed ? "#a03030" : "#D64545"
-                    Text { anchors.centerIn: parent; text: qsTranslate("Main", "Detener (emergencia)"); font.pixelSize: parent.height * 0.30; font.bold: true; color: "white" }
-                    MouseArea {
-                        id: areaDetener2
-                        anchors.fill: parent
-                        onClicked: {
-                            backend.detenerVaciado();     // paro de emergencia (cierra válvula, cancela)
-                            root.mostrarProceso2 = false;
+                    spacing: appWindow.width * 0.03
+                    // Extracción manual (flotador): cierra la válvula y pasa a la siguiente etapa
+                    Rectangle {
+                        visible: backend.usaFlotador
+                        width: appWindow.width * 0.24
+                        height: appWindow.height * 0.10
+                        radius: height / 2
+                        color: areaTerminar2.pressed ? "#3a7d3a" : "#4CAF50"
+                        Text { anchors.centerIn: parent; text: qsTranslate("Main", "Terminar vaciado"); font.pixelSize: parent.height * 0.30; font.bold: true; color: "white" }
+                        MouseArea {
+                            id: areaTerminar2
+                            anchors.fill: parent
+                            onClicked: backend.terminarEtapaVaciado()   // emite vaciadoEtapaCompletada
+                        }
+                    }
+                    Rectangle {
+                        width: backend.usaFlotador ? appWindow.width * 0.20 : appWindow.width * 0.30
+                        height: appWindow.height * 0.10
+                        radius: height / 2
+                        color: areaDetener2.pressed ? "#a03030" : "#D64545"
+                        Text { anchors.centerIn: parent; text: backend.usaFlotador ? qsTranslate("Main", "Cancelar") : qsTranslate("Main", "Detener (emergencia)"); font.pixelSize: parent.height * 0.30; font.bold: true; color: "white" }
+                        MouseArea {
+                            id: areaDetener2
+                            anchors.fill: parent
+                            onClicked: {
+                                backend.detenerVaciado();     // paro de emergencia (cierra válvula, cancela)
+                                root.mostrarProceso2 = false;
+                            }
                         }
                     }
                 }

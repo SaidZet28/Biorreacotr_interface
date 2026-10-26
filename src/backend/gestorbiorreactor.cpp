@@ -146,17 +146,21 @@ GestorBiorreactor::GestorBiorreactor(QObject *parent) : QObject(parent)
     m_timerPreparacion.setInterval(1000);
 
 #ifndef SIMULACION_ACTIVA
-    // Timer nivel: lee XM125 cada 500 ms
+    // Timer nivel: lee el flotador (PCF8574) cada 200 ms, o el XM125 cada 500 ms
     connect(&m_timerNivel, &QTimer::timeout,
             this, &GestorBiorreactor::leerSensorNivel);
-    m_timerNivel.setInterval(500);
+    m_timerNivel.setInterval(USAR_FLOTADOR ? FLOTADOR_PERIODO_MS : 500);
     m_timerNivel.start();
 
     // Inicializar hardware (solo funciona en Linux / RPi)
     m_pca9685.inicializar(1, 50);
-    // El nivel usa el SEGUIDOR DE AGUA sobre picos crudos → el XM125 se inicializa en
-    // modo caracterización (reset + 100-2000 mm), no en el modo de "pico más fuerte".
-    m_xm125.inicializarCaracterizacion(1);
+    if (USAR_FLOTADOR) {
+        flotadorBuscar();   // flotador doble en el PCF8574 (0x20-0x27 / 0x38-0x3F)
+    } else {
+        // El nivel usa el SEGUIDOR DE AGUA sobre picos crudos → el XM125 se inicializa en
+        // modo caracterización (reset + 100-2000 mm), no en el modo de "pico más fuerte".
+        m_xm125.inicializarCaracterizacion(1);
+    }
 
 #ifdef Q_OS_LINUX
     // Cruce por cero — pigpio ya inicializado por DriverPCA9685::inicializar()
@@ -217,6 +221,7 @@ void GestorBiorreactor::setSensorPH(double v) {
 void GestorBiorreactor::setSensorNivel(double v) {
     if (qAbs(m_sensorNivel - v) < 1e-9) return;
     m_sensorNivel = v; emit sensorNivelChanged();
+    if (!USAR_FLOTADOR) emit estadoNivelChanged();   // textoNivel = % del radar
 }
 void GestorBiorreactor::setSensorLuz(double v) {
     if (qAbs(m_sensorLuz - v) < 1e-9) return;
@@ -308,6 +313,7 @@ void GestorBiorreactor::setSensorSerialValido(bool v) {
 void GestorBiorreactor::setSensorNivelValido(bool v) {
     if (m_sensorNivelValido == v) return;
     m_sensorNivelValido = v; emit sensorNivelValidoChanged();
+    emit estadoNivelChanged();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -351,6 +357,10 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
         m_rellenandoNivel = false;
         m_ticksNivelBajo = m_ticksNivelLleno = 0;
         m_accionLlenado = -99;   // sin llenado/drenado activo → seguidor de agua "estático"
+        m_nivelSeguro = false;
+        m_tempEnganchada = false;   // la temperatura se vuelve a enganchar en el próximo proceso
+        m_bloqueoRelleno = m_bloqueoDrenado = false;
+        m_nivelExtraHastaMs = 0;
 
         // Limpiar alertas de seguridad y el watchdog de bombas
         setAlertaSobreTemp(false);
@@ -408,6 +418,11 @@ void GestorBiorreactor::cargarConfiguracion()
     m_calibDVacioMm     = s.value("dVacioMm",     -1.0).toDouble();
     m_calibDOperacionMm = s.value("dOperacionMm", -1.0).toDouble();
     s.endGroup();
+    s.beginGroup("Flotador");
+    m_flotadorIntercambiado = s.value("intercambiado", false).toBool();
+    m_flotadorInvertido     = s.value("invertido",     false).toBool();
+    s.endGroup();
+    emit flotadorChanged();
     emit setpointTemChanged();
     emit setpointPHChanged();
     emit setpointLuzChanged();
@@ -582,8 +597,23 @@ QString GestorBiorreactor::textoDetallePreparacion() const
             return QCoreApplication::translate("Main", "⚠ Sin respuesta de los sensores RS-485 (pH/DO/temperatura). Revise la conexión.");
         if (!m_sensorNivelValido)
             return QCoreApplication::translate("Main", "⚠ Sin respuesta del sensor de nivel. Revise la conexión.");
+        if (USAR_FLOTADOR && m_estadoNivel == 3)
+            return QCoreApplication::translate("Main", "⚠ Falla del flotador: marca la bola alta arriba con la baja abajo. Revise que ninguna bola esté atorada.");
         return QCoreApplication::translate("Main", "Comprobando que los sensores estén conectados y entregando lecturas.");
     case 1:
+        if (USAR_FLOTADOR) {
+            if (m_estadoNivel == 3)
+                return QCoreApplication::translate("Main", "⚠ Falla del flotador (bola alta arriba con la baja abajo). Llenado en pausa: revise que ninguna bola esté atorada.");
+            if (m_estadoNivel < 0)
+                return QCoreApplication::translate("Main", "⚠ Sin lectura del flotador. Llenado en pausa: revise la conexión del PCF8574.");
+            if (m_bloqueoRelleno || m_bloqueoDrenado)
+                return QCoreApplication::translate("Main", "⚠ El flotador no cambió en el tiempo máximo y se detuvieron las bombas. Revise la bomba, el medio y las válvulas; luego cancele y reinicie la preparación.");
+            if (m_accionLlenado == -1)
+                return QCoreApplication::translate("Main", "El tanque está lleno (bola alta activada): drenando hasta que se libere y unos segundos más.");
+            if (m_estadoNivel == 1)
+                return QCoreApplication::translate("Main", "La bola baja ya se activó: llenando unos segundos más para dejar margen.");
+            return QCoreApplication::translate("Main", "Llenando con el medio de cultivo hasta que se active la bola baja del flotador. El burbujeo arranca al terminar el llenado.");
+        }
         return m_accionLlenado == -1
              ? QCoreApplication::translate("Main", "El nivel está por encima del objetivo: drenando el exceso hasta el nivel funcional. El burbujeo mantiene la mezcla homogénea.")
              : QCoreApplication::translate("Main", "Llevando el nivel al objetivo con el medio de cultivo. El burbujeo mantiene la mezcla homogénea.");
@@ -618,6 +648,9 @@ void GestorBiorreactor::setEstadoPreparacion(int estado)
     m_ticksRadarConf     = 0;
     m_tGuiadoInicio      = 0;
     m_distInicioGuiado   = -1.0;
+    m_prepExtraRest      = -1;
+    m_prepTicksAccion    = 0;
+    m_bloqueoRelleno = m_bloqueoDrenado = false;
 
     // Configurar controladores/salidas según el estado (FSM de 4 fases:
     // 0=Verificación, 1=Llenado, 2=Acondicionamiento, 3=Listo)
@@ -702,6 +735,7 @@ void GestorBiorreactor::iniciarPreparacion()
     m_preparacionCompletada = false;
     m_alertaEscalacion      = false;
     m_progresoPreparacion   = 0.0;
+    m_tempEnganchada        = false;
     if (m_esperandoConfirmacionVacio) {
         m_esperandoConfirmacionVacio = false;
         emit esperandoConfirmacionVacioChanged();
@@ -796,8 +830,9 @@ void GestorBiorreactor::iniciarVaciado(int nivel)
     }
     m_vaciadoEtapa        = nivel;
     m_ticksVaciadoConfirm = 0;
-    m_vaciadoDeadline     = QDateTime::currentDateTime().addSecs(VACIADO_TIMEOUT_S);
-    qDebug() << "[Vaciado] Etapa" << nivel << "iniciada (auto por distancia)";
+    m_vaciadoDeadline     = QDateTime::currentDateTime().addSecs(USAR_FLOTADOR ? FLOTADOR_VACIADO_MAX_S
+                                                                               : VACIADO_TIMEOUT_S);
+    qDebug() << "[Vaciado] Etapa" << nivel << (USAR_FLOTADOR ? "iniciada (manual)" : "iniciada (auto por distancia)");
     emit vaciadoEtapaChanged();
 }
 
@@ -815,9 +850,15 @@ void GestorBiorreactor::procesarVaciadoAuto()
         m_vaciadoEtapa = 0; m_ticksVaciadoConfirm = 0;
         qWarning() << "[Vaciado] Timeout etapa" << etapa;
         emit vaciadoEtapaChanged();
-        emit vaciadoAbortado(QStringLiteral("Tiempo excedido en el vaciado (revisar bomba/válvula)."));
+        emit vaciadoAbortado(USAR_FLOTADOR
+            ? QCoreApplication::translate("Main", "La válvula se cerró sola a los %1 minutos por seguridad. Si aún sale líquido, inicia de nuevo esta etapa.")
+                  .arg(FLOTADOR_VACIADO_MAX_S / 60)
+            : QStringLiteral("Tiempo excedido en el vaciado (revisar bomba/válvula)."));
         return;
     }
+
+    // Con el flotador no se conoce la altura: el operador termina la etapa (terminarEtapaVaciado).
+    if (USAR_FLOTADOR) return;
 
     if (m_distanciaNivelMm < 0.0) { m_ticksVaciadoConfirm = 0; return; }  // sin lectura válida
 
@@ -835,6 +876,20 @@ void GestorBiorreactor::procesarVaciadoAuto()
     } else {
         m_ticksVaciadoConfirm = 0;
     }
+}
+
+// Extracción manual (flotador): el operador cierra la válvula cuando terminó de salir el
+// líquido de la etapa; se da por completada igual que el corte automático del radar.
+void GestorBiorreactor::terminarEtapaVaciado()
+{
+    if (m_vaciadoEtapa == 0) return;
+    m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC1, false);
+    m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC2, false);
+    const int etapa = m_vaciadoEtapa;
+    m_vaciadoEtapa = 0; m_ticksVaciadoConfirm = 0;
+    qDebug() << "[Vaciado] Etapa" << etapa << "terminada por el operador";
+    emit vaciadoEtapaChanged();
+    emit vaciadoEtapaCompletada(etapa);
 }
 
 void GestorBiorreactor::detenerVaciado()
@@ -959,7 +1014,7 @@ void GestorBiorreactor::salirMantenimiento()
     if (!m_mantActiva) return;
     m_timerMantenimiento.stop();
     mantApagarTodo();
-    m_pcf8574.cerrar();
+    if (!USAR_FLOTADOR) m_pcf8574.cerrar();   // con el flotador lo sigue leyendo producción
 
     // Reanudar el lazo de nivel de producción desde cero.
     resyncNivel();
@@ -1021,7 +1076,8 @@ void GestorBiorreactor::flotadorBuscar()
     for (int d : direcciones) {
         if (m_pcf8574.inicializar(1, d)) { m_flotadorDireccion = d; break; }
     }
-    if (m_flotadorDireccion < 0) qWarning() << "[Mant] PCF8574 no encontrado en el bus I2C-1";
+    if (m_flotadorDireccion < 0) qWarning() << "[Nivel] PCF8574 no encontrado en el bus I2C-1";
+    else qInfo().noquote() << "[Nivel] PCF8574 en" << QStringLiteral("0x%1").arg(m_flotadorDireccion, 2, 16, QChar('0'));
     emit flotadorChanged();
 }
 
@@ -1045,6 +1101,216 @@ void GestorBiorreactor::tickMantenimiento()
         if (--m_mantRestantes[i] == 0) mantEscribirActuador(i, false);
     }
     if (cambio) emit mantActuadoresChanged();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  NIVEL CON EL FLOTADOR DOBLE (PCF8574)
+//  B (bola baja) marca el nivel de operación y A (bola alta) el tope:
+//    A=0 B=0 Vacío · A=0 B=1 Operativo · A=1 B=1 Lleno · A=1 B=0 Falla (imposible)
+//  Lectura cada FLOTADOR_PERIODO_MS con antirrebote de FLOTADOR_CONFIRM_MS (burbujeo).
+// ═════════════════════════════════════════════════════════════════════════════
+bool GestorBiorreactor::usaFlotador()           const { return USAR_FLOTADOR; }
+int  GestorBiorreactor::estadoNivel()           const { return m_estadoNivel; }
+int  GestorBiorreactor::flotadorLectura()       const { return estadoDesdePuerto(m_flotadorPuerto); }
+bool GestorBiorreactor::flotadorIntercambiado() const { return m_flotadorIntercambiado; }
+bool GestorBiorreactor::flotadorInvertido()     const { return m_flotadorInvertido; }
+
+QString GestorBiorreactor::textoNivel() const
+{
+    if (!USAR_FLOTADOR)
+        return m_sensorNivelValido ? QString::number(m_sensorNivel, 'f', 1) + " %" : QStringLiteral("---");
+    switch (m_estadoNivel) {
+    case 0:  return QCoreApplication::translate("Main", "Vacío");
+    case 1:  return QCoreApplication::translate("Main", "Operativo");
+    case 2:  return QCoreApplication::translate("Main", "Lleno");
+    case 3:  return QCoreApplication::translate("Main", "Falla del flotador");
+    default: return QStringLiteral("---");
+    }
+}
+
+void GestorBiorreactor::flotadorIntercambiar()
+{
+    m_flotadorIntercambiado = !m_flotadorIntercambiado;
+    QSettings s(iniPath(), QSettings::IniFormat);
+    s.setValue("Flotador/intercambiado", m_flotadorIntercambiado);
+    m_flotadorCandidato = -1; m_flotadorTicksCand = 0;   // re-confirmar con el nuevo cableado
+    qInfo() << "[Nivel] Flotador: A/B intercambiados =" << m_flotadorIntercambiado;
+    emit flotadorChanged();
+}
+
+void GestorBiorreactor::flotadorInvertir()
+{
+    m_flotadorInvertido = !m_flotadorInvertido;
+    QSettings s(iniPath(), QSettings::IniFormat);
+    s.setValue("Flotador/invertido", m_flotadorInvertido);
+    m_flotadorCandidato = -1; m_flotadorTicksCand = 0;
+    qInfo() << "[Nivel] Flotador: lectura invertida =" << m_flotadorInvertido;
+    emit flotadorChanged();
+}
+
+int GestorBiorreactor::estadoDesdePuerto(int puerto) const
+{
+    if (puerto < 0) return -1;
+    const int pinA = m_flotadorIntercambiado ? FLOTADOR_PIN_B : FLOTADOR_PIN_A;
+    const int pinB = m_flotadorIntercambiado ? FLOTADOR_PIN_A : FLOTADOR_PIN_B;
+    bool a = (puerto >> pinA) & 1;
+    bool b = (puerto >> pinB) & 1;
+    if (m_flotadorInvertido) { a = !a; b = !b; }
+    if (!a && !b) return 0;   // Vacío
+    if (!a &&  b) return 1;   // Operativo
+    if ( a &&  b) return 2;   // Lleno
+    return 3;                 // A arriba con B abajo → Falla
+}
+
+void GestorBiorreactor::setEstadoNivel(int e)
+{
+    if (m_estadoNivel == e) return;
+    m_estadoNivel = e;
+    if (e >= 0 && e <= 2) setSensorNivel(e * 50.0);   // gráficas y registro: escalón 0 / 50 / 100
+    qInfo().noquote() << "[Nivel] Flotador:" << textoNivel();
+    emit estadoNivelChanged();
+}
+
+void GestorBiorreactor::leerFlotador()
+{
+    // La extracción manual solo revisa su tope de tiempo (no corta por nivel).
+    procesarVaciadoAuto();
+
+    bool ok = false;
+    int puerto = -1;
+    if (m_pcf8574.conectado()) {
+        const uint8_t v = m_pcf8574.leerPuerto(ok);
+        if (ok) puerto = v;
+    }
+    if (puerto != m_flotadorPuerto) { m_flotadorPuerto = puerto; emit flotadorChanged(); }
+
+    static constexpr int CONFIRM_N = FLOTADOR_CONFIRM_MS / FLOTADOR_PERIODO_MS;
+    if (!ok) {
+        // Sin respuesta CONFIRM_N lecturas seguidas → "sin lectura" (modo seguro con proceso).
+        // Cada 50 lecturas (~10 s) se vuelve a buscar el PCF8574 por si se reconectó.
+        ++m_flotadorFallos;
+        if (m_flotadorFallos >= CONFIRM_N) setEstadoNivel(-1);
+        if (m_flotadorFallos % 50 == 0) flotadorBuscar();
+        m_flotadorCandidato = -1; m_flotadorTicksCand = 0;
+        evaluarNivelFlotador();
+        return;
+    }
+    m_flotadorFallos = 0;
+    m_ultimaLecturaI2C = QDateTime::currentDateTime();   // frescura → sensorNivelValido
+
+    // Antirrebote: un estado nuevo se acepta solo si se repite CONFIRM_N lecturas seguidas.
+    const int lectura = estadoDesdePuerto(puerto);
+    if (lectura == m_estadoNivel) {
+        m_flotadorTicksCand = 0;
+    } else if (lectura != m_flotadorCandidato) {
+        m_flotadorCandidato = lectura; m_flotadorTicksCand = 1;
+    } else if (++m_flotadorTicksCand >= CONFIRM_N) {
+        setEstadoNivel(lectura);
+        m_flotadorTicksCand = 0;
+    }
+    evaluarNivelFlotador();
+}
+
+// Control de nivel con el flotador durante el proceso. Opera entre las dos bolas:
+//   Vacío (abajo de B)  → rellena con CH3+CH4 hasta Operativo + FLOTADOR_EXTRA_LLENADO_S
+//   Lleno (A activada)  → drena con EV1+EV2 hasta Operativo + FLOTADOR_EXTRA_DRENADO_S (alarma)
+//   Falla / sin lectura → modo seguro: sin llenar, drenar ni pH; calentador cortado (alarma)
+// Si el flotador no cambia en FLOTADOR_MAX_*_S se para esa salida, sale la alerta de bombas
+// y no se reintenta hasta que el estado cambie. No actúa fuera del proceso, en la fase de
+// Llenado de la preparación (ahí llena tickPreparacion) ni durante una extracción.
+void GestorBiorreactor::evaluarNivelFlotador()
+{
+    const qint64 ahora = QDateTime::currentMSecsSinceEpoch();
+    const bool drenandoAntes   = m_drenandoNivel;
+    const bool rellenandoAntes = m_rellenandoNivel;
+
+    auto apagarRelleno = [&]() {
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 0.0);
+        m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 0.0);
+    };
+    auto apagarDrenado = [&]() {
+        m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC1, false);
+        m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC2, false);
+    };
+
+    m_nivelSeguro = m_procesoActivo && (m_estadoNivel < 0 || m_estadoNivel == 3);
+    const bool controlActivo = m_procesoActivo && !m_nivelSeguro
+                            && m_estadoPreparacion != 1 && m_vaciadoEtapa == 0;
+
+    if (!controlActivo) {
+        // Solo apaga lo que este control encendió; no pisa las salidas de la preparación.
+        if (m_rellenandoNivel) apagarRelleno();
+        if (m_drenandoNivel)   apagarDrenado();
+        m_rellenandoNivel = m_drenandoNivel = false;
+        m_nivelExtraHastaMs = 0;
+    } else {
+        // Un cambio de estado libera el bloqueo por tiempo máximo.
+        if (m_bloqueoRelleno && m_estadoNivel != 0) { m_bloqueoRelleno = false; setAlertaBombas(false); }
+        if (m_bloqueoDrenado && m_estadoNivel != 2) { m_bloqueoDrenado = false; setAlertaBombas(false); }
+
+        if (m_rellenandoNivel) {
+            if (m_estadoNivel == 2) {
+                m_rellenandoNivel = false;                       // llegó al tope: decide el drenado
+            } else if (m_estadoNivel == 1) {                     // B activada → tiempo extra
+                if (m_nivelExtraHastaMs == 0) m_nivelExtraHastaMs = ahora + FLOTADOR_EXTRA_LLENADO_S * 1000LL;
+                if (ahora >= m_nivelExtraHastaMs) m_rellenandoNivel = false;
+            } else {                                             // sigue Vacío
+                m_nivelExtraHastaMs = 0;
+                if (ahora - m_nivelAccionInicioMs >= FLOTADOR_MAX_LLENADO_S * 1000LL) {
+                    m_rellenandoNivel = false; m_bloqueoRelleno = true;
+                    setAlertaBombas(true);
+                }
+            }
+        } else if (m_drenandoNivel) {
+            if (m_estadoNivel == 0) {
+                m_drenandoNivel = false;                         // se pasó de B: decide el relleno
+            } else if (m_estadoNivel == 1) {                     // A liberada → tiempo extra
+                if (m_nivelExtraHastaMs == 0) m_nivelExtraHastaMs = ahora + FLOTADOR_EXTRA_DRENADO_S * 1000LL;
+                if (ahora >= m_nivelExtraHastaMs) m_drenandoNivel = false;
+            } else {                                             // sigue Lleno
+                m_nivelExtraHastaMs = 0;
+                if (ahora - m_nivelAccionInicioMs >= FLOTADOR_MAX_DRENADO_S * 1000LL) {
+                    m_drenandoNivel = false; m_bloqueoDrenado = true;
+                    setAlertaBombas(true);
+                }
+            }
+        }
+
+        // Arranque de una corrección (desde reposo en Operativo o al terminar la otra)
+        if (!m_rellenandoNivel && !m_drenandoNivel) {
+            m_nivelExtraHastaMs = 0;
+            if (m_estadoNivel == 0 && !m_bloqueoRelleno) {
+                m_rellenandoNivel = true; m_nivelAccionInicioMs = ahora;
+            } else if (m_estadoNivel == 2 && !m_bloqueoDrenado) {
+                m_drenandoNivel = true; m_nivelAccionInicioMs = ahora;
+            }
+        }
+
+        // Aplicar salidas (se fuerzan en cada lectura, robusto ante los pulsos de pH)
+        if (m_drenandoNivel) {
+            apagarRelleno();
+            m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC1, true);
+            m_pca9685.escribirDigital(DriverPCA9685::CH_BOMBA_VAC2, true);
+        } else {
+            if (drenandoAntes) apagarDrenado();
+            if (m_rellenandoNivel) {
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_A, 100.0);
+                m_pca9685.escribirPorcentaje(DriverPCA9685::CH_BOMBA_NEUT_B, 100.0);
+            } else if (rellenandoAntes) {
+                apagarRelleno();
+            }
+        }
+    }
+
+    if (m_rellenandoNivel != rellenandoAntes)
+        qInfo() << "[Nivel] Relleno" << (m_rellenandoNivel ? "ON" : "OFF");
+    if (m_drenandoNivel != drenandoAntes) {
+        qInfo() << "[Nivel] Drenado" << (m_drenandoNivel ? "ON" : "OFF");
+        m_salidaBombaNivel = m_drenandoNivel;   // reutilizado: true = drenado activo
+        emit salidaBombaNivelChanged();
+    }
+    // Alarma roja: drenando por sobrellenado o flotador en falla/sin lectura (con proceso)
+    setAlertaNivel(m_procesoActivo && (m_drenandoNivel || m_nivelSeguro));
 }
 
 // ── Calibración del tanque ────────────────────────────────────────────────────
@@ -1406,7 +1672,13 @@ void GestorBiorreactor::tickPreparacion()
         // Sensores OK → NO avanza solo: primero pregunta si el tanque está vacío. La GUI
         // muestra el popup mientras m_esperandoConfirmacionVacio; el avance a llenado lo
         // hace confirmarTanqueVacio() con la respuesta del operador.
-        if (m_sensorSerialValido && m_sensorNivelValido && !m_drenandoNivel) {
+        const bool nivelOk = !USAR_FLOTADOR || (m_estadoNivel >= 0 && m_estadoNivel <= 2);
+        if (m_sensorSerialValido && m_sensorNivelValido && nivelOk && !m_drenandoNivel) {
+            if (USAR_FLOTADOR) {
+                // Con el flotador el estado del tanque se conoce: no se pregunta si está vacío.
+                setEstadoPreparacion(1);
+                break;
+            }
             if (!m_esperandoConfirmacionVacio) {
                 m_esperandoConfirmacionVacio = true;
                 emit esperandoConfirmacionVacioChanged();
@@ -1435,6 +1707,44 @@ void GestorBiorreactor::tickPreparacion()
             m_salidaBombaAgua = (accion == 1) ? 100.0 : 0.0;
             emit salidaBombaAguaChanged();
         };
+
+        if (USAR_FLOTADOR) {
+            // Llenado con el flotador: llena hasta que se activa B (Operativo) y sigue
+            // FLOTADOR_EXTRA_LLENADO_S para quedar con margen. Si arranca Lleno, drena hasta que
+            // se libere A + FLOTADOR_EXTRA_DRENADO_S. Con falla o sin lectura se para y espera.
+            // Si el flotador no cambia en el tiempo máximo: paro + alerta de bombas.
+            if (m_bloqueoRelleno && m_estadoNivel != 0) { m_bloqueoRelleno = false; setAlertaBombas(false); }
+            if (m_bloqueoDrenado && m_estadoNivel != 2) { m_bloqueoDrenado = false; setAlertaBombas(false); }
+
+            int accion = 0;
+            bool listo = false;
+            switch (m_estadoNivel) {
+            case 0:  accion = m_bloqueoRelleno ? 0 : 1;  m_prepExtraRest = -1; break;   // Vacío → llenar
+            case 2:  accion = m_bloqueoDrenado ? 0 : -1; m_prepExtraRest = -1; break;   // Lleno → drenar
+            case 1:                                                                     // Operativo
+                if (m_accionLlenado == 1 || m_accionLlenado == -1) {
+                    if (m_prepExtraRest < 0)
+                        m_prepExtraRest = (m_accionLlenado == 1) ? FLOTADOR_EXTRA_LLENADO_S
+                                                                 : FLOTADOR_EXTRA_DRENADO_S;
+                    if (m_prepExtraRest > 0) { --m_prepExtraRest; accion = m_accionLlenado; break; }
+                }
+                listo = true;
+                break;
+            default: m_prepExtraRest = -1; break;   // falla o sin lectura → parar y esperar
+            }
+
+            if (accion != m_accionLlenado) m_prepTicksAccion = 0; else ++m_prepTicksAccion;
+            aplicarAccion(accion);
+            if (accion == 1 && m_estadoNivel == 0 && m_prepTicksAccion >= FLOTADOR_MAX_LLENADO_S) {
+                aplicarAccion(0); m_bloqueoRelleno = true; setAlertaBombas(true);
+                qWarning() << "[Prep] Llenado sin llegar a Operativo en" << FLOTADOR_MAX_LLENADO_S << "s";
+            } else if (accion == -1 && m_estadoNivel == 2 && m_prepTicksAccion >= FLOTADOR_MAX_DRENADO_S) {
+                aplicarAccion(0); m_bloqueoDrenado = true; setAlertaBombas(true);
+                qWarning() << "[Prep] Drenado sin liberar la bola alta en" << FLOTADOR_MAX_DRENADO_S << "s";
+            }
+            if (listo) setEstadoPreparacion(2);
+            break;
+        }
 
         // ── A) Llenado ciego hasta radar confiable (solo si el tanque arrancó vacío) ──
         if (m_tanqueVacio && !m_radarConfiable) {
@@ -1541,6 +1851,7 @@ void GestorBiorreactor::tickSimulacion()
 {
 #ifdef SIMULACION_ACTIVA
     m_tickSim += 1.0;
+    if (USAR_FLOTADOR) setEstadoNivel(1);   // sin flotador real: Operativo
 
     auto noise = [](double amp) -> double {
         return amp * (QRandomGenerator::global()->generateDouble() * 2.0 - 1.0);
@@ -1856,6 +2167,7 @@ void GestorBiorreactor::enviarCalibracionDO()
 
 void GestorBiorreactor::leerSensorNivel()
 {
+    if (USAR_FLOTADOR) { leerFlotador(); return; }
     if (!m_xm125.conectado()) return;
 
     // Una medición por tick (500 ms): pide TODOS los picos crudos y corre el seguidor de
@@ -2262,11 +2574,24 @@ void GestorBiorreactor::ejecutarControlLoop()
     //   dist < 145 → sobrellenado → drenar hasta 216 (evaluarSeguridadNivel) + controles OFF
 #ifdef SIMULACION_ACTIVA
     const bool aguaEnContacto = true;   // sin sensor de distancia en simulación
+    const bool calentarPermitido = true;
 #else
-    const bool aguaEnContacto =
+    bool aguaEnContacto, calentarPermitido;
+    if (USAR_FLOTADOR) {
+        // Flotador: el pH solo dosifica en Operativo y sin rellenar/drenar (cada pulso mete
+        // líquido). La temperatura se ENGANCHA la primera vez que el nivel llega a Operativo y
+        // desde ahí se queda encendida aunque el flotador cambie, para no prender y apagar las
+        // mantas a cada rato. Solo la corta una falla o pérdida de lectura del flotador.
+        aguaEnContacto = (m_estadoNivel == 1) && !m_drenandoNivel && !m_rellenandoNivel;
+        if (m_estadoNivel == 1) m_tempEnganchada = true;
+        calentarPermitido = m_tempEnganchada && !m_nivelSeguro;
+    } else {
+        aguaEnContacto =
             (m_distanciaNivelMm >= DIST_NIVEL_ALTO_MM) &&
             (m_distanciaNivelMm <= DIST_NIVEL_OBJETIVO_MM) &&
             !m_drenandoNivel;
+        calentarPermitido = aguaEnContacto;
+    }
 #endif
 
     // ── Temperatura: PID + Feedforward (modelo FOPDT) → m_salidaCalentador ─────
@@ -2280,7 +2605,7 @@ void GestorBiorreactor::ejecutarControlLoop()
 
     // Seguridad: no calentar sin datos frescos de temperatura (sensores RS-485 caídos).
     double nuevoCalentador = 0.0;
-    if (aguaEnContacto && !m_alertaSerial) {
+    if (calentarPermitido && !m_alertaSerial) {
         double u_ff  = qBound(0.0, (m_setpointTem - m_tAmbiente) / K_PLANTA_TEMP, 100.0);
         double u_pid = m_pidTemp.calcular(m_setpointTem, m_sensorTem);
         nuevoCalentador = qBound(0.0, u_ff + u_pid, 100.0);
@@ -2307,6 +2632,8 @@ void GestorBiorreactor::ejecutarControlLoop()
                       << " estPrep=" << m_estadoPreparacion
                       << " dist=" << m_distanciaNivelMm
                       << " agua=" << aguaEnContacto
+                      << " nivel=" << m_estadoNivel
+                      << " tempEng=" << m_tempEnganchada
                       << " drenando=" << m_drenandoNivel
                       << " alSerial=" << m_alertaSerial
                       << " T=" << m_sensorTem << " SP=" << m_setpointTem
@@ -2320,7 +2647,7 @@ void GestorBiorreactor::ejecutarControlLoop()
     //   T_ss  = T_amb + K·salida  (temp estacionaria con la salida actual)
     //   t_eta = τ·ln((T_now−T_ss)/(SP−T_ss)) + θ    [válido si T_ss > SP y T_now < SP]
     double eta = -1.0;   // N/A (en SP, enfriando, potencia insuficiente o sin agua)
-    if (aguaEnContacto && m_salidaCalentador > 0.5 && m_sensorTem < m_setpointTem - 1.0) {
+    if (calentarPermitido && m_salidaCalentador > 0.5 && m_sensorTem < m_setpointTem - 1.0) {
         double T_ss = m_tAmbiente + K_PLANTA_TEMP * m_salidaCalentador;
         if (T_ss > m_setpointTem) {
             double arg = (m_sensorTem - T_ss) / (m_setpointTem - T_ss);
@@ -2374,7 +2701,7 @@ void GestorBiorreactor::ejecutarControlLoop()
             const bool accionPermitida = (error > 0.0)
                                       && aguaEnContacto       // solo con agua tocando el sensor (145–216 mm, sin drenar)
                                       && !m_alertaSerial       // no dosificar sin datos frescos del sensor de pH
-                                      && (m_sensorNivel < m_nivelMaxPct);
+                                      && (USAR_FLOTADOR || m_sensorNivel < m_nivelMaxPct);
 
             if (accionPermitida) {
                 double tPulso = m_fuzzyPH.calcular(m_setpointPH, m_sensorPH);
@@ -2750,6 +3077,7 @@ void GestorBiorreactor::onWatchdogSerialTimeout()
 
 void GestorBiorreactor::onWatchdogI2CTimeout()
 {
+    if (USAR_FLOTADOR) return;   // el flotador maneja su pérdida de lectura en leerFlotador()
     qWarning() << "[WD-I2C] XM125 sin respuesta, intentando reiniciar...";
     setAlertaNivel(true);
     m_xm125.cerrar();

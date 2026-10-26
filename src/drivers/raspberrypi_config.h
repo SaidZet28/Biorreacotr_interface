@@ -84,6 +84,27 @@ static constexpr double DIST_EV_SUPERIOR_MM    = 640.0;  // corte del Vaciado 1 
 static constexpr double DIST_EV_INFERIOR_MM    = 870.0;  // corte del Vaciado 2 (CH8)
 static constexpr int    VACIADO_TIMEOUT_S      = 240;    // tope de tiempo por etapa (seguridad)
 
+// ── Flotador doble de nivel (PCF8574) ────────────────────────────────────────
+// Reemplaza al radar XM125 en el control de nivel. Dos bolas en el mismo vástago:
+// B (baja) marca el nivel de operación y A (alta) el tope. Se llena hasta B.
+//   A=0 B=0 → Vacío · A=0 B=1 → Operativo · A=1 B=1 → Lleno · A=1 B=0 → Falla
+// Por defecto el valor del pin ES el de la tabla (tal como se ve en los círculos de
+// Mantenimiento). Si el cableado resulta al revés, en Mantenimiento → Sensor de nivel
+// se puede intercambiar A/B e invertir la lectura sin recompilar (se guarda en el .ini).
+// USAR_FLOTADOR = false regresa al radar (su código sigue en el proyecto).
+static constexpr bool   USAR_FLOTADOR              = true;
+static constexpr int    FLOTADOR_PIN_A             = 0;     // P0 → bola alta (A)
+static constexpr int    FLOTADOR_PIN_B             = 1;     // P1 → bola baja (B)
+static constexpr int    FLOTADOR_PERIODO_MS        = 200;   // lectura cada 200 ms
+static constexpr int    FLOTADOR_CONFIRM_MS        = 2000;  // un estado nuevo debe sostenerse 2 s (burbujeo)
+static constexpr int    FLOTADOR_EXTRA_LLENADO_S   = 10;    // seguir llenando tras activarse B
+static constexpr int    FLOTADOR_EXTRA_DRENADO_S   = 5;     // seguir drenando tras liberarse A
+static constexpr int    FLOTADOR_MAX_LLENADO_S     = 300;   // sin llegar a Operativo → paro + alerta de bombas
+static constexpr int    FLOTADOR_MAX_DRENADO_S     = 120;   // A sin liberarse → paro + alerta de bombas
+// Extracción manual (con el flotador no se sabe la altura): el operador cierra cada
+// etapa; si no lo hace, la válvula se cierra sola tras este tope.
+static constexpr int    FLOTADOR_VACIADO_MAX_S     = 600;
+
 // Confirmación de umbral (anti salto espurio del radar): N lecturas sostenidas para cruzar
 // cada umbral de la histéresis antes de arrancar/parar el drenado.
 static constexpr int    CONFIRM_NIVEL_N        = 5;

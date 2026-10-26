@@ -305,7 +305,7 @@ Item {
                     Row {
                         spacing: appWindow.width * 0.008
                         Text {
-                            text: (backend.sensorNivelValido ? backend.sensorNivel.toFixed(1) : "---") + " %"
+                            text: backend.textoNivel
                             font.pixelSize: appWindow.height * 0.048
                             font.bold: true
                             color: "black"
@@ -313,13 +313,14 @@ Item {
                         // Puntito de confianza del seguidor de agua: verde = siguiendo, naranja = extrapolando
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            visible: backend.sensorNivelValido
+                            visible: backend.sensorNivelValido && !backend.usaFlotador
                             text: "●"
                             font.pixelSize: appWindow.height * 0.032
                             color: backend.seguidorNivelHit ? "#1a9c1a" : "#f0a63f"
                         }
                     }
                     Text {
+                        visible: !backend.usaFlotador
                         text: (backend.distanciaNivelMm >= 0 ? Math.round(backend.distanciaNivelMm) : "---") + " mm"
                         font.pixelSize: appWindow.height * 0.026
                         color: "#777777"
@@ -357,6 +358,7 @@ Item {
     Rectangle {
         visible: backend.estadoPreparacion >= 0 && backend.estadoPreparacion <= 1
                  && !backend.preparacionCompletada && !root.mostrarConfirmCancelar
+                 && !backend.usaFlotador   // el re-sync es del radar
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.margins: appWindow.width * 0.05
@@ -644,10 +646,10 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: qsTranslate("Main", "pH: %1   |   Temperatura: %2 °%4   |   Nivel: %3 %")
+                    text: qsTranslate("Main", "pH: %1   |   Temperatura: %2 °%4   |   Nivel: %3")
                               .arg(backend.sensorSerialValido ? backend.sensorPH.toFixed(2) : "---")
                               .arg(backend.sensorSerialValido ? appWindow.tempMostrada(backend.sensorTem).toFixed(1) : "---")
-                              .arg(backend.sensorNivelValido ? backend.sensorNivel.toFixed(1) : "---")
+                              .arg(backend.textoNivel)
                               .arg(appWindow.unidadTemperatura)
                     font.pixelSize: appWindow.height * 0.030
                     color: "#1a5c1a"

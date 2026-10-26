@@ -138,7 +138,7 @@ Item {
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30
                     textoEtiqueta: qsTranslate("Main", "Nivel")
-                    textoValor: (backend.sensorNivelValido ? backend.sensorNivel.toFixed(1) : "---") + " %"
+                    textoValor: backend.textoNivel
                 }
             }
 

@@ -44,6 +44,18 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(int          flotadorDireccion READ flotadorDireccion NOTIFY flotadorChanged        FINAL) // -1 = no encontrado
     Q_PROPERTY(int          flotadorPuerto    READ flotadorPuerto    NOTIFY flotadorChanged        FINAL) // byte crudo de P0-P7, -1 = sin lectura
 
+    // ── Nivel con el flotador doble (PCF8574) ─────────────────────────────────
+    // usaFlotador: true = el nivel lo da el flotador (USAR_FLOTADOR); false = radar XM125.
+    // estadoNivel (con antirrebote): -1 sin lectura, 0 Vacío, 1 Operativo, 2 Lleno, 3 Falla.
+    // textoNivel: lo que muestran las pantallas ("Operativo", o "85.0 %" con el radar).
+    // flotadorLectura: estado instantáneo (sin antirrebote) para la prueba de Mantenimiento.
+    Q_PROPERTY(bool    usaFlotador           READ usaFlotador           CONSTANT)
+    Q_PROPERTY(int     estadoNivel           READ estadoNivel           NOTIFY estadoNivelChanged FINAL)
+    Q_PROPERTY(QString textoNivel            READ textoNivel            NOTIFY estadoNivelChanged FINAL)
+    Q_PROPERTY(int     flotadorLectura       READ flotadorLectura       NOTIFY flotadorChanged    FINAL)
+    Q_PROPERTY(bool    flotadorIntercambiado READ flotadorIntercambiado NOTIFY flotadorChanged    FINAL)
+    Q_PROPERTY(bool    flotadorInvertido     READ flotadorInvertido     NOTIFY flotadorChanged    FINAL)
+
     // Temperatura del gabinete de la HMI (sensor interno del RTC DS3231). Indicador.
     // <0 = sin lectura disponible.
     Q_PROPERTY(double tempHmi     READ tempHmi     NOTIFY tempHmiChanged     FINAL)
@@ -287,6 +299,20 @@ public:
     Q_INVOKABLE void flotadorBuscar();   // escanea 0x20-0x27 y 0x38-0x3F
     Q_INVOKABLE void mantApagarTodo();   // apaga los 7 actuadores de prueba + OE HIGH
 
+    // ── Nivel con el flotador ─────────────────────────────────────────────────
+    bool    usaFlotador()           const;
+    int     estadoNivel()           const;
+    QString textoNivel()            const;
+    int     flotadorLectura()       const;
+    bool    flotadorIntercambiado() const;
+    bool    flotadorInvertido()     const;
+    // Ajuste del cableado sin recompilar (se guarda en biorreactor.ini):
+    // intercambiar = qué pin es A y cuál B; invertir = qué valor del pin es "bola activada".
+    Q_INVOKABLE void flotadorIntercambiar();
+    Q_INVOKABLE void flotadorInvertir();
+    // Extracción manual con el flotador: cierra la válvula de la etapa en curso y la da por terminada.
+    Q_INVOKABLE void terminarEtapaVaciado();
+
     // ── Calibración del tanque (menú en Ajustes) ──────────────────────────────
     // accion: 0=parar seguro, 1=llenar (CH3/CH4), 2=drenar (CH8+CH10). Habilita OE.
     Q_INVOKABLE void calibAccion(int accion);
@@ -365,6 +391,7 @@ signals:
     void mantActivaChanged();
     void mantActuadoresChanged();
     void flotadorChanged();
+    void estadoNivelChanged();
     void vaciadoEtapaChanged();
     void vaciadoEtapaCompletada(int etapa);   // la etapa llegó a su referencia y se detuvo sola
     void vaciadoAbortado(const QString &motivo); // tope de tiempo u otro paro del vaciado
@@ -598,6 +625,26 @@ private:
     int    m_mantSubTick = 0;               // 5 ticks de 200 ms = 1 s
     int    m_flotadorDireccion = -1;
     int    m_flotadorPuerto    = -1;
+
+    // ── Nivel con el flotador (producción) ────────────────────────────────────
+    void leerFlotador();                        // lectura + antirrebote (desde leerSensorNivel)
+    void evaluarNivelFlotador();                // control en proceso: rellenar / drenar / modo seguro
+    int  estadoDesdePuerto(int puerto) const;   // byte del PCF8574 → 0..3 (-1 sin lectura)
+    void setEstadoNivel(int e);
+    int    m_estadoNivel           = -1;     // con antirrebote (ver estadoNivel)
+    int    m_flotadorCandidato     = -1;     // estado leído que espera confirmación
+    int    m_flotadorTicksCand     = 0;      // lecturas seguidas del candidato
+    int    m_flotadorFallos        = 0;      // lecturas seguidas sin respuesta del PCF8574
+    bool   m_flotadorIntercambiado = false;  // true: A en FLOTADOR_PIN_B y B en FLOTADOR_PIN_A
+    bool   m_flotadorInvertido     = false;  // true: pin en 0 = bola activada
+    bool   m_nivelSeguro           = false;  // falla o sin lectura con proceso → modo seguro
+    bool   m_tempEnganchada        = false;  // la temperatura ya se habilitó (primer Operativo)
+    qint64 m_nivelAccionInicioMs   = 0;      // inicio del relleno/drenado en curso
+    qint64 m_nivelExtraHastaMs     = 0;      // fin del tiempo extra (0 = sin tiempo extra)
+    bool   m_bloqueoRelleno        = false;  // se pasó el tiempo máx. de llenado → espera un cambio
+    bool   m_bloqueoDrenado        = false;  // se pasó el tiempo máx. de drenado → espera un cambio
+    int    m_prepExtraRest         = -1;     // preparación: s de tiempo extra restantes (-1 = sin iniciar)
+    int    m_prepTicksAccion       = 0;      // preparación: s con la acción de llenado/drenado actual
 
     // Vaciado por etapas automático (pantalla de extracción): 0=ninguna, 1=EV superior (CH10),
     // 2=EV inferior (CH8). Corta al llegar a la referencia (confirmación) o por tope de tiempo.

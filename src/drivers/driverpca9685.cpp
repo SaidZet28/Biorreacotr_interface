@@ -26,6 +26,8 @@ static constexpr uint8_t REG_LED0_ON_L = 0x06;
 //   2. espera 50 µs
 //   3. OE → LOW   (re-habilita, ahora alineado con el cruce de AC)
 // Esto sincroniza el PWM del PCA9685 con la fase de la red eléctrica.
+// SOLO re-habilita si la app pidió salidas habilitadas: si no, re-afirma OE HIGH en
+// cada cruce (también sana la carrera con un habilitarSalidas(false) a medio pulso).
 void ZeroCrossWorker::process()
 {
 #ifdef Q_OS_LINUX
@@ -34,8 +36,10 @@ void ZeroCrossWorker::process()
         int curr = gpioRead(GPIO_ZERO_CROSS);
         if (curr == 1 && prev == 0) {   // solo en flanco de subida (0→1)
             gpioWrite(GPIO_OE_PCA9685, 1);
-            gpioDelay(50);
-            gpioWrite(GPIO_OE_PCA9685, 0);
+            if (DriverPCA9685::salidasHabilitadas()) {
+                gpioDelay(50);
+                gpioWrite(GPIO_OE_PCA9685, DriverPCA9685::salidasHabilitadas() ? 0 : 1);
+            }
         }
         prev = curr;
         gpioDelay(10);
@@ -74,8 +78,9 @@ bool DriverPCA9685::inicializar(int bus, int frecuenciaHz)
     } else {
         gpioSetMode(GPIO_OE_PCA9685,  PI_OUTPUT);
         gpioSetMode(GPIO_ZERO_CROSS,  PI_INPUT);
-        gpioWrite(GPIO_OE_PCA9685, 1);   // salidas deshabilitadas mientras se configura
     }
+    s_salidasHabilitadas = false;
+    gpioWrite(GPIO_OE_PCA9685, 1);       // salidas deshabilitadas mientras se configura
 
     // Configurar PCA9685: sleep → prescaler → despertar
     escribirRegistro(REG_MODE1, 0x10);   // SLEEP
@@ -85,9 +90,14 @@ bool DriverPCA9685::inicializar(int bus, int frecuenciaHz)
     escribirRegistro(REG_PRESCALE, prescale);
     escribirRegistro(REG_MODE1, 0x20);   // AUTO-INCREMENT, salir de SLEEP
     usleep(500);
+
+    // Todos los canales en 0 ANTES del RESTART: el PCA9685 conserva sus registros si la
+    // app murió (crash / kill) sin apagar, y el RESTART reanudaría esos canales encendidos.
+    for (int i = 0; i < 16; ++i) escribirCanal(i, 0);
     escribirRegistro(REG_MODE1, 0xA0);   // RESTART + AUTO-INCREMENT
 
-    gpioWrite(GPIO_OE_PCA9685, 0);       // habilitar salidas PWM
+    // OE se queda en HIGH: cada modo (proceso, preparación, mantenimiento, vaciado...)
+    // habilita las salidas cuando las necesita.
     qDebug() << "[PCA9685] Inicializado en" << dev << "@" << frecuenciaHz
              << "Hz (prescaler=" << prescale << ")";
 
@@ -126,6 +136,7 @@ void DriverPCA9685::cerrar()
         m_zcThread = nullptr;
     }
 
+    s_salidasHabilitadas = false;
     gpioWrite(GPIO_OE_PCA9685, 1);          // deshabilitar salidas
     for (int i = 0; i < 16; ++i) escribirCanal(i, 0);
     ::close(m_fd);
@@ -138,10 +149,17 @@ void DriverPCA9685::cerrar()
 // ── habilitarSalidas ──────────────────────────────────────────────────────────
 void DriverPCA9685::habilitarSalidas(bool activo)
 {
+    s_salidasHabilitadas = activo;   // antes del pin: el hilo ZC ya no re-habilita
 #ifdef Q_OS_LINUX
     gpioWrite(GPIO_OE_PCA9685, activo ? 0 : 1);
-#else
-    Q_UNUSED(activo)
+#endif
+}
+
+void DriverPCA9685::corteEmergencia()
+{
+    s_salidasHabilitadas = false;
+#ifdef Q_OS_LINUX
+    gpioWrite(GPIO_OE_PCA9685, 1);   // escritura a registro mapeado: sin malloc ni I2C
 #endif
 }
 

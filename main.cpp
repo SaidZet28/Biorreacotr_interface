@@ -26,6 +26,9 @@ namespace { volatile std::sig_atomic_t g_pararSolicitado = 0; }
 // Requiere que pigpio NO instale sus propios manejadores (ver DriverPCA9685).
 static void manejarCrash(int sig)
 {
+    // Primero el corte físico: OE HIGH deshabilita todos los actuadores aunque el
+    // proceso muera con canales encendidos (pigpio no resetea el pin al salir).
+    DriverPCA9685::corteEmergencia();
     void *marcos[64];
     int n = backtrace(marcos, 64);
     const char cab[] = "\n=== CRASH appPrototipo: backtrace ===\n";
@@ -74,6 +77,8 @@ int main(int argc, char *argv[])
         [&]{ if (backend.alertaSobreTemp()) audio.reproducirAlerta(); });
     QObject::connect(&backend, &GestorBiorreactor::alertaBombasChanged, &audio,
         [&]{ if (backend.alertaBombas()) audio.reproducirAdvertencia(); });
+    QObject::connect(&backend, &GestorBiorreactor::alertaCruceCeroChanged, &audio,
+        [&]{ if (backend.alertaCruceCero()) audio.reproducirAlerta(); });
 
     // Preparación del tanque
     QObject::connect(&backend, &GestorBiorreactor::alertaEscalacionChanged, &audio,

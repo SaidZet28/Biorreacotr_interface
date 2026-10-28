@@ -53,10 +53,19 @@ public:
     void habilitarSalidas(bool activo);
     int  estadoOE() const;   // lee el nivel actual del pin OE (0=activo, 1=deshabilitado, -1=N/A)
 
+    // Estado PEDIDO de OE (true = salidas habilitadas). El hilo ZC lo consulta para no
+    // re-habilitar las salidas cuando la app las deshabilitó.
+    static bool salidasHabilitadas() { return s_salidasHabilitadas.load(); }
+
+    // Corte de emergencia: OE HIGH sin tocar el bus I2C. Apto para el manejador de crash.
+    static void corteEmergencia();
+
     bool conectado() const { return m_fd >= 0; }
 
 private:
     void escribirRegistro(uint8_t reg, uint8_t valor);
+
+    static inline std::atomic<bool> s_salidasHabilitadas{false};
 
     int m_fd = -1;
 

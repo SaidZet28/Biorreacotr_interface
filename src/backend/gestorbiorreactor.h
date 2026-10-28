@@ -72,6 +72,7 @@ class GestorBiorreactor : public QObject
     Q_PROPERTY(bool alertaNivel           READ alertaNivel           NOTIFY alertaNivelChanged           FINAL)
     Q_PROPERTY(bool alertaSobreTemp       READ alertaSobreTemp       NOTIFY alertaSobreTempChanged       FINAL)
     Q_PROPERTY(bool alertaBombas          READ alertaBombas          NOTIFY alertaBombasChanged          FINAL)
+    Q_PROPERTY(bool alertaCruceCero       READ alertaCruceCero       NOTIFY alertaCruceCeroChanged       FINAL)
     // Validez de datos: false = sin lecturas frescas (sensor desconectado) → GUI muestra "---"
     Q_PROPERTY(bool sensorSerialValido    READ sensorSerialValido    NOTIFY sensorSerialValidoChanged    FINAL)
     Q_PROPERTY(bool sensorNivelValido     READ sensorNivelValido     NOTIFY sensorNivelValidoChanged     FINAL)
@@ -172,6 +173,7 @@ public:
     bool alertaNivel()           const;
     bool alertaSobreTemp()       const;
     bool alertaBombas()          const;
+    bool alertaCruceCero()       const;
     bool sensorSerialValido()    const;
     bool sensorNivelValido()     const;
 
@@ -376,6 +378,7 @@ signals:
     void alertaNivelChanged();
     void alertaSobreTempChanged();
     void alertaBombasChanged();
+    void alertaCruceCeroChanged();
     void sensorSerialValidoChanged();
     void sensorNivelValidoChanged();
 
@@ -463,6 +466,7 @@ private:
     void setAlertaNivel (bool v);
     void setAlertaSobreTemp(bool v);
     void setAlertaBombas(bool v);
+    void setAlertaCruceCero(bool v);
     void setSensorSerialValido(bool v);
     void setSensorNivelValido(bool v);
     void resetWatchdogSerial();
@@ -600,6 +604,8 @@ private:
     bool m_zcDisparando = false;
     long m_zcDebug      = 0;   // DIAG: cuenta total de cruces por cero (¿el ZC dispara?)
     int  m_zcReafirmar  = 0;   // re-afirma los canales del calentador cada N cruces (anti escritura perdida)
+    qint64 m_ultimoZcMs = 0;   // hora del último cruce por cero (watchdog del calentador)
+    bool m_alertaCruceCero = false;
     static void callbackZC(int gpio, int level, uint32_t tick, void *userdata);
 
     double m_tickSim  = 0.0;

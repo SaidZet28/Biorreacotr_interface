@@ -304,6 +304,12 @@ void GestorBiorreactor::setAlertaBombas(bool v) {
     m_alertaBombas = v; emit alertaBombasChanged();
     if (v) qWarning() << "[WD] Bombas activas sin cambio de nivel — verificar bombas.";
 }
+bool GestorBiorreactor::alertaCruceCero() const { return m_alertaCruceCero; }
+void GestorBiorreactor::setAlertaCruceCero(bool v) {
+    if (m_alertaCruceCero == v) return;
+    m_alertaCruceCero = v; emit alertaCruceCeroChanged();
+    if (v) qWarning() << "[WD] Sin cruce por cero (GPIO" << GPIO_ZERO_CROSS << ") — calentador cortado.";
+}
 bool GestorBiorreactor::sensorSerialValido() const { return m_sensorSerialValido; }
 bool GestorBiorreactor::sensorNivelValido()  const { return m_sensorNivelValido;  }
 void GestorBiorreactor::setSensorSerialValido(bool v) {
@@ -365,6 +371,7 @@ void GestorBiorreactor::setProcesoActivo(bool activo)
         // Limpiar alertas de seguridad y el watchdog de bombas
         setAlertaSobreTemp(false);
         setAlertaBombas(false);
+        setAlertaCruceCero(false);
         m_distRefBomba = -1.0; m_ticksBombaSinCambio = 0;
 
         m_fuzzyPHHabilitado         = false;
@@ -2618,6 +2625,26 @@ void GestorBiorreactor::ejecutarControlLoop()
     const bool sobreTemp = !m_alertaSerial && (m_sensorTem > m_setpointTem + DELTA_SOBRETEMP_C);
     if (sobreTemp) { nuevoCalentador = 0.0; m_pidTemp.reiniciar(); }
     setAlertaSobreTemp(sobreTemp);
+
+#if defined(Q_OS_LINUX) && !defined(SIMULACION_ACTIVA)
+    // Watchdog del cruce por cero: las mantas solo se escriben en onCrucePorCero(). Si la
+    // señal de GPIO27 se pierde, ese callback deja de correr y la manta se quedaría como
+    // estaba (encendida), sin que el PID ni el corte por sobre-temperatura la apaguen.
+    // Sin cruces en ZC_TIMEOUT_MS → apagar las mantas desde aquí y alertar.
+    static constexpr qint64 ZC_TIMEOUT_MS = 1000;   // a 60 Hz llegan ~120 cruces por segundo
+    const bool sinCruce = (QDateTime::currentMSecsSinceEpoch() - m_ultimoZcMs) > ZC_TIMEOUT_MS;
+    if (sinCruce) {
+        nuevoCalentador = 0.0;
+        m_pidTemp.reiniciar();
+    }
+    setAlertaCruceCero(sinCruce && calentarPermitido);   // solo alerta cuando sí debería calentar
+    if ((sinCruce || nuevoCalentador <= 0.0) && m_zcDisparando) {
+        // Apagado directo: no depender del siguiente cruce por cero.
+        m_zcDisparando = false;
+        m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR,   false);
+        m_pca9685.escribirDigital(DriverPCA9685::CH_CALENTADOR_2, false);
+    }
+#endif
     if (!qFuzzyCompare(m_salidaCalentador, nuevoCalentador)) {
         m_salidaCalentador = nuevoCalentador;
 #ifdef SIMULACION_ACTIVA
@@ -3117,6 +3144,7 @@ void GestorBiorreactor::callbackZC(int gpio, int level, uint32_t tick, void *use
 void GestorBiorreactor::onCrucePorCero()
 {
     ++m_zcDebug;   // DIAG: contar todos los cruces por cero (incluso sin proceso)
+    m_ultimoZcMs = QDateTime::currentMSecsSinceEpoch();   // alimenta el watchdog del calentador
     if (!m_procesoActivo) {
         if (m_zcDisparando) {
             m_zcDisparando = false;

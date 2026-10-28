@@ -485,8 +485,10 @@ Item {
         readonly property bool sensoresCaidos: backend.estadoPreparacion === 0
                                             && (!backend.sensorSerialValido || !backend.sensorNivelValido)
         readonly property bool soloDivergencia: backend.alertaDivergenciaTemp
-                                            && !backend.alertaSobreTemp && !backend.alertaBombas && !sensoresCaidos
-        visible: backend.alertaSobreTemp || backend.alertaBombas || sensoresCaidos || backend.alertaDivergenciaTemp
+                                            && !backend.alertaSobreTemp && !backend.alertaCruceCero
+                                            && !backend.alertaBombas && !sensoresCaidos
+        visible: backend.alertaSobreTemp || backend.alertaCruceCero || backend.alertaBombas
+                 || sensoresCaidos || backend.alertaDivergenciaTemp
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: appWindow.height * 0.03
@@ -500,6 +502,8 @@ Item {
             width: parent.width * 0.92
             text: backend.alertaSobreTemp
                   ? qsTranslate("Main", "⚠ Sobre-temperatura: calentamiento cortado")
+                  : backend.alertaCruceCero
+                  ? qsTranslate("Main", "⚠ Sin señal de cruce por cero: calentamiento cortado — revise el detector de AC")
                   : backend.alertaBombas
                     ? qsTranslate("Main", "⚠ Bombas activas sin cambio de nivel — verifica las bombas")
                     : bannerAviso.sensoresCaidos

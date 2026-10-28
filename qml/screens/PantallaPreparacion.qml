@@ -224,7 +224,7 @@ Item {
             textoEtiqueta: "pH"
             textoValor: (backend.estadoPreparacion <= 1 && !backend.modoSimulacion)
                         ? "--- → " + backend.setpointPH.toFixed(1)
-                        : (backend.sensorSerialValido ? backend.sensorPH.toFixed(2) : "---") + " → " + backend.setpointPH.toFixed(1)
+                        : (backend.sensorPHValido ? backend.sensorPH.toFixed(2) : "---") + " → " + backend.setpointPH.toFixed(1)
         }
 
         // Tiempo transcurrido en la fase actual → tiempo estimado al setpoint (modelo FOPDT).
@@ -479,11 +479,12 @@ Item {
         }
     }
 
-    // ── Aviso: sensores desconectados / sobre-temperatura / bombas sin efecto ──
+    // ── Aviso: sensores desconectados / sobre-temperatura / sin cruce por cero / bombas sin efecto ──
     Rectangle {
         id: bannerAviso
-        readonly property bool sensoresCaidos: backend.estadoPreparacion === 0
-                                            && (!backend.sensorSerialValido || !backend.sensorNivelValido)
+        readonly property bool sensoresCaidos: (backend.estadoPreparacion === 0
+                                                && (!backend.sensorSerialValido || !backend.sensorNivelValido))
+                                            || (backend.estadoPreparacion >= 2 && !backend.sensorPHValido)
         readonly property bool soloDivergencia: backend.alertaDivergenciaTemp
                                             && !backend.alertaSobreTemp && !backend.alertaCruceCero
                                             && !backend.alertaBombas && !sensoresCaidos
@@ -651,7 +652,7 @@ Item {
                 Text {
                     width: parent.width
                     text: qsTranslate("Main", "pH: %1   |   Temperatura: %2 °%4   |   Nivel: %3")
-                              .arg(backend.sensorSerialValido ? backend.sensorPH.toFixed(2) : "---")
+                              .arg(backend.sensorPHValido ? backend.sensorPH.toFixed(2) : "---")
                               .arg(backend.sensorSerialValido ? appWindow.tempMostrada(backend.sensorTem).toFixed(1) : "---")
                               .arg(backend.textoNivel)
                               .arg(appWindow.unidadTemperatura)

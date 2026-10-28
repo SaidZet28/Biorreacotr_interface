@@ -10,9 +10,11 @@
 #include <cmath>
 #include <cstring>
 #include <QFile>
+#include <QSaveFile>
 #include <QTextStream>
 #include <QDir>
 #include <QProcess>
+#include <QThread>
 #include <QDateTime>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -22,7 +24,7 @@
 #include <windows.h>
 #endif
 #ifdef Q_OS_LINUX
-#include <unistd.h>   // ::sync() tras exportar a USB
+#include <unistd.h>   // ::sync() tras exportar a USB, ::fsync() del registro
 #endif
 #if defined(Q_OS_LINUX) && !defined(SIMULACION_ACTIVA)
 #include <pigpio.h>
@@ -76,6 +78,27 @@ static QString sanitizarNombre(const QString &s)
                     QChar('?'), QChar('"'), QChar('<'), QChar('>'), QChar('|')})
         r.replace(c, '_');
     return r.isEmpty() ? QStringLiteral("sin_nombre") : r;
+}
+
+// Carpeta de un experimento: <base>/<proyecto>/<experimento>
+static QString carpetaExperimento(const QString &proyecto, const QString &experimento)
+{
+    return basePathStr() + "/" + sanitizarNombre(proyecto) + "/" + sanitizarNombre(experimento);
+}
+
+// Registro en disco de cada experimento (se escribe lectura por lectura).
+static const QString ARCHIVO_REGISTRO = QStringLiteral("lecturas.csv");
+static const QString ENCABEZADO_CSV   =
+    QStringLiteral("Fecha y Hora,Temperatura (°C),pH,Nivel (%),Luz (%),DO (mg/L)");
+
+static QString lineaCSV(const QVariantMap &lec)
+{
+    return lec["hora"].toString() + ","
+         + QString::number(lec["temp"].toDouble(),  'f', 2) + ","
+         + QString::number(lec["ph"].toDouble(),    'f', 2) + ","
+         + QString::number(lec["nivel"].toDouble(), 'f', 1) + ","
+         + QString::number(lec["luz"].toDouble(),   'f', 1) + ","
+         + QString::number(lec["do"].toDouble(),    'f', 2);
 }
 
 // Umbral de staleness: si no hay datos en 5 s, la alerta se activa
@@ -312,6 +335,16 @@ void GestorBiorreactor::setAlertaCruceCero(bool v) {
 }
 bool GestorBiorreactor::sensorSerialValido() const { return m_sensorSerialValido; }
 bool GestorBiorreactor::sensorNivelValido()  const { return m_sensorNivelValido;  }
+bool GestorBiorreactor::sensorPHValido()     const { return m_sensorPHValido;     }
+bool GestorBiorreactor::sensorDOValido()     const { return m_sensorDOValido;     }
+void GestorBiorreactor::setSensoresRS485(bool phValido, bool doValido) {
+    if (m_sensorPHValido == phValido && m_sensorDOValido == doValido) return;
+    if (m_sensorPHValido && !phValido) qWarning() << "[WD] Sensor de pH sin respuesta";
+    if (m_sensorDOValido && !doValido) qWarning() << "[WD] Sensor de DO sin respuesta";
+    m_sensorPHValido = phValido;
+    m_sensorDOValido = doValido;
+    emit sensoresRS485Changed();
+}
 void GestorBiorreactor::setSensorSerialValido(bool v) {
     if (m_sensorSerialValido == v) return;
     m_sensorSerialValido = v; emit sensorSerialValidoChanged();
@@ -464,9 +497,16 @@ void GestorBiorreactor::guardarModelo(const QString &nombre, const QVariantList 
     QJsonArray arr;
     for (const QVariant &v : datos)
         arr.append(QJsonObject::fromVariantMap(v.toMap()));
-    QFile f(basePathStr() + "/" + nombre + ".json");
-    if (f.open(QIODevice::WriteOnly | QIODevice::Truncate))
-        f.write(QJsonDocument(arr).toJson(QJsonDocument::Compact));
+    // QSaveFile escribe a un temporal y lo renombra solo si terminó bien: un corte de luz
+    // a media escritura deja el archivo anterior intacto en vez de uno vacío.
+    QSaveFile f(basePathStr() + "/" + nombre + ".json");
+    if (!f.open(QIODevice::WriteOnly)) {
+        qWarning() << "[Data] No se pudo abrir" << f.fileName();
+        return;
+    }
+    f.write(QJsonDocument(arr).toJson(QJsonDocument::Compact));
+    if (!f.commit())
+        qWarning() << "[Data] No se pudo guardar" << f.fileName();
 }
 
 QVariantList GestorBiorreactor::cargarModelo(const QString &nombre)
@@ -1873,6 +1913,8 @@ void GestorBiorreactor::tickSimulacion()
 
     // Evitar alertas de staleness — marcar como datos recibidos ahora
     m_ultimaLecturaRS485 = QDateTime::currentDateTime();
+    m_ultimaLecturaPH    = m_ultimaLecturaRS485;
+    m_ultimaLecturaDO    = m_ultimaLecturaRS485;
     m_ultimaLecturaI2C   = QDateTime::currentDateTime();
 #endif
 }
@@ -1966,7 +2008,8 @@ void GestorBiorreactor::leerDatosSerial()
 {
     m_buffer += m_puerto.readAll();
     if (m_buffer.size() > 4096) m_buffer.clear();
-    resetWatchdogSerial();
+    // El watchdog se reinicia en parsearTrama(), solo con tramas de CRC válido: el ruido en
+    // la línea ya no limpia la alerta serial.
     procesarBufferModbus();
 }
 
@@ -2058,6 +2101,7 @@ void GestorBiorreactor::parsearTrama(const QByteArray &frame)
     quint8 funcCode = static_cast<quint8>(frame[1]);
 
     m_ultimaLecturaRS485 = QDateTime::currentDateTime();
+    resetWatchdogSerial();
 
     if (funcCode == 0x03) {
         quint8 byteCount = static_cast<quint8>(frame[2]);
@@ -2068,6 +2112,7 @@ void GestorBiorreactor::parsearTrama(const QByteArray &frame)
 
         if (slaveId == 0x03) {
             // RK500-12 pH sensor: val1=pH, val2=internal(skip), val3=temp
+            m_ultimaLecturaPH = m_ultimaLecturaRS485;
             if (val1 >= 0.0f && val1 <= 14.0f)    setSensorPH(static_cast<double>(val1));
             if (temp >= -10.0f && temp <= 120.0f) {
                 m_tempPH = temp; m_tempPHValida = true;
@@ -2075,6 +2120,7 @@ void GestorBiorreactor::parsearTrama(const QByteArray &frame)
             }
         } else if (slaveId == 0x0A) {
             // RK500-04 DO sensor: val1=DO, val2=saturation(skip), val3=temp
+            m_ultimaLecturaDO = m_ultimaLecturaRS485;
             if (val1 >= 0.0f && val1 <= 20.0f)    setSensorDO(static_cast<double>(val1));
             if (temp >= -10.0f && temp <= 120.0f) {
                 m_tempDO = temp; m_tempDOValida = true;
@@ -2103,8 +2149,10 @@ void GestorBiorreactor::actualizarTemperaturaFusionada()
         }
     } else if (m_tempPHValida) {
         setSensorTem(m_tempPH);
+        setAlertaDivergenciaTemp(false);   // con un solo sensor no hay con qué comparar
     } else if (m_tempDOValida) {
         setSensorTem(m_tempDO);
+        setAlertaDivergenciaTemp(false);
     }
 }
 
@@ -2727,7 +2775,8 @@ void GestorBiorreactor::ejecutarControlLoop()
             // La banda de histéresis [85 %, 95 %] la gestiona ControladorHisteresis por separado
             const bool accionPermitida = (error > 0.0)
                                       && aguaEnContacto       // solo con agua tocando el sensor (145–216 mm, sin drenar)
-                                      && !m_alertaSerial       // no dosificar sin datos frescos del sensor de pH
+                                      && !m_alertaSerial       // no dosificar sin datos frescos del bus
+                                      && m_sensorPHValido      // ni con el sensor de pH caído (pH congelado)
                                       && (USAR_FLOTADOR || m_sensorNivel < m_nivelMaxPct);
 
             if (accionPermitida) {
@@ -2770,6 +2819,7 @@ void GestorBiorreactor::iniciarRegistro(const QString &proyecto, const QString &
     m_nombreExpRegistro      = experimento;
     m_lecturas.clear();
     m_tiempoInicioRegistro = QDateTime::currentDateTime();
+    abrirArchivoRegistro();
     connect(&m_timerRegistro, &QTimer::timeout,
             this, &GestorBiorreactor::registrarLectura, Qt::UniqueConnection);
     m_timerRegistro.setInterval(30000);
@@ -2781,6 +2831,7 @@ void GestorBiorreactor::detenerRegistro()
 {
     if (!m_timerRegistro.isActive()) return;
     m_timerRegistro.stop();
+    if (m_archivoRegistro.isOpen()) m_archivoRegistro.close();
     QString clave = "lecturas_" + sanitizarNombre(m_nombreProyectoRegistro)
                   + "_" + sanitizarNombre(m_nombreExpRegistro);
     QVariantList lista;
@@ -2811,6 +2862,53 @@ void GestorBiorreactor::registrarLectura()
     lec["luz"]   = m_sensorLuz;
     lec["do"]    = m_sensorDO;
     m_lecturas.append(lec);
+
+    // Escribir la lectura a disco en el momento (antes solo se guardaban al detener: un crash
+    // o un corte de luz perdía la corrida completa).
+    if (m_archivoRegistro.isOpen()) {
+        QTextStream out(&m_archivoRegistro);
+        out.setEncoding(QStringConverter::Utf8);
+        out << lineaCSV(lec) << "\n";
+        out.flush();
+        m_archivoRegistro.flush();
+#ifdef Q_OS_LINUX
+        ::fsync(m_archivoRegistro.handle());
+#endif
+    }
+}
+
+// Abre <carpeta del experimento>/lecturas.csv con su encabezado. Si el experimento ya tenía
+// un registro (mismo nombre reutilizado), se conserva renombrándolo con su fecha.
+void GestorBiorreactor::abrirArchivoRegistro()
+{
+    if (m_archivoRegistro.isOpen()) m_archivoRegistro.close();
+    const QString carpeta = carpetaExperimento(m_nombreProyectoRegistro, m_nombreExpRegistro);
+    QDir().mkpath(carpeta);
+    const QString ruta = carpeta + "/" + ARCHIVO_REGISTRO;
+
+    QIODevice::OpenMode modo = QIODevice::WriteOnly | QIODevice::Text;
+    if (QFile::exists(ruta)) {
+        const QString anterior = carpeta + "/lecturas_hasta_"
+            + QFileInfo(ruta).lastModified().toString("yyyyMMdd_HHmmss") + ".csv";
+        if (!QFile::rename(ruta, anterior)) {
+            qWarning() << "[Registro] No se pudo renombrar" << ruta << "— se agrega al final";
+            modo |= QIODevice::Append;   // nunca truncar datos existentes
+        }
+    }
+    m_archivoRegistro.setFileName(ruta);
+    if (!m_archivoRegistro.open(modo)) {
+        qWarning() << "[Registro] No se pudo abrir" << ruta << "— las lecturas solo quedan en memoria";
+        return;
+    }
+    QTextStream out(&m_archivoRegistro);
+    out.setEncoding(QStringConverter::Utf8);
+    out << "# Proyecto: "    << m_nombreProyectoRegistro << "\n"
+        << "# Experimento: " << m_nombreExpRegistro      << "\n"
+        << "# Inicio: "      << m_tiempoInicioRegistro.toString("dd/MM/yyyy HH:mm:ss") << "\n"
+        << "#\n"
+        << ENCABEZADO_CSV << "\n";
+    out.flush();
+    m_archivoRegistro.flush();
 }
 
 void GestorBiorreactor::leerTempHmi()
@@ -2860,17 +2958,34 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
                                              const QString &nombreExp,
                                              const QString &nombreProyecto)
 {
-    // Copia local para no mutar m_lecturas si se exporta un experimento diferente al activo
-    QVector<QVariantMap> lecturas = m_lecturas;
-
-    if (lecturas.isEmpty()) {
-        QString clave = "lecturas_" + sanitizarNombre(nombreProyecto)
-                      + "_" + sanitizarNombre(nombreExp);
+    // Los datos salen SIEMPRE del experimento pedido. Antes se usaban las lecturas en memoria
+    // de la última corrida aunque se exportara otro experimento de la lista.
+    QStringList meta;    // líneas "# ..." del encabezado
+    QStringList filas;   // una por lectura
+    QFile vivo(carpetaExperimento(nombreProyecto, nombreExp) + "/" + ARCHIVO_REGISTRO);
+    if (vivo.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&vivo);
+        in.setEncoding(QStringConverter::Utf8);
+        while (!in.atEnd()) {
+            const QString linea = in.readLine().trimmed();
+            if (linea.isEmpty() || linea == "#" || linea == ENCABEZADO_CSV) continue;
+            if (linea.startsWith('#')) meta << linea;
+            else                       filas << linea;
+        }
+    }
+    if (filas.isEmpty()) {
+        // Experimentos anteriores al registro en disco: solo tienen el JSON guardado al detener.
+        meta.clear();
+        const QString clave = "lecturas_" + sanitizarNombre(nombreProyecto)
+                            + "_" + sanitizarNombre(nombreExp);
         const QVariantList cargado = cargarModelo(clave);
         for (const QVariant &v : cargado)
-            lecturas.append(v.toMap());
+            filas << lineaCSV(v.toMap());
+        meta << "# Proyecto: " + nombreProyecto << "# Experimento: " + nombreExp;
+        if (!cargado.isEmpty())
+            meta << "# Inicio: " + cargado.first().toMap().value("hora").toString();
     }
-    if (lecturas.isEmpty()) {
+    if (filas.isEmpty()) {
         qWarning() << "[CSV] Sin lecturas para exportar";
         return false;
     }
@@ -2896,22 +3011,14 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
     QTextStream out(&f);
     out.setEncoding(QStringConverter::Utf8);
 
-    out << "# Proyecto: "    << nombreProyecto << "\n"
-        << "# Experimento: " << nombreExp      << "\n"
-        << "# Inicio: "      << m_tiempoInicioRegistro.toString("dd/MM/yyyy HH:mm:ss") << "\n"
-        << "# Exportado: "   << QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss") << "\n"
-        << "# Lecturas: "    << lecturas.size() << "\n"
+    for (const QString &m : meta)
+        out << m << "\n";
+    out << "# Exportado: " << QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm:ss") << "\n"
+        << "# Lecturas: "  << filas.size() << "\n"
         << "#\n"
-        << "Fecha y Hora,Temperatura (°C),pH,Nivel (%),Luz (%),DO (mg/L)\n";
-
-    for (const QVariantMap &lec : lecturas) {
-        out << lec["hora"].toString() << ","
-            << QString::number(lec["temp"].toDouble(),  'f', 2) << ","
-            << QString::number(lec["ph"].toDouble(),    'f', 2) << ","
-            << QString::number(lec["nivel"].toDouble(), 'f', 1) << ","
-            << QString::number(lec["luz"].toDouble(),   'f', 1) << ","
-            << QString::number(lec["do"].toDouble(),    'f', 2) << "\n";
-    }
+        << ENCABEZADO_CSV << "\n";
+    for (const QString &fila : filas)
+        out << fila << "\n";
 
     out.flush();
     f.flush();
@@ -2922,7 +3029,7 @@ bool GestorBiorreactor::exportarRegistroCSV(const QString &carpetaDestino,
 #endif
 
     qDebug() << "[CSV] Registro exportado a" << f.fileName()
-             << "(" << lecturas.size() << "lecturas)";
+             << "(" << filas.size() << "lecturas)";
     return true;
 }
 
@@ -3183,10 +3290,22 @@ void GestorBiorreactor::verificarStaleness()
 
     // Validez de datos (SIEMPRE, aun sin proceso): la GUI muestra "---" si el sensor
     // no entrega lecturas frescas (desconectado). RS-485 = temp/pH/DO; I2C = nivel.
-    const bool serialFresco = m_ultimaLecturaRS485.isValid() &&
-        (ahora - m_ultimaLecturaRS485.toMSecsSinceEpoch()) <= UMBRAL_STALENESS_MS;
-    const bool nivelFresco  = m_ultimaLecturaI2C.isValid() &&
-        (ahora - m_ultimaLecturaI2C.toMSecsSinceEpoch()) <= UMBRAL_STALENESS_MS;
+    auto fresco = [ahora](const QDateTime &t) {
+        return t.isValid() && (ahora - t.toMSecsSinceEpoch()) <= UMBRAL_STALENESS_MS;
+    };
+    // Frescura POR SENSOR: antes cualquier trama (de pH o de DO) marcaba todo el bus como
+    // fresco, así que un sensor caído quedaba oculto por el otro (pH congelado y dosificando,
+    // temperatura promediando un valor congelado con uno vivo).
+    const bool phFresco     = fresco(m_ultimaLecturaPH);
+    const bool doFresco     = fresco(m_ultimaLecturaDO);
+    const bool serialFresco = phFresco || doFresco;
+    const bool nivelFresco  = fresco(m_ultimaLecturaI2C);
+    // La temperatura de un sensor sin tramas deja de contar para la fusión.
+    bool tempCambio = false;
+    if (m_tempPHValida && !phFresco) { m_tempPHValida = false; tempCambio = true; }
+    if (m_tempDOValida && !doFresco) { m_tempDOValida = false; tempCambio = true; }
+    if (tempCambio) actualizarTemperaturaFusionada();
+    setSensoresRS485(phFresco, doFresco);
     setSensorSerialValido(serialFresco);
     setSensorNivelValido(nivelFresco);
 

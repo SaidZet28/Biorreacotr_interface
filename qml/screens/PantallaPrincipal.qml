@@ -29,10 +29,10 @@ Item {
         spacing: parent.height * 0.03
 
         BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Temperatura:"); textoValor: qsTranslate("Main", "%1 °%2").arg(backend.sensorSerialValido ? (appWindow.unidadTemperatura === "F" ? (backend.sensorTem * 9/5 + 32) : backend.sensorTem).toFixed(1) : "---").arg(appWindow.unidadTemperatura) }
-        BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Nivel de pH:"); textoValor: qsTranslate("Main", "%1").arg(backend.sensorSerialValido ? backend.sensorPH.toFixed(1) : "---") }
+        BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Nivel de pH:"); textoValor: qsTranslate("Main", "%1").arg(backend.sensorPHValido ? backend.sensorPH.toFixed(1) : "---") }
         BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Nivel de agua:"); textoValor: backend.textoNivel }
         BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "Nivel de luz:"); textoValor: qsTranslate("Main", "%1 %").arg(backend.sensorLuz.toFixed(0)) }
-        BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "OD:"); textoValor: qsTranslate("Main", "%1 mg/L").arg(backend.sensorSerialValido ? backend.sensorDO.toFixed(2) : "---") }
+        BarraDisplaySensor { textoEtiqueta: qsTranslate("Main", "OD:"); textoValor: qsTranslate("Main", "%1 mg/L").arg(backend.sensorDOValido ? backend.sensorDO.toFixed(2) : "---") }
     }
 
     Column {

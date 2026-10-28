@@ -79,6 +79,9 @@ int main(int argc, char *argv[])
         [&]{ if (backend.alertaBombas()) audio.reproducirAdvertencia(); });
     QObject::connect(&backend, &GestorBiorreactor::alertaCruceCeroChanged, &audio,
         [&]{ if (backend.alertaCruceCero()) audio.reproducirAlerta(); });
+    QObject::connect(&backend, &GestorBiorreactor::sensoresRS485Changed, &audio,
+        [&]{ if (backend.procesoActivo() && (!backend.sensorPHValido() || !backend.sensorDOValido()))
+                 audio.reproducirAdvertencia(); });
 
     // Preparación del tanque
     QObject::connect(&backend, &GestorBiorreactor::alertaEscalacionChanged, &audio,

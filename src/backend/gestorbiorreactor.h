@@ -4,6 +4,7 @@
 #include <QSerialPort>
 #include <QTimer>
 #include <QDateTime>
+#include <QFile>
 #include <QMetaObject>
 #include <QVariant>
 
@@ -76,6 +77,9 @@ class GestorBiorreactor : public QObject
     // Validez de datos: false = sin lecturas frescas (sensor desconectado) → GUI muestra "---"
     Q_PROPERTY(bool sensorSerialValido    READ sensorSerialValido    NOTIFY sensorSerialValidoChanged    FINAL)
     Q_PROPERTY(bool sensorNivelValido     READ sensorNivelValido     NOTIFY sensorNivelValidoChanged     FINAL)
+    // Validez por sensor RS-485: uno caído ya no queda oculto por las tramas del otro
+    Q_PROPERTY(bool sensorPHValido        READ sensorPHValido        NOTIFY sensoresRS485Changed         FINAL)
+    Q_PROPERTY(bool sensorDOValido        READ sensorDOValido        NOTIFY sensoresRS485Changed         FINAL)
 
     // ── Estado del proceso ───────────────────────────────────────────────────
     Q_PROPERTY(bool procesoActivo READ procesoActivo WRITE setProcesoActivo NOTIFY procesoActivoChanged FINAL)
@@ -176,6 +180,8 @@ public:
     bool alertaCruceCero()       const;
     bool sensorSerialValido()    const;
     bool sensorNivelValido()     const;
+    bool sensorPHValido()        const;
+    bool sensorDOValido()        const;
 
     bool procesoActivo() const;
     void setProcesoActivo(bool activo);
@@ -381,6 +387,7 @@ signals:
     void alertaCruceCeroChanged();
     void sensorSerialValidoChanged();
     void sensorNivelValidoChanged();
+    void sensoresRS485Changed();
 
     void procesoActivoChanged();
 
@@ -469,6 +476,7 @@ private:
     void setAlertaCruceCero(bool v);
     void setSensorSerialValido(bool v);
     void setSensorNivelValido(bool v);
+    void setSensoresRS485(bool phValido, bool doValido);
     void resetWatchdogSerial();
 
     void setEstadoPreparacion(int estado);
@@ -502,8 +510,10 @@ private:
     bool m_alertaNivel           = false;
     bool m_alertaSobreTemp       = false;
     bool m_alertaBombas          = false;
-    bool m_sensorSerialValido    = true;   // hay datos RS-485 frescos (temp/pH/DO)
+    bool m_sensorSerialValido    = true;   // hay datos RS-485 frescos de algún sensor (temperatura)
     bool m_sensorNivelValido     = true;   // hay datos I2C frescos (nivel)
+    bool m_sensorPHValido        = true;   // tramas frescas del sensor de pH (slave 0x03)
+    bool m_sensorDOValido        = true;   // tramas frescas del sensor de DO (slave 0x0A)
     // Watchdog de bombas: detecta bombas activas (llenado o drenado) sin cambio de nivel
     double m_distRefBomba        = -1.0;   // distancia mm de referencia
     int    m_ticksBombaSinCambio = 0;      // s con bombas activas y nivel estancado
@@ -592,6 +602,8 @@ private:
     QTimer m_timerTempHmi;        // 5000 ms — lee la temperatura del RTC DS3231 (gabinete)
 
     QDateTime m_ultimaLecturaRS485;
+    QDateTime m_ultimaLecturaPH;
+    QDateTime m_ultimaLecturaDO;
     QDateTime m_ultimaLecturaI2C;
     QDateTime m_tiempoInicioRegistro;
 
@@ -678,6 +690,8 @@ private:
     QString m_nombreProyectoRegistro;
     QString m_nombreExpRegistro;
     QVector<QVariantMap> m_lecturas;
+    QFile   m_archivoRegistro;   // CSV del experimento, se escribe lectura por lectura
+    void    abrirArchivoRegistro();
 
     // ── Caracterización del sensor de nivel (herramienta de diagnóstico) ──────
     void    caractRegistrarEvento(const QString &actuador, bool estado);

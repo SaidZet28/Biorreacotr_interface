@@ -62,27 +62,27 @@ Item {
     Timer {
         id: tPH4; interval: root.duracionCal
         onTriggered: {
-            if (backend.sensorSerialValido) { root.stPH4 = 2; root.puntos_pH++ }
+            if (backend.sensorPHValido) { root.stPH4 = 2; root.puntos_pH++ }
             else { root.stPH4 = 3 }
         }
     }
     Timer {
         id: tPH7; interval: root.duracionCal
         onTriggered: {
-            if (backend.sensorSerialValido) { root.stPH7 = 2; root.puntos_pH++ }
+            if (backend.sensorPHValido) { root.stPH7 = 2; root.puntos_pH++ }
             else { root.stPH7 = 3 }
         }
     }
     Timer {
         id: tPH10; interval: root.duracionCal
         onTriggered: {
-            if (backend.sensorSerialValido) { root.stPH10 = 2; root.puntos_pH++ }
+            if (backend.sensorPHValido) { root.stPH10 = 2; root.puntos_pH++ }
             else { root.stPH10 = 3 }
         }
     }
     Timer {
         id: tDO; interval: root.duracionCal
-        onTriggered: { root.stDO = backend.sensorSerialValido ? 2 : 3 }
+        onTriggered: { root.stDO = backend.sensorDOValido ? 2 : 3 }
     }
     Timer {
         id: tNivel; interval: root.duracionCal
@@ -128,12 +128,12 @@ Item {
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30
                     textoEtiqueta: "pH"
-                    textoValor: backend.sensorSerialValido ? backend.sensorPH.toFixed(1) : "---"
+                    textoValor: backend.sensorPHValido ? backend.sensorPH.toFixed(1) : "---"
                 }
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30
                     textoEtiqueta: "DO"
-                    textoValor: (backend.sensorSerialValido ? backend.sensorDO.toFixed(1) : "---") + " mg/L"
+                    textoValor: (backend.sensorDOValido ? backend.sensorDO.toFixed(1) : "---") + " mg/L"
                 }
                 BarraDisplaySensor {
                     width: colContenido.width * 0.30
